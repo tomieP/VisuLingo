@@ -559,42 +559,6 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
               </button>
             </div>
 
-            {/* Quick Streak Stories Strip */}
-            {mainTab === 'messages' && (
-              <div className="px-4 py-2 border-b border-white/5 shrink-0">
-                <div className="flex items-center gap-3.5 overflow-x-auto scrollbar-none py-1">
-                  {friends.map((f) => {
-                    const convo = conversations[f.id];
-                    const streak = convo?.streakDays || f.streak;
-                    return (
-                      <button
-                        key={f.id}
-                        type="button"
-                        onClick={() => setActiveFriendId(f.id)}
-                        className="flex flex-col items-center gap-1.5 shrink-0 group focus:outline-hidden cursor-pointer"
-                      >
-                        <div className="relative">
-                          <div className="w-13 h-13 rounded-full p-[2px] bg-gradient-to-tr from-amber-400 via-orange-400 to-amber-200 group-hover:scale-105 transition-transform shadow-md shadow-amber-400/10">
-                            <img
-                              src={f.avatar}
-                              alt={f.name}
-                              className="w-full h-full rounded-full object-cover border border-[#0E131F]"
-                            />
-                          </div>
-                          <span className="absolute -bottom-1 -right-0.5 px-1.5 py-0.2 rounded-full bg-[#0E131F] border border-amber-400/40 text-[9px] font-black text-amber-300 flex items-center shadow-xs">
-                            🔥{streak}
-                          </span>
-                        </div>
-                        <span className="text-[11px] text-slate-300 group-hover:text-amber-300 font-medium truncate max-w-[60px]">
-                          {f.name.split(' ').pop()}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {/* TAB CONTENT */}
             <div className="flex-1 overflow-y-auto px-2 py-2">
               {mainTab === 'messages' ? (

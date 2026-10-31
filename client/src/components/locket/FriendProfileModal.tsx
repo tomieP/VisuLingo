@@ -10,6 +10,7 @@ import {
   BookmarkPlus,
   Sparkles,
   ArrowLeft,
+  MessageCircle,
 } from 'lucide-react';
 import { FriendProfile, FriendAlbum, FriendSnapPhoto, toggleFollowFriend } from '@/utils/friends';
 import { LocketSticker } from './LocketSticker';
@@ -21,6 +22,7 @@ interface FriendProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdated: () => void;
+  onStartChat?: (friendId: string) => void;
 }
 
 export function FriendProfileModal({
@@ -28,6 +30,7 @@ export function FriendProfileModal({
   isOpen,
   onClose,
   onUpdated,
+  onStartChat,
 }: FriendProfileModalProps) {
   // Navigation states inside friend's profile:
   // 1. Viewing albums list: selectedAlbum = null, selectedPhoto = null
@@ -95,12 +98,12 @@ export function FriendProfileModal({
             <p className="text-xs text-slate-400 font-mono">{friend.username}</p>
             <p className="text-xs text-slate-300 mt-1.5 leading-relaxed">{friend.bio}</p>
 
-            {/* Follow action */}
-            <div className="mt-3">
+            {/* Follow & Message actions */}
+            <div className="mt-3 flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleFollowToggle}
-                className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
                   friend.isFollowing
                     ? 'bg-white/10 hover:bg-white/20 text-slate-200 border border-white/10'
                     : 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-md shadow-amber-400/20'
@@ -117,6 +120,19 @@ export function FriendProfileModal({
                     <span>+ Theo dõi</span>
                   </>
                 )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onStartChat?.(friend.id);
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 text-slate-200 border border-white/10 hover:border-amber-400/40 transition-all"
+                title="Nhắn tin với bạn bè"
+              >
+                <MessageCircle className="w-3.5 h-3.5 text-amber-300" />
+                <span>Nhắn tin</span>
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, Flame, Settings as SettingsIcon, X, Bell, Trophy } from 'lucide-react';
+import { Sparkles, Flame, Settings as SettingsIcon, X, Bell, Trophy, MessageSquare } from 'lucide-react';
 import { LocketBottomBar, LocketTab } from '@/components/locket/LocketBottomBar';
 import { LocketFeedCard } from '@/components/locket/LocketFeedCard';
 import { LocketCameraView } from '@/components/locket/LocketCameraView';
@@ -9,10 +9,12 @@ import { FriendsStoryBar } from '@/components/locket/FriendsStoryBar';
 import { FriendProfileModal } from '@/components/locket/FriendProfileModal';
 import { NotificationsModal } from '@/components/locket/NotificationsModal';
 import { FriendLeaderboardModal } from '@/components/locket/FriendLeaderboardModal';
+import { DirectChatModal } from '@/components/locket/DirectChatModal';
 import { getMoments, MomentPost } from '@/utils/moments';
 import { getSavedWords } from '@/utils/storage';
 import { getFriends, FriendProfile } from '@/utils/friends';
 import { getUnreadNotificationsCount } from '@/utils/notifications';
+import { getTotalUnreadChatCount } from '@/utils/chat';
 
 function HomePage() {
   const [activeTab, setActiveTab] = useState<LocketTab>('snap');
@@ -20,6 +22,7 @@ function HomePage() {
   const [friends, setFriends] = useState<FriendProfile[]>([]);
   const [savedCount, setSavedCount] = useState<number>(0);
   const [unreadNotifs, setUnreadNotifs] = useState<number>(0);
+  const [unreadChat, setUnreadChat] = useState<number>(0);
 
   // Social filtering & modal states
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
@@ -27,12 +30,15 @@ function HomePage() {
   const [selectedFriendProfile, setSelectedFriendProfile] = useState<FriendProfile | null>(null);
   const [isNotifsOpen, setIsNotifsOpen] = useState<boolean>(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState<boolean>(false);
+  const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
+  const [chatFriendId, setChatFriendId] = useState<string | null>(null);
 
   const loadData = () => {
     setMoments(getMoments());
     setFriends(getFriends());
     setSavedCount(getSavedWords().length);
     setUnreadNotifs(getUnreadNotificationsCount());
+    setUnreadChat(getTotalUnreadChatCount());
   };
 
   useEffect(() => {
@@ -42,17 +48,20 @@ function HomePage() {
     const handleSaved = () => setSavedCount(getSavedWords().length);
     const handleFriends = () => setFriends(getFriends());
     const handleNotifs = () => setUnreadNotifs(getUnreadNotificationsCount());
+    const handleChat = () => setUnreadChat(getTotalUnreadChatCount());
 
     window.addEventListener('visulingo_moments_changed', handleMoments);
     window.addEventListener('visulingo_saved_words_changed', handleSaved);
     window.addEventListener('visulingo_friends_changed', handleFriends);
     window.addEventListener('visulingo_notifications_changed', handleNotifs);
+    window.addEventListener('visulingo_chat_changed', handleChat);
 
     return () => {
       window.removeEventListener('visulingo_moments_changed', handleMoments);
       window.removeEventListener('visulingo_saved_words_changed', handleSaved);
       window.removeEventListener('visulingo_friends_changed', handleFriends);
       window.removeEventListener('visulingo_notifications_changed', handleNotifs);
+      window.removeEventListener('visulingo_chat_changed', handleChat);
     };
   }, []);
 
@@ -164,12 +173,28 @@ function HomePage() {
               <span>5</span>
             </button>
 
+            {/* Direct Chat Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setChatFriendId(null);
+                setIsChatOpen(true);
+              }}
+              className="relative p-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-slate-300 hover:text-white transition-colors"
+              title="Tin nhắn bạn bè"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              {unreadChat > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-[#0B0F17]" />
+              )}
+            </button>
+
             {/* Notifications Bell */}
             <button
               type="button"
               onClick={() => setIsNotifsOpen(true)}
               className="relative p-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-slate-300 hover:text-white transition-colors"
-              title="Thông báo hoạt động"
+              title="Hoạt động thông minh"
             >
               <Bell className="w-3.5 h-3.5" />
               {unreadNotifs > 0 && (
@@ -314,18 +339,37 @@ function HomePage() {
         isOpen={!!selectedFriendProfile}
         onClose={() => setSelectedFriendProfile(null)}
         onUpdated={loadData}
+        onStartChat={(fId) => {
+          setChatFriendId(fId);
+          setIsChatOpen(true);
+        }}
       />
 
       {/* Notifications Modal */}
       <NotificationsModal
         isOpen={isNotifsOpen}
         onClose={() => setIsNotifsOpen(false)}
+        onOpenChatWithFriend={(friendName) => {
+          const f = friends.find((fr) => fr.name.toLowerCase().includes(friendName.toLowerCase()));
+          if (f) setChatFriendId(f.id);
+          setIsChatOpen(true);
+        }}
       />
 
       {/* Friend Leaderboard Modal */}
       <FriendLeaderboardModal
         isOpen={isLeaderboardOpen}
         onClose={() => setIsLeaderboardOpen(false)}
+      />
+
+      {/* Direct Chat Modal */}
+      <DirectChatModal
+        isOpen={isChatOpen}
+        onClose={() => {
+          setIsChatOpen(false);
+          setChatFriendId(null);
+        }}
+        initialFriendId={chatFriendId}
       />
     </div>
   );

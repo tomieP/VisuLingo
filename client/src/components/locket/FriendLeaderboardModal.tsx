@@ -1,6 +1,5 @@
-import { X, Trophy, Flame, Sparkles, BookOpen, Crown } from 'lucide-react';
+import { X, Flame, Sparkles, Crown } from 'lucide-react';
 import { getFriends } from '@/utils/friends';
-import { getSavedWords } from '@/utils/storage';
 
 interface FriendLeaderboardModalProps {
   isOpen: boolean;
@@ -11,18 +10,16 @@ export function FriendLeaderboardModal({ isOpen, onClose }: FriendLeaderboardMod
   if (!isOpen) return null;
 
   const friends = getFriends();
-  const myWordsCount = getSavedWords().length;
 
-  // Combine user with friends and rank by totalWords
+  // Combine user with friends and rank purely by streak days
   const allRanked = [
     {
       id: 'me',
       name: 'Bạn (Me)',
       username: '@visulingo_me',
       avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-      badge: 'Level 3 🌟',
+      badge: 'Streak 5 🔥',
       streak: 5,
-      totalWords: Math.max(85, myWordsCount),
       isMe: true,
     },
     ...friends.map((f) => ({
@@ -32,10 +29,9 @@ export function FriendLeaderboardModal({ isOpen, onClose }: FriendLeaderboardMod
       avatar: f.avatar,
       badge: f.badge,
       streak: f.streak,
-      totalWords: f.totalWords,
       isMe: false,
     })),
-  ].sort((a, b) => b.totalWords - a.totalWords);
+  ].sort((a, b) => b.streak - a.streak);
 
   const top1 = allRanked[0];
   const top2 = allRanked[1];
@@ -51,13 +47,13 @@ export function FriendLeaderboardModal({ isOpen, onClose }: FriendLeaderboardMod
         <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center font-bold">
-              <Trophy className="w-4 h-4" />
+              <Flame className="w-4 h-4 fill-slate-950" />
             </div>
             <div>
               <h3 className="font-extrabold text-base text-white flex items-center gap-1.5">
-                Bảng xếp hạng tuần
+                Bảng xếp hạng Streak
               </h3>
-              <p className="text-[11px] text-slate-400">Đua từ vựng cùng bạn bè • Làm mới chủ nhật</p>
+              <p className="text-[11px] text-slate-400">Đua chuỗi ngày học liên tục cùng bạn bè 🔥</p>
             </div>
           </div>
 
@@ -86,7 +82,10 @@ export function FriendLeaderboardModal({ isOpen, onClose }: FriendLeaderboardMod
               <span className="text-xs font-bold truncate max-w-[75px] text-slate-200">
                 {top2.name.split(' ').pop()}
               </span>
-              <span className="text-[10px] font-extrabold text-amber-300">{top2.totalWords} từ</span>
+              <span className="text-[10px] font-extrabold text-amber-300 flex items-center gap-0.5">
+                <Flame className="w-3 h-3 fill-amber-400" />
+                <span>{top2.streak} ngày</span>
+              </span>
             </div>
           )}
 
@@ -107,8 +106,9 @@ export function FriendLeaderboardModal({ isOpen, onClose }: FriendLeaderboardMod
               <span className="text-xs font-extrabold truncate max-w-[90px] text-amber-300">
                 {top1.name}
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-black text-[11px] border border-amber-400/30">
-                {top1.totalWords} từ
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-black text-[11px] border border-amber-400/30 flex items-center gap-1">
+                <Flame className="w-3 h-3 fill-amber-400" />
+                <span>{top1.streak} ngày</span>
               </span>
             </div>
           )}
@@ -127,7 +127,10 @@ export function FriendLeaderboardModal({ isOpen, onClose }: FriendLeaderboardMod
               <span className="text-xs font-bold truncate max-w-[75px] text-slate-200">
                 {top3.name.split(' ').pop()}
               </span>
-              <span className="text-[10px] font-extrabold text-amber-300">{top3.totalWords} từ</span>
+              <span className="text-[10px] font-extrabold text-amber-300 flex items-center gap-0.5">
+                <Flame className="w-3 h-3 fill-amber-400" />
+                <span>{top3.streak} ngày</span>
+              </span>
             </div>
           )}
         </div>
@@ -138,17 +141,15 @@ export function FriendLeaderboardModal({ isOpen, onClose }: FriendLeaderboardMod
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
               <p className="text-xs text-slate-200">
-                Bạn đang ở <strong>Hạng #{myRank}</strong>. Cần thêm{' '}
-                <strong className="text-amber-300">
-                  {personAhead.totalWords - (top3?.isMe ? top3.totalWords : 85) + 1} từ
-                </strong>{' '}
-                để vượt qua <strong>{personAhead.name.split(' ').pop()}</strong>!
+                Bạn đang giữ chuỗi <strong>🔥 5 ngày</strong>. Học mỗi ngày để bám đuổi{' '}
+                <strong className="text-amber-300">{personAhead.name.split(' ').pop()}</strong> (
+                {personAhead.streak} ngày)!
               </p>
             </div>
           </div>
         )}
 
-        {/* Full Ranking List */}
+        {/* Full Streak Ranking List */}
         <div className="flex-1 overflow-y-auto space-y-2 pr-1">
           {allRanked.map((user, idx) => {
             const rank = idx + 1;
@@ -197,19 +198,15 @@ export function FriendLeaderboardModal({ isOpen, onClose }: FriendLeaderboardMod
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
-                      <span>{user.username}</span>
-                      <span className="flex items-center gap-0.5 text-amber-400 font-bold">
-                        <Flame className="w-2.5 h-2.5 fill-amber-400" />
-                        {user.streak}d
-                      </span>
-                    </div>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      {user.username}
+                    </span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1 text-xs font-extrabold text-amber-300 bg-black/40 px-2.5 py-1 rounded-xl border border-white/5">
-                  <BookOpen className="w-3 h-3 text-amber-400" />
-                  <span>{user.totalWords}</span>
+                  <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <span>{user.streak} ngày</span>
                 </div>
               </div>
             );

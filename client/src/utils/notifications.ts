@@ -64,7 +64,7 @@ const INITIAL_NOTIFICATIONS: AppNotification[] = [
     actor: {
       name: 'Thành Nam',
       avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=150&q=80',
-      badge: 'Level 4 🌟',
+      badge: 'Streak 4 🔥',
     },
     text: 'đã bình luận: "Bánh này gọi là croissant nè! 🥐"',
     timeAgo: '1 giờ trước',
@@ -79,10 +79,10 @@ const INITIAL_NOTIFICATIONS: AppNotification[] = [
       name: 'VisuLingo AI',
       avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=150&q=80',
     },
-    text: 'Duy trì chuỗi streak 5 ngày liên tiếp! Bạn đã mở khóa huy hiệu "Học sinh chuyên cần".',
+    text: 'Duy trì chuỗi streak 5 ngày liên tiếp! Bạn đã học chăm chỉ hôm nay.',
     timeAgo: 'Hôm nay',
     isRead: true,
-    actionLabel: 'Nhận thưởng +50 XP 🌟',
+    actionLabel: 'Thắp sáng Streak 🔥',
     actionType: 'claim_streak',
   },
 ];

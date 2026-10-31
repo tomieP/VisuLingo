@@ -163,7 +163,7 @@ const INITIAL_FRIENDS: FriendProfile[] = [
     username: '@thanhnam.design',
     avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80',
     bio: 'Product Designer 🎨 Chuyên snap đồ ăn & đồ nghề thiết kế.',
-    badge: 'Level 4 🌟',
+    badge: 'Streak 4 🔥',
     streak: 4,
     totalWords: 65,
     snapsCount: 5,

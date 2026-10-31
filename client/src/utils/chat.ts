@@ -85,7 +85,7 @@ const INITIAL_CONVERSATIONS: Record<string, Conversation> = {
     friendId: 'friend-3',
     friendName: 'Thành Nam',
     friendAvatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=150&q=80',
-    friendBadge: 'Level 4 🌟',
+    friendBadge: 'Streak 4 🔥',
     unreadCount: 0,
     messages: [
       {

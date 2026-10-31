@@ -109,7 +109,7 @@ const INITIAL_MOMENTS: MomentPost[] = [
     author: {
       name: 'Thành Nam',
       avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=150&q=80',
-      badge: 'Level 4 🌟',
+      badge: 'Streak 4 🔥',
     },
     caption: 'Bữa sáng nạp năng lượng! Cả nhà thấy món này gọi là gì? 🍞',
     imageUrl: 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=900&q=80',

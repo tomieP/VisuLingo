@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, Flame, Settings as SettingsIcon, X, Bell, Trophy, MessageSquare } from 'lucide-react';
+import { Sparkles, Flame, Settings as SettingsIcon, X, MessageSquare } from 'lucide-react';
 import { LocketBottomBar, LocketTab } from '@/components/locket/LocketBottomBar';
 import { LocketFeedCard } from '@/components/locket/LocketFeedCard';
 import { LocketCameraView } from '@/components/locket/LocketCameraView';
@@ -143,72 +143,42 @@ function HomePage() {
             </div>
           </div>
 
-          {/* Header Action Row */}
+          {/* Header Action Row (Clean, minimal 3 items: Streak, Social Inbox, Settings) */}
           <div className="flex items-center gap-2">
-            {/* Friends online preview */}
-            <div
-              onClick={() => setActiveTab('feed')}
-              className="flex items-center -space-x-1.5 cursor-pointer hover:opacity-90"
-              title="Xem bạn bè đang học"
-            >
-              {friends.slice(0, 3).map((f) => (
-                <img
-                  key={f.id}
-                  src={f.avatar}
-                  alt={f.name}
-                  className="w-6 h-6 rounded-full border-2 border-[#0B0F17] object-cover shrink-0"
-                />
-              ))}
-            </div>
-
-            {/* Streak flame badge (Click to open Leaderboard) */}
+            {/* 1. Streak flame badge */}
             <button
               type="button"
               onClick={() => setIsLeaderboardOpen(true)}
-              className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-bold text-amber-400 transition-colors cursor-pointer group"
-              title="Bảng xếp hạng tuần"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/20 text-xs font-bold text-amber-300 transition-colors cursor-pointer group"
+              title="Chuỗi streak của bạn & Bảng xếp hạng"
             >
-              <Trophy className="w-3 h-3 text-amber-400 group-hover:scale-110 transition-transform" />
-              <Flame className="w-3 h-3 fill-amber-400" />
+              <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400 group-hover:scale-110 transition-transform" />
               <span>5</span>
             </button>
 
-            {/* Direct Chat Button */}
+            {/* 2. Unified Social Inbox (Tin nhắn & Hoạt động) */}
             <button
               type="button"
               onClick={() => {
                 setChatFriendId(null);
                 setIsChatOpen(true);
               }}
-              className="relative p-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-slate-300 hover:text-white transition-colors"
-              title="Tin nhắn bạn bè"
+              className="relative p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
+              title="Hộp thư: Tin nhắn & Hoạt động"
             >
-              <MessageSquare className="w-3.5 h-3.5" />
-              {unreadChat > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-[#0B0F17]" />
+              <MessageSquare className="w-4 h-4" />
+              {(unreadChat > 0 || unreadNotifs > 0) && (
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-[#0B0F17]" />
               )}
             </button>
 
-            {/* Notifications Bell */}
-            <button
-              type="button"
-              onClick={() => setIsNotifsOpen(true)}
-              className="relative p-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-slate-300 hover:text-white transition-colors"
-              title="Hoạt động thông minh"
-            >
-              <Bell className="w-3.5 h-3.5" />
-              {unreadNotifs > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#0B0F17]" />
-              )}
-            </button>
-
-            {/* Settings button */}
+            {/* 3. Settings */}
             <Link
               to="/settings"
-              className="p-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-slate-300 hover:text-white transition-colors"
+              className="p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors"
               title="Cài đặt & Hồ sơ"
             >
-              <SettingsIcon className="w-3.5 h-3.5" />
+              <SettingsIcon className="w-4 h-4" />
             </Link>
           </div>
         </div>

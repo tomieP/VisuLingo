@@ -89,7 +89,7 @@ export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
 }
 
 // Hook for using toasts
-import { useState, useCallback } from 'react';
+import {useCallback } from 'react';
 
 export function useToast() {
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type?: 'success' | 'error' | 'info' }>>([]);

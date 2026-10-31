@@ -253,7 +253,26 @@ export function getFriends(): FriendProfile[] {
       localStorage.setItem(FRIENDS_KEY, JSON.stringify(INITIAL_FRIENDS));
       return INITIAL_FRIENDS;
     }
-    return JSON.parse(raw);
+    const parsed: FriendProfile[] = JSON.parse(raw);
+
+    // If cache is missing albums or albums is empty (legacy data from earlier in the session), populate them
+    const hasInvalidAlbums = parsed.some(
+      (f) => !f.albums || !Array.isArray(f.albums) || f.albums.length === 0
+    );
+
+    if (hasInvalidAlbums) {
+      const merged = parsed.map((p) => {
+        const init = INITIAL_FRIENDS.find((i) => i.id === p.id);
+        return {
+          ...p,
+          albums: init?.albums || [],
+        };
+      });
+      localStorage.setItem(FRIENDS_KEY, JSON.stringify(merged));
+      return merged;
+    }
+
+    return parsed;
   } catch {
     return INITIAL_FRIENDS;
   }

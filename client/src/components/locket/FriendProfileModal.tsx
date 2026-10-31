@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   X,
   Flame,
@@ -36,7 +36,14 @@ export function FriendProfileModal({
   const [selectedAlbum, setSelectedAlbum] = useState<FriendAlbum | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<FriendSnapPhoto | null>(null);
 
+  useEffect(() => {
+    setSelectedAlbum(null);
+    setSelectedPhoto(null);
+  }, [friend?.id]);
+
   if (!isOpen || !friend) return null;
+
+  const albums = friend.albums || [];
 
   const handleFollowToggle = () => {
     toggleFollowFriend(friend.id);
@@ -136,7 +143,7 @@ export function FriendProfileModal({
           <div>
             <div className="flex items-center justify-center gap-1 text-purple-400 font-black text-sm sm:text-base">
               <Images className="w-3.5 h-3.5" />
-              <span>{friend.albums.length} Albums</span>
+              <span>{albums.length} Albums</span>
             </div>
             <span className="text-[9px] text-slate-400 uppercase font-semibold">Bộ sưu tập</span>
           </div>
@@ -286,13 +293,13 @@ export function FriendProfileModal({
                 Các Album Snap của {friend.name}:
               </span>
 
-              {friend.albums.length === 0 ? (
+              {albums.length === 0 ? (
                 <div className="text-center py-8 text-slate-500 text-xs">
                   {friend.name} chưa tạo Album nào.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {friend.albums.map((album) => {
+                  {albums.map((album) => {
                     const cover = album.photos[0]?.imageUrl;
                     const wordCount = album.photos.reduce(
                       (acc, p) => acc + p.vocabTags.length,

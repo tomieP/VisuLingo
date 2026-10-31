@@ -59,10 +59,12 @@ function HomePage() {
   let displayPosts: MomentPost[] = [];
 
   if (selectedFriend) {
+    const friendAlbums = selectedFriend.albums || [];
+
     if (selectedAlbumId === 'all') {
       // All photos from all albums of this friend
-      displayPosts = selectedFriend.albums.flatMap((album) =>
-        album.photos.map((photo) => ({
+      displayPosts = friendAlbums.flatMap((album) =>
+        (album.photos || []).map((photo) => ({
           id: photo.id,
           author: {
             name: selectedFriend.name,
@@ -72,15 +74,15 @@ function HomePage() {
           caption: photo.caption,
           imageUrl: photo.imageUrl,
           timeAgo: photo.timeAgo,
-          vocabTags: photo.vocabTags,
+          vocabTags: photo.vocabTags || [],
           reactions: { fire: 14, heart: 26, sparkles: 9 },
         }))
       );
     } else {
       // Only photos from the selected album
-      const targetAlbum = selectedFriend.albums.find((a) => a.id === selectedAlbumId);
+      const targetAlbum = friendAlbums.find((a) => a.id === selectedAlbumId);
       if (targetAlbum) {
-        displayPosts = targetAlbum.photos.map((photo) => ({
+        displayPosts = (targetAlbum.photos || []).map((photo) => ({
           id: photo.id,
           author: {
             name: selectedFriend.name,
@@ -90,7 +92,7 @@ function HomePage() {
           caption: photo.caption,
           imageUrl: photo.imageUrl,
           timeAgo: photo.timeAgo,
-          vocabTags: photo.vocabTags,
+          vocabTags: photo.vocabTags || [],
           reactions: { fire: 11, heart: 20, sparkles: 7 },
         }));
       }
@@ -182,7 +184,7 @@ function HomePage() {
                 <div className="flex items-center justify-between px-1">
                   <div className="flex items-center gap-1.5 text-xs text-slate-300">
                     <span className="font-bold text-white">Album của {selectedFriend.name.split(' ').pop()}</span>
-                    <span className="text-[10px] text-amber-400 font-bold">({selectedFriend.albums.length} album)</span>
+                    <span className="text-[10px] text-amber-400 font-bold">({(selectedFriend.albums || []).length} album)</span>
                   </div>
                   <button
                     type="button"
@@ -209,7 +211,7 @@ function HomePage() {
                     Tất cả ảnh ✨
                   </button>
 
-                  {selectedFriend.albums.map((album) => (
+                  {(selectedFriend.albums || []).map((album) => (
                     <button
                       key={album.id}
                       type="button"
@@ -222,7 +224,7 @@ function HomePage() {
                     >
                       <span>{album.emoji}</span>
                       <span>{album.title}</span>
-                      <span className="text-[10px] opacity-75">({album.photos.length})</span>
+                      <span className="text-[10px] opacity-75">({(album.photos || []).length})</span>
                     </button>
                   ))}
                 </div>

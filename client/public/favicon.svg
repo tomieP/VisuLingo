@@ -1,0 +1,36 @@
+<svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="vl-bg-grad" x1="4" y1="4" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#FBBF24" />
+      <stop offset="55%" stopColor="#F59E0B" />
+      <stop offset="100%" stopColor="#EA580C" />
+    </linearGradient>
+    <radialGradient id="vl-aperture" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stopColor="#0B0F17" />
+      <stop offset="100%" stopColor="#1E293B" />
+    </radialGradient>
+    <linearGradient id="vl-star-grad" x1="28" y1="12" x2="38" y2="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#FFFFFF" />
+      <stop offset="100%" stopColor="#FEF3C7" />
+    </linearGradient>
+  </defs>
+
+  <!-- Housing Squircle with Speech Tail -->
+  <path d="M17 5C8 5 5 8 5 17V35C5 44 8 47 17 47H31L40 50L38 43.5C44 42 47 39 47 31V17C47 8 44 5 35 5H17Z" fill="url(#vl-bg-grad)" />
+
+  <!-- Lens Aperture -->
+  <circle cx="25" cy="24" r="13" fill="url(#vl-aperture)" stroke="rgba(255,255,255,0.2)" stroke-width="1.2" />
+
+  <!-- Optical Viewfinder Brackets -->
+  <path d="M16 19V17C16 16.4 16.4 16 17 16H19" stroke="#FDE68A" stroke-width="1.5" stroke-linecap="round" />
+  <path d="M31 16H33C33.6 16 34 16.4 34 17V19" stroke="#FDE68A" stroke-width="1.5" stroke-linecap="round" />
+  <path d="M16 29V31C16 31.6 16.4 32 17 32H19" stroke="#FDE68A" stroke-width="1.5" stroke-linecap="round" />
+  <path d="M31 32H33C33.6 32 34 31.6 34 31V29" stroke="#FDE68A" stroke-width="1.5" stroke-linecap="round" />
+
+  <!-- Stylized "V" Iris -->
+  <path d="M19 20L25 29.5L31 20" stroke="#FBBF24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M22 23.5L25 28L28 23.5" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- AI Focus Sparkle -->
+  <path d="M34 12C34 14.5 35.5 16 38 16C35.5 16 34 17.5 34 20C34 17.5 32.5 16 30 16C32.5 16 34 14.5 34 12Z" fill="url(#vl-star-grad)" />
+</svg>

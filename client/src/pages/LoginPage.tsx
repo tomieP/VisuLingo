@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { loginUser } from '@/services/authService';
 
 function LoginPage() {
@@ -36,12 +37,7 @@ function LoginPage() {
         {/* Brand header */}
         <div className="text-center space-y-2">
           <Link to="/" className="inline-flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center font-black shadow-lg shadow-amber-400/20 group-hover:scale-105 transition-transform">
-              <Sparkles className="w-5 h-5 fill-slate-950" />
-            </div>
-            <span className="font-extrabold text-2xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-amber-200 bg-clip-text text-transparent">
-              VisuLingo Snaps
-            </span>
+            <VisuLingoLogo size="lg" />
           </Link>
           <h1 className="text-xl font-bold tracking-tight text-white">Chào mừng trở lại!</h1>
           <p className="text-xs text-slate-400">

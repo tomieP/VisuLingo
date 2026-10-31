@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, Flame, Settings as SettingsIcon, X, MessageSquare } from 'lucide-react';
+import { Flame, Settings as SettingsIcon, X, MessageSquare } from 'lucide-react';
+import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { LocketBottomBar, LocketTab } from '@/components/locket/LocketBottomBar';
 import { LocketFeedCard } from '@/components/locket/LocketFeedCard';
 import { LocketCameraView } from '@/components/locket/LocketCameraView';
@@ -129,19 +130,7 @@ function HomePage() {
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#0B0F17]/85 border-b border-white/5 py-2.5 px-4 sm:px-6">
         <div className="max-w-md mx-auto flex items-center justify-between">
           {/* Logo & Vibe */}
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center font-black shadow-lg shadow-amber-400/20">
-              <Sparkles className="w-3.5 h-3.5 fill-slate-950" />
-            </div>
-            <div>
-              <span className="font-extrabold text-base tracking-tight bg-gradient-to-r from-white via-slate-100 to-amber-200 bg-clip-text text-transparent">
-                VisuLingo
-              </span>
-              <span className="ml-1.5 px-1.5 py-0.2 text-[8px] font-black uppercase rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                Snaps
-              </span>
-            </div>
-          </div>
+          <VisuLingoLogo size="sm" />
 
           {/* Header Action Row (Clean, minimal 3 items: Streak, Social Inbox, Settings) */}
           <div className="flex items-center gap-2">

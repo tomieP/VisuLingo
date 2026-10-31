@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/common/Button';
 import { useToast } from '@/components/common/Toast';
 
-export function LoginPage() {
+function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -78,3 +78,5 @@ export function LoginPage() {
     </div>
   );
 }
+
+export default LoginPage;

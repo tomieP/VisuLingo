@@ -1,6 +1,6 @@
 import { Button } from '@/components/common/Button';
 
-export function AdminPage() {
+function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -38,3 +38,5 @@ export function AdminPage() {
     </div>
   );
 }
+
+export default AdminPage;

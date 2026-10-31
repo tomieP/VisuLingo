@@ -8,7 +8,7 @@ import { VocabCard } from '@/components/vocabulary/VocabCard';
 import { Loading } from '@/components/common/Loading';
 import { DetectionResponse, DetectedObject } from '@/types/detection';
 
-export function HomePage() {
+function HomePage() {
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null);
   const [selectedObject, setSelectedObject] = useState<DetectedObject | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -127,3 +127,5 @@ export function HomePage() {
     </div>
   );
 }
+
+export default HomePage;

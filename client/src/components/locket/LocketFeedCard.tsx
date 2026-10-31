@@ -1,22 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Volume2, Heart, Flame, Sparkles, BookmarkPlus, Check, Share2, MessageCircle } from 'lucide-react';
+import { Volume2, Heart, Flame, Sparkles, BookmarkPlus, Check, MessageCircle, Send, Share2 } from 'lucide-react';
 import { MomentPost, reactToMoment, VocabTag } from '@/utils/moments';
 import { LocketSticker } from './LocketSticker';
 import { SnapCommentsModal } from './SnapCommentsModal';
+import { ShareSnapModal } from './ShareSnapModal';
 import { speakWord } from '@/utils/speech';
 import { saveWord, isWordSaved } from '@/utils/storage';
 
 interface LocketFeedCardProps {
   moment: MomentPost;
   onAuthorClick?: () => void;
+  onOpenChatWithFriend?: (friendId: string) => void;
 }
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=900&q=80';
 
-export function LocketFeedCard({ moment, onAuthorClick }: LocketFeedCardProps) {
+export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: LocketFeedCardProps) {
   const [activeWordId, setActiveWordId] = useState<string | null>(null);
   const [imgSrc, setImgSrc] = useState(moment.imageUrl || FALLBACK_IMAGE);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   useEffect(() => {
     setImgSrc(moment.imageUrl || FALLBACK_IMAGE);
@@ -203,7 +206,7 @@ export function LocketFeedCard({ moment, onAuthorClick }: LocketFeedCardProps) {
           <button
             type="button"
             onClick={() => setIsCommentsOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all bg-white/5 hover:bg-white/10 hover:border-amber-400/40 text-slate-300 border border-white/5"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all bg-white/5 hover:bg-white/10 hover:border-amber-400/40 text-slate-300 border border-white/5 cursor-pointer"
             title="Xem & Viết bình luận"
           >
             <MessageCircle className="w-3.5 h-3.5 text-slate-400" />
@@ -211,7 +214,16 @@ export function LocketFeedCard({ moment, onAuthorClick }: LocketFeedCardProps) {
           </button>
         </div>
 
-        <span className="text-[10px] text-slate-400 font-medium">Chạm tag để học từ</span>
+        {/* Send to chat action button */}
+        <button
+          type="button"
+          onClick={() => setIsShareModalOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all bg-gradient-to-r from-amber-400/20 to-yellow-400/15 hover:from-amber-400/30 hover:to-yellow-400/25 text-amber-300 border border-amber-400/30 shadow-xs cursor-pointer active:scale-95"
+          title="Gửi Snap này và từ vựng vào đoạn chat bạn bè"
+        >
+          <Send className="w-3 h-3 text-amber-400" />
+          <span>Gửi vào chat</span>
+        </button>
       </div>
 
       {/* Snap Comments Modal */}
@@ -219,6 +231,14 @@ export function LocketFeedCard({ moment, onAuthorClick }: LocketFeedCardProps) {
         moment={moment}
         isOpen={isCommentsOpen}
         onClose={() => setIsCommentsOpen(false)}
+      />
+
+      {/* Share Snap to Chat Modal */}
+      <ShareSnapModal
+        moment={moment}
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        onOpenChatWithFriend={onOpenChatWithFriend}
       />
     </div>
   );

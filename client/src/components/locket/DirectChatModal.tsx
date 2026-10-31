@@ -26,6 +26,7 @@ import {
   ChatMessage,
 } from '@/utils/chat';
 import { getFriends, FriendProfile } from '@/utils/friends';
+import { getMoments, MomentPost } from '@/utils/moments';
 import { speakWord } from '@/utils/speech';
 import { saveWord } from '@/utils/storage';
 import {
@@ -53,19 +54,48 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
   const [activeFriendId, setActiveFriendId] = useState<string | null>(initialFriendId || null);
   const [inputText, setInputText] = useState('');
   const [showVocabTray, setShowVocabTray] = useState(false);
+  const [showSnapPicker, setShowSnapPicker] = useState(false);
+  const [pickerTab, setPickerTab] = useState<'snaps' | 'words'>('snaps');
   const [playingAudioWord, setPlayingAudioWord] = useState<string | null>(null);
   const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null);
   const [mainTab, setMainTab] = useState<'messages' | 'activity'>('messages');
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const quickPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const friends = getFriends();
+  const moments = getMoments();
+
+  // Collect distinct vocab words across all friend snaps
+  const allSnapVocabWords: Array<{ word: string; meaningVi: string; ipa?: string; authorName: string }> = [];
+  const seenWords = new Set<string>();
+  moments.forEach((m) => {
+    (m.vocabTags || []).forEach((t) => {
+      if (!seenWords.has(t.word.toLowerCase())) {
+        seenWords.add(t.word.toLowerCase());
+        allSnapVocabWords.push({
+          word: t.word,
+          meaningVi: t.meaningVi,
+          ipa: t.ipa,
+          authorName: m.author.name,
+        });
+      }
+    });
+  });
 
   const loadChatData = () => {
     setConversations(getConversations());
     setNotifications(getNotifications());
+  };
+
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior,
+      });
+    }
   };
 
   useEffect(() => {
@@ -81,16 +111,16 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
   useEffect(() => {
     if (initialFriendId) {
       setActiveFriendId(initialFriendId);
-      markConversationAsRead(initialFriendId);
     }
   }, [initialFriendId]);
 
+  // When switching friends, mark as read and scroll to bottom ONCE (without locking upward scroll)
   useEffect(() => {
     if (activeFriendId) {
       markConversationAsRead(activeFriendId);
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      setTimeout(() => scrollToBottom('auto'), 40);
     }
-  }, [activeFriendId, conversations]);
+  }, [activeFriendId]);
 
   if (!isOpen) return null;
 
@@ -104,6 +134,7 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
 
     sendMessageToFriend(activeFriendId, { text: inputText.trim() });
     setInputText('');
+    setTimeout(() => scrollToBottom('smooth'), 50);
   };
 
   const handleSendVocabCard = (card: typeof QUICK_VOCAB_SUGGESTIONS[0]) => {
@@ -114,6 +145,34 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
       audioWord: card.word,
     });
     setShowVocabTray(false);
+    setTimeout(() => scrollToBottom('smooth'), 50);
+  };
+
+  const handleSendFriendSnap = (m: MomentPost) => {
+    if (!activeFriendId) return;
+    const firstWord = m.vocabTags?.[0];
+    sendMessageToFriend(activeFriendId, {
+      snapImage: m.imageUrl,
+      sharedSnapAuthor: m.author.name,
+      text: `Chia sẻ Snap của ${m.author.name}: "${m.caption || 'Học từ vựng cùng nhau'}" 📸`,
+      vocabCard: firstWord
+        ? { word: firstWord.word, meaningVi: firstWord.meaningVi, ipa: firstWord.ipa }
+        : undefined,
+      audioWord: firstWord?.word,
+    });
+    setShowSnapPicker(false);
+    setTimeout(() => scrollToBottom('smooth'), 50);
+  };
+
+  const handleSendSnapWord = (v: { word: string; meaningVi: string; ipa?: string; authorName: string }) => {
+    if (!activeFriendId) return;
+    sendMessageToFriend(activeFriendId, {
+      text: `Học từ vựng "${v.word}" trong Snap của ${v.authorName} nè bạn ơi! ✨`,
+      vocabCard: { word: v.word, meaningVi: v.meaningVi, ipa: v.ipa },
+      audioWord: v.word,
+    });
+    setShowSnapPicker(false);
+    setTimeout(() => scrollToBottom('smooth'), 50);
   };
 
   const handleSendQuickPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,6 +186,7 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
         snapImage: snapUrl,
         text: 'Vừa snap xong một khoảnh khắc mới nè 📸',
       });
+      setTimeout(() => scrollToBottom('smooth'), 50);
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -180,7 +240,7 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
             VIEW 1: ACTIVE CHAT ROOM
         ======================================================== */}
         {activeFriendId && currentFriend ? (
-          <div className="flex flex-col h-full bg-[#0E131F]">
+          <div className="flex flex-col h-full min-h-0 bg-[#0E131F]">
             {/* Header with Streak Counter */}
             <div className="p-3 sm:p-3.5 border-b border-white/10 bg-[#161D2B]/90 backdrop-blur-xl shrink-0 space-y-2">
               <div className="flex items-center justify-between">
@@ -239,8 +299,8 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
               </div>
             </div>
 
-            {/* Messages Thread */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
+            {/* Messages Thread (Scrollable container without scroll lock) */}
+            <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3.5 overscroll-contain">
               {currentConvo?.messages?.map((msg: ChatMessage) => {
                 const isMe = msg.senderId === 'me';
                 const isHovered = hoveredMsgId === msg.id;
@@ -264,7 +324,7 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
                             key={emoji}
                             type="button"
                             onClick={() => handleReact(msg.id, emoji)}
-                            className="hover:scale-125 transition-transform text-xs"
+                            className="hover:scale-125 transition-transform text-xs cursor-pointer"
                           >
                             {emoji}
                           </button>
@@ -282,12 +342,20 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
                     >
                       {/* Photo Snap in Message */}
                       {msg.snapImage && (
-                        <div className="rounded-2xl overflow-hidden aspect-4/3 bg-black/60 border border-white/15 shadow-inner">
-                          <img
-                            src={msg.snapImage}
-                            alt="Snap"
-                            className="w-full h-full object-cover"
-                          />
+                        <div className="space-y-1">
+                          {msg.sharedSnapAuthor && (
+                            <div className={`flex items-center gap-1 text-[10px] font-bold px-0.5 ${isMe ? 'text-slate-950/80' : 'text-amber-300'}`}>
+                              <Sparkles className="w-3 h-3 text-amber-400" />
+                              <span>Snap từ {msg.sharedSnapAuthor}</span>
+                            </div>
+                          )}
+                          <div className="rounded-2xl overflow-hidden aspect-4/3 bg-black/60 border border-white/15 shadow-inner">
+                            <img
+                              src={msg.snapImage}
+                              alt="Snap"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
                         </div>
                       )}
 
@@ -307,7 +375,7 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
                             <button
                               type="button"
                               onClick={() => handlePlayAudio(msg.audioWord!)}
-                              className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all ${
+                              className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all cursor-pointer ${
                                 isMe
                                   ? 'bg-slate-950 text-amber-300'
                                   : 'bg-amber-400 text-slate-950'
@@ -373,7 +441,7 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
                             <button
                               type="button"
                               onClick={() => speakWord(msg.vocabCard?.word || '')}
-                              className="p-1.5 rounded-full hover:bg-black/20 transition-colors"
+                              className="p-1.5 rounded-full hover:bg-black/20 transition-colors cursor-pointer"
                               title="Phát âm"
                             >
                               <Volume2 className="w-3.5 h-3.5" />
@@ -387,7 +455,7 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
                                   msg.vocabCard!.ipa
                                 )
                               }
-                              className="p-1.5 rounded-full hover:bg-black/20 text-emerald-400 transition-colors"
+                              className="p-1.5 rounded-full hover:bg-black/20 text-emerald-400 transition-colors cursor-pointer"
                               title="Lưu vào Snapbook"
                             >
                               <BookmarkPlus className="w-3.5 h-3.5" />
@@ -410,10 +478,9 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
                   </div>
                 );
               })}
-              <div ref={messagesEndRef} />
             </div>
 
-            {/* Quick Vocab Stickers Tray */}
+            {/* Tray 1: Quick Vocab Stickers Tray */}
             {showVocabTray && (
               <div className="p-3 bg-[#161D2B] border-t border-white/10 animate-in slide-in-from-bottom-2 duration-150 shrink-0">
                 <div className="flex items-center justify-between pb-2">
@@ -424,7 +491,7 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
                   <button
                     type="button"
                     onClick={() => setShowVocabTray(false)}
-                    className="text-slate-400 hover:text-white"
+                    className="text-slate-400 hover:text-white cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -436,7 +503,7 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
                       key={idx}
                       type="button"
                       onClick={() => handleSendVocabCard(item)}
-                      className="p-2.5 rounded-2xl bg-white/5 hover:bg-amber-400/20 hover:border-amber-400/40 border border-white/10 text-left transition-all"
+                      className="p-2.5 rounded-2xl bg-white/5 hover:bg-amber-400/20 hover:border-amber-400/40 border border-white/10 text-left transition-all cursor-pointer"
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-extrabold text-xs text-amber-300 capitalize">
@@ -453,6 +520,98 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
               </div>
             )}
 
+            {/* Tray 2: Share Friend Snaps & Words Tray */}
+            {showSnapPicker && (
+              <div className="p-3 bg-[#161D2B] border-t border-white/10 animate-in slide-in-from-bottom-2 duration-150 shrink-0 space-y-2.5 max-h-60 overflow-y-auto">
+                <div className="flex items-center justify-between pb-1">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPickerTab('snaps')}
+                      className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                        pickerTab === 'snaps'
+                          ? 'bg-amber-400 text-slate-950 shadow-xs'
+                          : 'bg-white/5 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      📸 Snaps bạn bè
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPickerTab('words')}
+                      className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                        pickerTab === 'words'
+                          ? 'bg-amber-400 text-slate-950 shadow-xs'
+                          : 'bg-white/5 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      💡 Từ vựng trong Snaps
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSnapPicker(false)}
+                    className="text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {pickerTab === 'snaps' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {moments.map((m) => (
+                      <div
+                        key={m.id}
+                        onClick={() => handleSendFriendSnap(m)}
+                        className="p-2 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/50 transition-all cursor-pointer flex gap-2.5 items-center group"
+                      >
+                        <img
+                          src={m.imageUrl}
+                          alt=""
+                          className="w-12 h-12 rounded-xl object-cover border border-white/10 shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <span className="font-bold text-xs text-white truncate block group-hover:text-amber-300">
+                            Snap của {m.author.name}
+                          </span>
+                          <span className="text-[10px] text-amber-300 block truncate font-mono">
+                            {m.vocabTags.map((t) => t.word).join(', ')}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5 group-hover:text-slate-200">
+                            Chạm để gửi vào chat ➔
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {allSnapVocabWords.map((v, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleSendSnapWord(v)}
+                        className="p-2.5 rounded-2xl bg-white/5 hover:bg-amber-400/20 hover:border-amber-400/40 border border-white/10 text-left transition-all cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-xs text-amber-300 capitalize">
+                            {v.word}
+                          </span>
+                          {v.ipa && <span className="text-[9px] text-slate-400 font-mono">{v.ipa}</span>}
+                        </div>
+                        <span className="text-[10px] text-slate-300 truncate block mt-0.5 font-medium">
+                          {v.meaningVi}
+                        </span>
+                        <span className="text-[9px] text-slate-500 block mt-0.5">
+                          từ Snap của {v.authorName}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Social Input Bar */}
             <form
               onSubmit={handleSendText}
@@ -462,22 +621,42 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
               <button
                 type="button"
                 onClick={() => quickPhotoInputRef.current?.click()}
-                className="p-2 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-amber-400 hover:scale-105 transition-all"
+                className="p-2 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-amber-400 hover:scale-105 transition-all cursor-pointer"
                 title="Gửi ảnh Snap tức thì"
               >
                 <Camera className="w-4 h-4" />
               </button>
 
+              {/* Share Snap & Word Picker Toggle */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSnapPicker(!showSnapPicker);
+                  setShowVocabTray(false);
+                }}
+                className={`p-2 rounded-full border transition-all cursor-pointer ${
+                  showSnapPicker
+                    ? 'bg-amber-400 text-slate-950 border-amber-400'
+                    : 'bg-white/5 border-white/10 text-slate-300 hover:text-amber-300'
+                }`}
+                title="Gửi Snap hoặc từ vựng của bạn bè"
+              >
+                <Sparkles className="w-4 h-4" />
+              </button>
+
               {/* Vocab Picker Toggle */}
               <button
                 type="button"
-                onClick={() => setShowVocabTray(!showVocabTray)}
-                className={`p-2 rounded-full border transition-all ${
+                onClick={() => {
+                  setShowVocabTray(!showVocabTray);
+                  setShowSnapPicker(false);
+                }}
+                className={`p-2 rounded-full border transition-all cursor-pointer ${
                   showVocabTray
                     ? 'bg-amber-400 text-slate-950 border-amber-400'
                     : 'bg-white/5 border-white/10 text-slate-300 hover:text-amber-300'
                 }`}
-                title="Gửi thẻ từ vựng"
+                title="Gửi gợi ý từ vựng"
               >
                 <BookOpen className="w-4 h-4" />
               </button>
@@ -493,7 +672,7 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
               <button
                 type="submit"
                 disabled={!inputText.trim()}
-                className="p-2 rounded-full bg-amber-400 hover:bg-amber-300 disabled:opacity-30 text-slate-950 font-bold shadow-md shadow-amber-400/20 transition-all shrink-0 hover:scale-105 active:scale-95"
+                className="p-2 rounded-full bg-amber-400 hover:bg-amber-300 disabled:opacity-30 text-slate-950 font-bold shadow-md shadow-amber-400/20 transition-all shrink-0 hover:scale-105 active:scale-95 cursor-pointer"
               >
                 <Send className="w-3.5 h-3.5" />
               </button>

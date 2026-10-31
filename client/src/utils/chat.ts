@@ -12,6 +12,7 @@ export interface ChatMessage {
   vocabCard?: VocabCardAttachment;
   audioWord?: string;
   snapImage?: string;
+  sharedSnapAuthor?: string;
   reaction?: string;
 }
 
@@ -190,6 +191,7 @@ export function sendMessageToFriend(
     vocabCard?: VocabCardAttachment;
     snapImage?: string;
     audioWord?: string;
+    sharedSnapAuthor?: string;
   }
 ): ChatMessage {
   const convos = getConversations();
@@ -216,6 +218,7 @@ export function sendMessageToFriend(
     vocabCard: payload.vocabCard,
     snapImage: payload.snapImage,
     audioWord: payload.audioWord,
+    sharedSnapAuthor: payload.sharedSnapAuthor,
   };
 
   convos[friendId].messages.push(newMsg);
@@ -277,6 +280,34 @@ export function markConversationAsRead(friendId: string): void {
     localStorage.setItem(CHAT_KEY, JSON.stringify(convos));
     window.dispatchEvent(new Event('visulingo_chat_changed'));
   }
+}
+
+export function shareSnapToFriendChat(
+  friendId: string,
+  moment: {
+    author: { name: string };
+    imageUrl: string;
+    caption?: string;
+    vocabTags: Array<{ word: string; meaningVi: string; ipa?: string }>;
+  },
+  chosenWord?: { word: string; meaningVi: string; ipa?: string }
+): ChatMessage {
+  const selectedWord = chosenWord || moment.vocabTags?.[0];
+  return sendMessageToFriend(friendId, {
+    snapImage: moment.imageUrl,
+    sharedSnapAuthor: moment.author.name,
+    text: chosenWord
+      ? `Học từ "${chosenWord.word}" trong Snap của ${moment.author.name} nè bạn ơi! ✨`
+      : `Xem Snap của ${moment.author.name} nè: "${moment.caption || 'Khoảnh khắc học từ vựng'}" 📸`,
+    vocabCard: selectedWord
+      ? {
+          word: selectedWord.word,
+          meaningVi: selectedWord.meaningVi,
+          ipa: selectedWord.ipa,
+        }
+      : undefined,
+    audioWord: selectedWord?.word,
+  });
 }
 
 export function getTotalUnreadChatCount(): number {

@@ -274,6 +274,10 @@ function HomePage() {
                       );
                       if (friend) setSelectedFriendProfile(friend);
                     }}
+                    onOpenChatWithFriend={(friendId) => {
+                      setChatFriendId(friendId);
+                      setIsChatOpen(true);
+                    }}
                   />
                 ))}
               </div>

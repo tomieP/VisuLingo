@@ -7,9 +7,12 @@ export interface VocabCardAttachment {
 export interface ChatMessage {
   id: string;
   senderId: string; // 'me' or friendId
-  text: string;
+  text?: string;
   time: string;
   vocabCard?: VocabCardAttachment;
+  audioWord?: string;
+  snapImage?: string;
+  reaction?: string;
 }
 
 export interface Conversation {
@@ -17,6 +20,8 @@ export interface Conversation {
   friendName: string;
   friendAvatar: string;
   friendBadge?: string;
+  streakDays: number;
+  streakStatus: 'completed' | 'pending';
   messages: ChatMessage[];
   unreadCount: number;
 }
@@ -26,37 +31,48 @@ const INITIAL_CONVERSATIONS: Record<string, Conversation> = {
     friendId: 'friend-1',
     friendName: 'Minh Quân',
     friendAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-    friendBadge: 'Streak 7🔥',
+    friendBadge: 'Streak 7 🔥',
+    streakDays: 7,
+    streakStatus: 'completed',
     unreadCount: 1,
     messages: [
       {
         id: 'm1',
         senderId: 'friend-1',
-        text: 'Hôm nay mình vừa săn được mấy từ vựng về góc học tập chuẩn IELTS xịn lắm! 🚀',
+        text: 'Hôm nay ông cày được mấy từ rồi? Tui vừa snap được góc bàn học chuẩn IELTS đỉnh lắm 🚀',
         time: '14:20',
       },
       {
         id: 'm2',
-        senderId: 'me',
-        text: 'Hay quá! Cho mình xin một từ làm mẫu với Quân ơi 💡',
-        time: '14:22',
+        senderId: 'friend-1',
+        snapImage: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=500&q=80',
+        text: 'Snap bàn học sáng nay nè, AI nhận ra luôn cả laptop với notebook',
+        time: '14:21',
       },
       {
         id: 'm3',
-        senderId: 'friend-1',
-        text: 'Đây nè, từ này rất hay gặp trong đề thi:',
+        senderId: 'me',
+        text: 'Nhìn nghệ ghê! Phát âm từ này nghe thử chuẩn chưa ông ơi',
         time: '14:23',
-        vocabCard: {
-          word: 'bookshelf',
-          meaningVi: 'giá sách, kệ sách',
-          ipa: '/ˈbʊk.ʃelf/',
-        },
+        reaction: '🔥',
       },
       {
         id: 'm4',
         senderId: 'friend-1',
-        text: 'Bạn thử snap góc bàn của bạn xem AI nhận ra được bao nhiêu từ?',
+        audioWord: 'entrepreneur',
+        text: 'Nghe thử phát âm chuẩn từ này xem:',
         time: '14:25',
+        vocabCard: {
+          word: 'entrepreneur',
+          meaningVi: 'doanh nhân, người khởi nghiệp',
+          ipa: '/ˌɒn.trə.prəˈnɜːr/',
+        },
+      },
+      {
+        id: 'm5',
+        senderId: 'friend-1',
+        text: 'Gửi lại tui 1 snap góc bàn của ông để giữ lửa streak ngày thứ 7 nhé! 🔥',
+        time: '14:26',
       },
     ],
   },
@@ -64,20 +80,36 @@ const INITIAL_CONVERSATIONS: Record<string, Conversation> = {
     friendId: 'friend-2',
     friendName: 'Khánh Linh',
     friendAvatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&q=80',
-    friendBadge: 'Top 1 tuần 🏆',
+    friendBadge: 'Streak 12 🔥',
+    streakDays: 12,
+    streakStatus: 'pending',
     unreadCount: 0,
     messages: [
       {
-        id: 'm5',
+        id: 'm6',
         senderId: 'friend-2',
-        text: 'Cuối tuần này rảnh không, cùng đi cafe chụp snap từ vựng nhé ☕🌿',
+        snapImage: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=500&q=80',
+        text: 'Quán cafe mới mở decor cây xanh chill cực kì ☕🌿',
         time: '10:15',
       },
       {
-        id: 'm6',
+        id: 'm7',
         senderId: 'me',
-        text: 'Ok luôn Linh ơi, nhớ mang máy để săn thêm từ vựng nhé!',
+        text: 'Quán này ở đâu thế Linh? Cuối tuần đi chung săn từ vựng nha!',
         time: '10:18',
+        reaction: '❤️',
+      },
+      {
+        id: 'm8',
+        senderId: 'friend-2',
+        audioWord: 'atmosphere',
+        text: 'Okie chốt deal! Học thêm từ này để miêu tả không gian nè:',
+        time: '10:20',
+        vocabCard: {
+          word: 'atmosphere',
+          meaningVi: 'bầu không khí, cảm giác không gian',
+          ipa: '/ˈæt.məs.fɪər/',
+        },
       },
     ],
   },
@@ -86,19 +118,28 @@ const INITIAL_CONVERSATIONS: Record<string, Conversation> = {
     friendName: 'Thành Nam',
     friendAvatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=150&q=80',
     friendBadge: 'Streak 4 🔥',
+    streakDays: 4,
+    streakStatus: 'completed',
     unreadCount: 0,
     messages: [
       {
-        id: 'm7',
+        id: 'm9',
         senderId: 'friend-3',
-        text: 'Bánh croissant sáng nay mình làm ngon xỉu luôn 🥐',
+        snapImage: 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=500&q=80',
+        text: 'Bánh croissant mới ra lò giòn rụm luôn 🥐',
+        time: 'Hôm qua',
+      },
+      {
+        id: 'm10',
+        senderId: 'me',
+        text: 'Trông ngon xỉu, share bí quyết làm bánh đê ông ơi 🤤',
         time: 'Hôm qua',
       },
     ],
   },
 };
 
-const CHAT_KEY = 'visulingo_chat_conversations';
+const CHAT_KEY = 'visulingo_chat_conversations_v2';
 
 export function getConversations(): Record<string, Conversation> {
   try {
@@ -107,7 +148,12 @@ export function getConversations(): Record<string, Conversation> {
       localStorage.setItem(CHAT_KEY, JSON.stringify(INITIAL_CONVERSATIONS));
       return INITIAL_CONVERSATIONS;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!parsed['friend-1']?.messages?.[0]?.text?.includes('cày')) {
+      localStorage.setItem(CHAT_KEY, JSON.stringify(INITIAL_CONVERSATIONS));
+      return INITIAL_CONVERSATIONS;
+    }
+    return parsed;
   } catch {
     return INITIAL_CONVERSATIONS;
   }
@@ -115,8 +161,12 @@ export function getConversations(): Record<string, Conversation> {
 
 export function sendMessageToFriend(
   friendId: string,
-  text: string,
-  vocabCard?: VocabCardAttachment
+  payload: {
+    text?: string;
+    vocabCard?: VocabCardAttachment;
+    snapImage?: string;
+    audioWord?: string;
+  }
 ): ChatMessage {
   const convos = getConversations();
   if (!convos[friendId]) {
@@ -124,6 +174,8 @@ export function sendMessageToFriend(
       friendId,
       friendName: 'Bạn bè',
       friendAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+      streakDays: 5,
+      streakStatus: 'completed',
       unreadCount: 0,
       messages: [],
     };
@@ -135,9 +187,11 @@ export function sendMessageToFriend(
   const newMsg: ChatMessage = {
     id: `msg-${Date.now()}`,
     senderId: 'me',
-    text: text.trim(),
+    text: payload.text,
     time: timeStr,
-    vocabCard,
+    vocabCard: payload.vocabCard,
+    snapImage: payload.snapImage,
+    audioWord: payload.audioWord,
   };
 
   convos[friendId].messages.push(newMsg);
@@ -152,11 +206,23 @@ export function sendMessageToFriend(
   return newMsg;
 }
 
+export function reactToMessage(friendId: string, messageId: string, reactionEmoji: string): void {
+  const convos = getConversations();
+  const convo = convos[friendId];
+  if (!convo) return;
+  const msg = convo.messages.find((m) => m.id === messageId);
+  if (msg) {
+    msg.reaction = msg.reaction === reactionEmoji ? undefined : reactionEmoji;
+    localStorage.setItem(CHAT_KEY, JSON.stringify(convos));
+    window.dispatchEvent(new Event('visulingo_chat_changed'));
+  }
+}
+
 const FRIEND_AUTO_REPLIES = [
-  'Đỉnh chóp bạn ơi! Từ này mình cũng vừa lưu vào Snapbook nè ✨',
-  'Hay quá! Cùng giữ streak 7 ngày tới luôn nhé 🔥',
-  'Nghe chuẩn luôn, phát âm tiếng Anh từ này cũng dễ nhớ nữa 🚀',
-  'Góc nhìn xịn ghê, chiều nay rảnh mình lại snap tiếp nhé 📸',
+  'Đỉnh chóp luôn bạn ơi! Tui vừa bấm loa nghe phát âm rồi, từ này hay quá ✨',
+  'Tuyệt vời! Hôm nay tui với ông giữ được ngọn lửa Streak cháy rực rồi đó 🔥',
+  'Góc snap này đẹp ghê, để tui lưu từ vựng này vào Snapbook ôn lại ngay 📚',
+  'Nghe chuẩn bản xứ luôn! Chiều nay rảnh lại thi đua tiếp nhé 🚀',
 ];
 
 function simulateFriendReply(friendId: string) {

@@ -504,205 +504,288 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
              VIEW 2: UNIFIED SOCIAL INBOX (MESSAGES + ACTIVITY)
           ======================================================== */
           <div className="flex flex-col h-full bg-[#0E131F]">
-            {/* Header with 2 Clean Tabs */}
-            <div className="p-3.5 sm:p-4 border-b border-white/10 bg-[#161D2B]/90 shrink-0 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center font-black shadow-md shadow-amber-400/20">
-                    <MessageSquare className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="font-extrabold text-sm sm:text-base text-white">
-                      Hộp thư tương tác
-                    </h3>
-                    <p className="text-[10px] text-slate-400">
-                      Tin nhắn bạn bè & thông báo học tập
-                    </p>
-                  </div>
-                </div>
+            {/* Native Sheet Grabber */}
+            <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mt-2.5 mb-1 shrink-0" />
 
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+            {/* Clean Header */}
+            <div className="flex items-center justify-between px-5 pt-1 pb-3 shrink-0">
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-black tracking-tight text-white">Tin nhắn</h2>
+                {Object.values(conversations).reduce((acc, c) => acc + (c.unreadCount || 0), 0) > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[11px] font-black">
+                    {Object.values(conversations).reduce((acc, c) => acc + (c.unreadCount || 0), 0)} mới
+                  </span>
+                )}
               </div>
 
-              {/* Sub-tab pills */}
-              <div className="flex rounded-full bg-black/40 p-1 border border-white/5">
-                <button
-                  type="button"
-                  onClick={() => setMainTab('messages')}
-                  className={`flex-1 py-1.5 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                    mainTab === 'messages'
-                      ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Tin nhắn bạn bè</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setMainTab('activity')}
-                  className={`flex-1 py-1.5 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                    mainTab === 'activity'
-                      ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Bell className="w-3.5 h-3.5" />
-                  <span>Hoạt động</span>
-                  {unreadNotifsCount > 0 && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                  )}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            {/* TAB CONTENT */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
-              {mainTab === 'messages' ? (
-                /* 1. CONVERSATIONS LIST */
-                friends.map((friend) => {
-                  const convo = conversations[friend.id];
-                  const lastMsg = convo?.messages?.[convo.messages.length - 1];
-                  const hasUnread = (convo?.unreadCount || 0) > 0;
+            {/* Sleek Segmented Switcher */}
+            <div className="mx-4 mb-2 p-1 rounded-2xl bg-white/[0.05] border border-white/5 flex gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => setMainTab('messages')}
+                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  mainTab === 'messages'
+                    ? 'bg-white/15 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Trò chuyện</span>
+              </button>
 
-                  return (
-                    <div
-                      key={friend.id}
-                      onClick={() => setActiveFriendId(friend.id)}
-                      className="flex items-center justify-between p-3.5 rounded-[26px] bg-[#161D2B]/70 hover:bg-[#161D2B] border border-white/5 hover:border-amber-400/40 transition-all cursor-pointer group shadow-sm hover:scale-[1.01]"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="relative shrink-0">
-                          <img
-                            src={friend.avatar}
-                            alt={friend.name}
-                            className="w-12 h-12 rounded-full object-cover ring-2 ring-white/10 group-hover:ring-amber-400 transition-all"
-                          />
-                          <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-[#0E131F]" />
-                        </div>
+              <button
+                type="button"
+                onClick={() => setMainTab('activity')}
+                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  mainTab === 'activity'
+                    ? 'bg-white/15 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Bell className="w-3.5 h-3.5" />
+                <span>Hoạt động</span>
+                {unreadNotifsCount > 0 && (
+                  <span className="w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#0E131F]" />
+                )}
+              </button>
+            </div>
 
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-extrabold text-xs text-white group-hover:text-amber-300 transition-colors">
-                              {friend.name}
-                            </span>
-                            <span className="flex items-center gap-0.5 text-[10px] text-amber-400 font-bold px-1.5 py-0.2 rounded-full bg-amber-400/15">
-                              <Flame className="w-2.5 h-2.5 fill-amber-400" />
-                              {convo?.streakDays || friend.streak}d
-                            </span>
+            {/* Quick Streak Stories Strip */}
+            {mainTab === 'messages' && (
+              <div className="px-4 py-2 border-b border-white/5 shrink-0">
+                <div className="flex items-center gap-3.5 overflow-x-auto scrollbar-none py-1">
+                  {friends.map((f) => {
+                    const convo = conversations[f.id];
+                    const streak = convo?.streakDays || f.streak;
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setActiveFriendId(f.id)}
+                        className="flex flex-col items-center gap-1.5 shrink-0 group focus:outline-hidden cursor-pointer"
+                      >
+                        <div className="relative">
+                          <div className="w-13 h-13 rounded-full p-[2px] bg-gradient-to-tr from-amber-400 via-orange-400 to-amber-200 group-hover:scale-105 transition-transform shadow-md shadow-amber-400/10">
+                            <img
+                              src={f.avatar}
+                              alt={f.name}
+                              className="w-full h-full rounded-full object-cover border border-[#0E131F]"
+                            />
                           </div>
-                          <p className="text-xs text-slate-300 truncate max-w-[210px] mt-0.5 font-medium">
-                            {lastMsg?.snapImage
-                              ? '📸 Đã gửi một Snap ảnh'
-                              : lastMsg?.text || 'Bắt đầu trò chuyện cùng học từ vựng...'}
-                          </p>
+                          <span className="absolute -bottom-1 -right-0.5 px-1.5 py-0.2 rounded-full bg-[#0E131F] border border-amber-400/40 text-[9px] font-black text-amber-300 flex items-center shadow-xs">
+                            🔥{streak}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-slate-300 group-hover:text-amber-300 font-medium truncate max-w-[60px]">
+                          {f.name.split(' ').pop()}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* TAB CONTENT */}
+            <div className="flex-1 overflow-y-auto px-2 py-2">
+              {mainTab === 'messages' ? (
+                /* 1. SEAMLESS CONVERSATIONS LIST */
+                <div className="space-y-1">
+                  {friends.map((friend) => {
+                    const convo = conversations[friend.id];
+                    const lastMsg = convo?.messages?.[convo.messages.length - 1];
+                    const hasUnread = (convo?.unreadCount || 0) > 0;
+                    const streak = convo?.streakDays || friend.streak;
+
+                    return (
+                      <div
+                        key={friend.id}
+                        onClick={() => setActiveFriendId(friend.id)}
+                        className={`flex items-center justify-between p-3 rounded-2xl transition-all cursor-pointer group select-none ${
+                          hasUnread
+                            ? 'bg-white/[0.07] hover:bg-white/[0.09]'
+                            : 'hover:bg-white/[0.04]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <div className="relative shrink-0">
+                            <img
+                              src={friend.avatar}
+                              alt={friend.name}
+                              className="w-12 h-12 rounded-full object-cover ring-1 ring-white/10 group-hover:ring-amber-400/60 transition-all"
+                            />
+                            <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-[#0E131F]" />
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-sm tracking-tight transition-colors truncate ${
+                                  hasUnread
+                                    ? 'font-black text-white'
+                                    : 'font-semibold text-slate-200 group-hover:text-amber-300'
+                                }`}
+                              >
+                                {friend.name}
+                              </span>
+                              <span className="text-xs text-amber-400 font-bold shrink-0">
+                                🔥 {streak}
+                              </span>
+                            </div>
+
+                            <p
+                              className={`text-xs truncate max-w-[190px] sm:max-w-[260px] mt-0.5 ${
+                                hasUnread
+                                  ? 'font-bold text-slate-100'
+                                  : 'text-slate-400 group-hover:text-slate-300 font-medium'
+                              }`}
+                            >
+                              {lastMsg?.snapImage ? (
+                                <span className="text-amber-300 font-semibold flex items-center gap-1">
+                                  <Camera className="w-3.5 h-3.5" />
+                                  Snap ảnh mới
+                                </span>
+                              ) : lastMsg?.audioWord ? (
+                                <span className="text-sky-300 font-semibold flex items-center gap-1">
+                                  <Volume2 className="w-3.5 h-3.5" />
+                                  Phát âm: {lastMsg.audioWord}
+                                </span>
+                              ) : (
+                                lastMsg?.text || 'Nhắn tin để giữ lửa streak...'
+                              )}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 shrink-0 ml-2">
+                          <div className="flex flex-col items-end gap-1">
+                            <span
+                              className={`text-[11px] ${
+                                hasUnread ? 'text-amber-400 font-black' : 'text-slate-500 font-medium'
+                              }`}
+                            >
+                              {lastMsg ? lastMsg.time : ''}
+                            </span>
+                            {hasUnread && (
+                              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 ring-4 ring-amber-400/20" />
+                            )}
+                          </div>
+
+                          {/* Direct camera snap shutter */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveFriendId(friend.id);
+                              setTimeout(() => quickPhotoInputRef.current?.click(), 100);
+                            }}
+                            className="p-2 rounded-full text-slate-500 hover:text-amber-400 hover:bg-white/10 transition-colors"
+                            title="Gửi Snap ảnh ngay"
+                          >
+                            <Camera className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
-
-                      <div className="flex flex-col items-end gap-1.5 shrink-0 ml-2">
-                        <span className="text-[10px] text-slate-500 font-medium">
-                          {lastMsg ? lastMsg.time : 'Mới'}
-                        </span>
-                        {hasUnread && (
-                          <span className="w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-amber-400/30" />
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                </div>
               ) : (
                 /* 2. ACTIVITY & NOTIFICATIONS LIST */
-                notifications.map((notif) => (
-                  <div
-                    key={notif.id}
-                    onClick={() => markNotificationAsRead(notif.id)}
-                    className={`p-3 rounded-2xl border transition-all space-y-2 select-none ${
-                      notif.isRead
-                        ? 'bg-white/3 border-white/5 opacity-80 hover:opacity-100 hover:bg-white/6'
-                        : 'bg-gradient-to-r from-amber-400/10 via-white/5 to-white/5 border-amber-400/30 shadow-md'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2.5">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <img
-                          src={notif.actor.avatar}
-                          alt=""
-                          className="w-8 h-8 rounded-full object-cover ring-2 ring-white/10"
-                        />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-xs font-bold text-white tracking-tight">
-                              {notif.actor.name}
-                            </span>
-                            <span className="text-[10px] text-slate-500">• {notif.timeAgo}</span>
+                <div className="space-y-2">
+                  {notifications.map((notif) => (
+                    <div
+                      key={notif.id}
+                      onClick={() => markNotificationAsRead(notif.id)}
+                      className={`p-3 rounded-2xl transition-all space-y-2 select-none ${
+                        notif.isRead
+                          ? 'bg-white/[0.02] hover:bg-white/[0.05] opacity-80'
+                          : 'bg-white/[0.06] hover:bg-white/[0.09] ring-1 ring-amber-400/20 shadow-md'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <img
+                            src={notif.actor.avatar}
+                            alt=""
+                            className="w-8 h-8 rounded-full object-cover ring-1 ring-white/15"
+                          />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-xs font-bold text-white tracking-tight">
+                                {notif.actor.name}
+                              </span>
+                              <span className="text-[10px] text-slate-500">• {notif.timeAgo}</span>
+                            </div>
+                            <p className="text-xs text-slate-300 leading-relaxed mt-0.5">
+                              {notif.text}
+                            </p>
                           </div>
-                          <p className="text-xs text-slate-300 leading-relaxed mt-0.5">
-                            {notif.text}
-                          </p>
                         </div>
+
+                        {notif.snapThumbnail && (
+                          <img
+                            src={notif.snapThumbnail}
+                            alt=""
+                            className="w-10 h-10 rounded-xl object-cover shrink-0 border border-white/10 shadow-xs"
+                          />
+                        )}
                       </div>
 
-                      {notif.snapThumbnail && (
-                        <img
-                          src={notif.snapThumbnail}
-                          alt=""
-                          className="w-10 h-10 rounded-xl object-cover shrink-0 border border-white/10 shadow-xs"
-                        />
+                      {/* Vocab chips */}
+                      {notif.vocabWords && notif.vocabWords.length > 0 && (
+                        <div className="flex items-center gap-1.5 flex-wrap pl-10">
+                          {notif.vocabWords.map((vw, i) => (
+                            <span
+                              key={i}
+                              className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-amber-300 font-mono"
+                            >
+                              <strong>{vw.word}</strong>: {vw.meaningVi}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Action button */}
+                      {notif.actionLabel && (
+                        <div className="pt-1 pl-10 flex items-center justify-between">
+                          <button
+                            type="button"
+                            disabled={notif.actionCompleted}
+                            onClick={() => handleNotificationAction(notif)}
+                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                              notif.actionCompleted
+                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                : 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-sm shadow-amber-400/20 active:scale-95'
+                            }`}
+                          >
+                            {notif.actionCompleted ? (
+                              <>
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Đã thực hiện</span>
+                              </>
+                            ) : notif.actionType === 'reply_reaction' ? (
+                              <>
+                                <Heart className="w-3.5 h-3.5 fill-slate-950" />
+                                <span>{notif.actionLabel}</span>
+                              </>
+                            ) : (
+                              <span>{notif.actionLabel}</span>
+                            )}
+                          </button>
+                        </div>
                       )}
                     </div>
-
-                    {/* Vocab chips */}
-                    {notif.vocabWords && notif.vocabWords.length > 0 && (
-                      <div className="flex items-center gap-1.5 flex-wrap pl-10">
-                        {notif.vocabWords.map((vw, i) => (
-                          <span
-                            key={i}
-                            className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-amber-300 font-mono"
-                          >
-                            <strong>{vw.word}</strong>: {vw.meaningVi}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Action button */}
-                    {notif.actionLabel && (
-                      <div className="pt-1 pl-10 flex items-center justify-between">
-                        <button
-                          type="button"
-                          disabled={notif.actionCompleted}
-                          onClick={() => handleNotificationAction(notif)}
-                          className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                            notif.actionCompleted
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                              : 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-sm shadow-amber-400/20 active:scale-95'
-                          }`}
-                        >
-                          {notif.actionCompleted ? (
-                            <>
-                              <Check className="w-3.5 h-3.5" />
-                              <span>Đã thực hiện</span>
-                            </>
-                          ) : notif.actionType === 'reply_reaction' ? (
-                            <>
-                              <Heart className="w-3.5 h-3.5 fill-slate-950" />
-                              <span>{notif.actionLabel}</span>
-                            </>
-                          ) : (
-                            <span>{notif.actionLabel}</span>
-                          )}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
           </div>

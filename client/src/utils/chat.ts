@@ -137,9 +137,33 @@ const INITIAL_CONVERSATIONS: Record<string, Conversation> = {
       },
     ],
   },
+  'friend-4': {
+    friendId: 'friend-4',
+    friendName: 'Phương Thảo',
+    friendAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+    friendBadge: 'Streak 9 🔥',
+    streakDays: 9,
+    streakStatus: 'completed',
+    unreadCount: 0,
+    messages: [
+      {
+        id: 'm11',
+        senderId: 'friend-4',
+        text: 'Thảo vừa quét được mấy từ vựng về outfit siêu xinh nè ✨',
+        time: 'T3',
+      },
+      {
+        id: 'm12',
+        senderId: 'me',
+        text: 'Đỉnh quá! Giữ streak 9 ngày liên tục luôn nha 👏',
+        time: 'T3',
+        reaction: '👏',
+      },
+    ],
+  },
 };
 
-const CHAT_KEY = 'visulingo_chat_conversations_v2';
+const CHAT_KEY = 'visulingo_chat_conversations_v3';
 
 export function getConversations(): Record<string, Conversation> {
   try {
@@ -149,7 +173,7 @@ export function getConversations(): Record<string, Conversation> {
       return INITIAL_CONVERSATIONS;
     }
     const parsed = JSON.parse(raw);
-    if (!parsed['friend-1']?.messages?.[0]?.text?.includes('cày')) {
+    if (!parsed['friend-4']) {
       localStorage.setItem(CHAT_KEY, JSON.stringify(INITIAL_CONVERSATIONS));
       return INITIAL_CONVERSATIONS;
     }

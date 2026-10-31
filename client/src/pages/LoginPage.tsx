@@ -1,77 +1,141 @@
 import { useState } from 'react';
-import { Button } from '@/components/common/Button';
-import { useToast } from '@/components/common/Toast';
+import { Link, useNavigate } from 'react-router-dom';
+import { Sparkles, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { loginUser } from '@/services/authService';
 
 function LoginPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { addToast } = useToast();
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setError(null);
 
-    // Placeholder for Phase 1 auth implementation
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    addToast('Login functionality coming in Phase 1', 'info');
-    setIsLoading(false);
+    try {
+      setIsLoading(true);
+      await loginUser({ email, password });
+      navigate('/');
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || 'Email hoặc mật khẩu không chính xác!';
+      setError(msg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-          <h1 className="text-2xl font-bold text-gray-900 text-center mb-2">Welcome back</h1>
-          <p className="text-gray-500 text-center mb-8">Sign in to access your saved words and collections</p>
+    <div className="min-h-screen bg-[#0B0F17] text-white flex flex-col justify-center items-center p-4 selection:bg-amber-400 selection:text-black">
+      {/* Background glow effects */}
+      <div className="fixed top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="w-full max-w-md relative z-10 space-y-6">
+        {/* Brand header */}
+        <div className="text-center space-y-2">
+          <Link to="/" className="inline-flex items-center gap-2 group">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center font-black shadow-lg shadow-amber-400/20 group-hover:scale-105 transition-transform">
+              <Sparkles className="w-5 h-5 fill-slate-950" />
+            </div>
+            <span className="font-extrabold text-2xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-amber-200 bg-clip-text text-transparent">
+              VisuLingo Snaps
+            </span>
+          </Link>
+          <h1 className="text-xl font-bold tracking-tight text-white">Chào mừng trở lại!</h1>
+          <p className="text-xs text-slate-400">
+            Đăng nhập để xem Snaps của bạn bè và tiếp tục chuỗi streak 🔥
+          </p>
+        </div>
+
+        {/* Card */}
+        <div className="bg-[#161D2B]/90 backdrop-blur-2xl border border-white/10 rounded-[32px] p-6 sm:p-8 shadow-2xl space-y-5">
+          {error && (
+            <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                 Email
               </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-                autoComplete="email"
-              />
+              <div className="relative">
+                <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="email"
+                  required
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-hidden focus:border-amber-400 transition-colors"
+                />
+              </div>
             </div>
 
+            {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-                autoComplete="current-password"
-              />
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Mật khẩu
+                </label>
+              </div>
+              <div className="relative">
+                <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-9 pr-10 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-hidden focus:border-amber-400 transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
-            <Button type="submit" className="w-full" isLoading={isLoading}>
-              Sign In
-            </Button>
+            {/* Submit button */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 text-slate-950 font-extrabold text-sm shadow-xl shadow-amber-400/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 pt-3 disabled:opacity-50"
+            >
+              <span>{isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-500">
-            Don't have an account?{' '}
-            <a href="/register" className="text-blue-600 hover:text-blue-500 font-medium">
-              Sign up
-            </a>
-          </p>
+          {/* Quick Demo Login Pill for Evaluation */}
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('demo@visulingo.app');
+                setPassword('password123');
+              }}
+              className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-semibold text-amber-300 transition-colors text-center"
+            >
+              ⚡ Bấm để điền nhanh tài khoản thử nghiệm (Demo)
+            </button>
+          </div>
 
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg text-sm text-blue-800">
-            <p className="font-medium">Phase 1 Feature</p>
-            <p className="mt-1">Authentication and user accounts will be implemented in Phase 1.</p>
+          {/* Bottom link to Register */}
+          <div className="text-center pt-2 border-t border-white/10">
+            <p className="text-xs text-slate-400">
+              Chưa có tài khoản?{' '}
+              <Link to="/register" className="text-amber-400 font-bold hover:underline">
+                Đăng ký ngay
+              </Link>
+            </p>
           </div>
         </div>
       </div>

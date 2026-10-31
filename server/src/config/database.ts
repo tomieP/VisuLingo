@@ -11,7 +11,7 @@ const pool = new Pool({
 
 pool.on('error', (err) => {
   logger.error('Unexpected error on idle PostgreSQL client', err);
-  process.exit(-1);
+  if (env.NODE_ENV === 'production') process.exit(-1);
 });
 
 /**

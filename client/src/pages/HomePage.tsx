@@ -1,31 +1,38 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, Flame, Settings as SettingsIcon, X } from 'lucide-react';
+import { Sparkles, Flame, Settings as SettingsIcon, X, Bell, Trophy } from 'lucide-react';
 import { LocketBottomBar, LocketTab } from '@/components/locket/LocketBottomBar';
 import { LocketFeedCard } from '@/components/locket/LocketFeedCard';
 import { LocketCameraView } from '@/components/locket/LocketCameraView';
 import { LocketPocketView } from '@/components/locket/LocketPocketView';
 import { FriendsStoryBar } from '@/components/locket/FriendsStoryBar';
 import { FriendProfileModal } from '@/components/locket/FriendProfileModal';
+import { NotificationsModal } from '@/components/locket/NotificationsModal';
+import { FriendLeaderboardModal } from '@/components/locket/FriendLeaderboardModal';
 import { getMoments, MomentPost } from '@/utils/moments';
 import { getSavedWords } from '@/utils/storage';
 import { getFriends, FriendProfile } from '@/utils/friends';
+import { getUnreadNotificationsCount } from '@/utils/notifications';
 
 function HomePage() {
   const [activeTab, setActiveTab] = useState<LocketTab>('snap');
   const [moments, setMoments] = useState<MomentPost[]>([]);
   const [friends, setFriends] = useState<FriendProfile[]>([]);
   const [savedCount, setSavedCount] = useState<number>(0);
+  const [unreadNotifs, setUnreadNotifs] = useState<number>(0);
 
-  // Social filtering & profile modal states
+  // Social filtering & modal states
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
   const [selectedAlbumId, setSelectedAlbumId] = useState<string>('all');
   const [selectedFriendProfile, setSelectedFriendProfile] = useState<FriendProfile | null>(null);
+  const [isNotifsOpen, setIsNotifsOpen] = useState<boolean>(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState<boolean>(false);
 
   const loadData = () => {
     setMoments(getMoments());
     setFriends(getFriends());
     setSavedCount(getSavedWords().length);
+    setUnreadNotifs(getUnreadNotificationsCount());
   };
 
   useEffect(() => {
@@ -34,15 +41,18 @@ function HomePage() {
     const handleMoments = () => setMoments(getMoments());
     const handleSaved = () => setSavedCount(getSavedWords().length);
     const handleFriends = () => setFriends(getFriends());
+    const handleNotifs = () => setUnreadNotifs(getUnreadNotificationsCount());
 
     window.addEventListener('visulingo_moments_changed', handleMoments);
     window.addEventListener('visulingo_saved_words_changed', handleSaved);
     window.addEventListener('visulingo_friends_changed', handleFriends);
+    window.addEventListener('visulingo_notifications_changed', handleNotifs);
 
     return () => {
       window.removeEventListener('visulingo_moments_changed', handleMoments);
       window.removeEventListener('visulingo_saved_words_changed', handleSaved);
       window.removeEventListener('visulingo_friends_changed', handleFriends);
+      window.removeEventListener('visulingo_notifications_changed', handleNotifs);
     };
   }, []);
 
@@ -76,6 +86,7 @@ function HomePage() {
           timeAgo: photo.timeAgo,
           vocabTags: photo.vocabTags || [],
           reactions: { fire: 14, heart: 26, sparkles: 9 },
+          comments: [],
         }))
       );
     } else {
@@ -94,6 +105,7 @@ function HomePage() {
           timeAgo: photo.timeAgo,
           vocabTags: photo.vocabTags || [],
           reactions: { fire: 11, heart: 20, sparkles: 7 },
+          comments: [],
         }));
       }
     }
@@ -140,11 +152,30 @@ function HomePage() {
               ))}
             </div>
 
-            {/* Streak flame badge */}
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-amber-400">
+            {/* Streak flame badge (Click to open Leaderboard) */}
+            <button
+              type="button"
+              onClick={() => setIsLeaderboardOpen(true)}
+              className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-bold text-amber-400 transition-colors cursor-pointer group"
+              title="Bảng xếp hạng tuần"
+            >
+              <Trophy className="w-3 h-3 text-amber-400 group-hover:scale-110 transition-transform" />
               <Flame className="w-3 h-3 fill-amber-400" />
               <span>5</span>
-            </div>
+            </button>
+
+            {/* Notifications Bell */}
+            <button
+              type="button"
+              onClick={() => setIsNotifsOpen(true)}
+              className="relative p-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-slate-300 hover:text-white transition-colors"
+              title="Thông báo hoạt động"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              {unreadNotifs > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#0B0F17]" />
+              )}
+            </button>
 
             {/* Settings button */}
             <Link
@@ -283,6 +314,18 @@ function HomePage() {
         isOpen={!!selectedFriendProfile}
         onClose={() => setSelectedFriendProfile(null)}
         onUpdated={loadData}
+      />
+
+      {/* Notifications Modal */}
+      <NotificationsModal
+        isOpen={isNotifsOpen}
+        onClose={() => setIsNotifsOpen(false)}
+      />
+
+      {/* Friend Leaderboard Modal */}
+      <FriendLeaderboardModal
+        isOpen={isLeaderboardOpen}
+        onClose={() => setIsLeaderboardOpen(false)}
       />
     </div>
   );

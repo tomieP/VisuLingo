@@ -8,6 +8,16 @@ export interface VocabTag {
   y: number; // percentage (0..100)
 }
 
+export interface MomentComment {
+  id: string;
+  author: {
+    name: string;
+    avatar: string;
+  };
+  text: string;
+  timeAgo: string;
+}
+
 export interface MomentPost {
   id: string;
   author: {
@@ -25,6 +35,7 @@ export interface MomentPost {
     sparkles: number;
   };
   userReacted?: 'fire' | 'heart' | 'sparkles' | null;
+  comments?: MomentComment[];
 }
 
 const INITIAL_MOMENTS: MomentPost[] = [
@@ -44,6 +55,26 @@ const INITIAL_MOMENTS: MomentPost[] = [
       { id: 't2', word: 'coffee cup', meaningVi: 'ly cà phê', ipa: '/ˈkɒf.i kʌp/', x: 67, y: 46 },
       { id: 't3', word: 'notebook', meaningVi: 'quyển sổ tay', ipa: '/ˈnəʊt.bʊk/', x: 38, y: 75 },
     ],
+    comments: [
+      {
+        id: 'c1',
+        author: {
+          name: 'Khánh Linh',
+          avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&q=80',
+        },
+        text: 'Góc học tập xịn quá bạn ơi! Chúc bạn sớm đạt 7.5 nhé 🚀',
+        timeAgo: '8 phút trước',
+      },
+      {
+        id: 'c2',
+        author: {
+          name: 'Thành Nam',
+          avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=150&q=80',
+        },
+        text: 'Chiếc ly cà phê nhìn nghệ ghê ☕',
+        timeAgo: '4 phút trước',
+      },
+    ],
   },
   {
     id: 'moment-2',
@@ -60,6 +91,17 @@ const INITIAL_MOMENTS: MomentPost[] = [
       { id: 't4', word: 'sofa', meaningVi: 'ghế xô-pha', ipa: '/ˈsəʊ.fə/', x: 45, y: 55 },
       { id: 't5', word: 'houseplant', meaningVi: 'cây cảnh trong nhà', ipa: '/ˈhaʊs.plɑːnt/', x: 80, y: 35 },
       { id: 't6', word: 'cushion', meaningVi: 'gối tựa lưng', ipa: '/ˈkʊʃ.ən/', x: 32, y: 42 },
+    ],
+    comments: [
+      {
+        id: 'c3',
+        author: {
+          name: 'Minh Quân',
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+        },
+        text: 'Không gian yên bình ghê, học từ vựng lúc này thì siêu vào ✨',
+        timeAgo: '20 phút trước',
+      },
     ],
   },
   {
@@ -78,6 +120,7 @@ const INITIAL_MOMENTS: MomentPost[] = [
       { id: 't8', word: 'coffee', meaningVi: 'cà phê', ipa: '/ˈkɒf.i/', x: 75, y: 32 },
       { id: 't9', word: 'fork', meaningVi: 'chiếc nĩa / dĩa', ipa: '/fɔːk/', x: 22, y: 65 },
     ],
+    comments: [],
   },
 ];
 
@@ -94,16 +137,18 @@ export function getMoments(): MomentPost[] {
     const parsed: MomentPost[] = JSON.parse(raw);
     let modified = false;
 
-    // Sanitize any expired blob URLs from previous tests
+    // Sanitize any expired blob URLs from previous tests and ensure comments array exists
     const sanitized = parsed.map((m) => {
-      if (!m.imageUrl || m.imageUrl.startsWith('blob:')) {
+      let item = { ...m };
+      if (!item.comments) {
+        item.comments = [];
         modified = true;
-        return {
-          ...m,
-          imageUrl: FALLBACK_PHOTO,
-        };
       }
-      return m;
+      if (!item.imageUrl || item.imageUrl.startsWith('blob:')) {
+        item.imageUrl = FALLBACK_PHOTO;
+        modified = true;
+      }
+      return item;
     });
 
     if (modified) {
@@ -122,6 +167,7 @@ export function addMoment(moment: Omit<MomentPost, 'id' | 'timeAgo' | 'reactions
     id: `moment-${Date.now()}`,
     timeAgo: 'Vừa xong',
     reactions: { fire: 1, heart: 1, sparkles: 0 },
+    comments: [],
   };
   moments.unshift(newMoment);
   localStorage.setItem(MOMENTS_KEY, JSON.stringify(moments));
@@ -146,4 +192,27 @@ export function reactToMoment(momentId: string, reaction: 'fire' | 'heart' | 'sp
     localStorage.setItem(MOMENTS_KEY, JSON.stringify(moments));
     window.dispatchEvent(new Event('visulingo_moments_changed'));
   }
+}
+
+export function addCommentToMoment(momentId: string, text: string): MomentComment | null {
+  const moments = getMoments();
+  const target = moments.find((m) => m.id === momentId);
+  if (!target) return null;
+
+  if (!target.comments) target.comments = [];
+
+  const newComment: MomentComment = {
+    id: `cmt-${Date.now()}`,
+    author: {
+      name: 'Bạn (Me)',
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+    },
+    text: text.trim(),
+    timeAgo: 'Vừa xong',
+  };
+
+  target.comments.push(newComment);
+  localStorage.setItem(MOMENTS_KEY, JSON.stringify(moments));
+  window.dispatchEvent(new Event('visulingo_moments_changed'));
+  return newComment;
 }

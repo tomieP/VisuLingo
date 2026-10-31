@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Volume2, Heart, Flame, Sparkles, BookmarkPlus, Check, Share2 } from 'lucide-react';
+import { Volume2, Heart, Flame, Sparkles, BookmarkPlus, Check, Share2, MessageCircle } from 'lucide-react';
 import { MomentPost, reactToMoment, VocabTag } from '@/utils/moments';
 import { LocketSticker } from './LocketSticker';
+import { SnapCommentsModal } from './SnapCommentsModal';
 import { speakWord } from '@/utils/speech';
 import { saveWord, isWordSaved } from '@/utils/storage';
 
@@ -15,6 +16,7 @@ const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1518455027359-f3f8164b
 export function LocketFeedCard({ moment, onAuthorClick }: LocketFeedCardProps) {
   const [activeWordId, setActiveWordId] = useState<string | null>(null);
   const [imgSrc, setImgSrc] = useState(moment.imageUrl || FALLBACK_IMAGE);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
 
   useEffect(() => {
     setImgSrc(moment.imageUrl || FALLBACK_IMAGE);
@@ -196,10 +198,28 @@ export function LocketFeedCard({ moment, onAuthorClick }: LocketFeedCardProps) {
             <Sparkles className="w-3.5 h-3.5" />
             <span>{moment.reactions.sparkles}</span>
           </button>
+
+          {/* Comment button */}
+          <button
+            type="button"
+            onClick={() => setIsCommentsOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all bg-white/5 hover:bg-white/10 hover:border-amber-400/40 text-slate-300 border border-white/5"
+            title="Xem & Viết bình luận"
+          >
+            <MessageCircle className="w-3.5 h-3.5 text-slate-400" />
+            <span>{(moment.comments || []).length}</span>
+          </button>
         </div>
 
         <span className="text-[10px] text-slate-400 font-medium">Chạm tag để học từ</span>
       </div>
+
+      {/* Snap Comments Modal */}
+      <SnapCommentsModal
+        moment={moment}
+        isOpen={isCommentsOpen}
+        onClose={() => setIsCommentsOpen(false)}
+      />
     </div>
   );
 }

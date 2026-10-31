@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FriendProfile } from '@/utils/friends';
 import { Sparkles, UserPlus, Search, X } from 'lucide-react';
+import { AddFriendModal } from './AddFriendModal';
 
 interface FriendsStoryBarProps {
   friends: FriendProfile[];
@@ -16,6 +17,7 @@ export function FriendsStoryBar({
   onOpenProfile,
 }: FriendsStoryBarProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isAddFriendOpen, setIsAddFriendOpen] = useState(false);
 
   // Filter friends list by name or username
   const filteredFriends = friends.filter(
@@ -143,8 +145,9 @@ export function FriendsStoryBar({
         {!searchQuery && (
           <button
             type="button"
-            onClick={() => alert('Tính năng thêm bạn bè qua mã QR / Username sẽ sớm ra mắt!')}
+            onClick={() => setIsAddFriendOpen(true)}
             className="flex flex-col items-center gap-1 shrink-0 opacity-55 hover:opacity-100 transition-opacity"
+            title="Thêm bạn bè mới"
           >
             <div className="w-12 h-12 rounded-full border border-dashed border-white/20 hover:border-white/40 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
               <UserPlus className="w-4 h-4" />
@@ -153,6 +156,12 @@ export function FriendsStoryBar({
           </button>
         )}
       </div>
+
+      {/* Add Friend Modal */}
+      <AddFriendModal
+        isOpen={isAddFriendOpen}
+        onClose={() => setIsAddFriendOpen(false)}
+      />
     </div>
   );
 }

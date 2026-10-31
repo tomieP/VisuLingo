@@ -288,3 +288,12 @@ export function toggleFollowFriend(friendId: string): FriendProfile[] {
   }
   return friends;
 }
+
+export function addNewFriend(newFriend: FriendProfile): FriendProfile[] {
+  const friends = getFriends();
+  if (friends.some((f) => f.id === newFriend.id)) return friends;
+  friends.push(newFriend);
+  localStorage.setItem(FRIENDS_KEY, JSON.stringify(friends));
+  window.dispatchEvent(new Event('visulingo_friends_changed'));
+  return friends;
+}

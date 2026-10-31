@@ -1,36 +1,43 @@
-<svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="vl-bg-grad" x1="4" y1="4" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stopColor="#FBBF24" />
-      <stop offset="55%" stopColor="#F59E0B" />
-      <stop offset="100%" stopColor="#EA580C" />
+    <linearGradient id="vl-cam-body" x1="8" y1="8" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#FCD34D" />
+      <stop offset="45%" stopColor="#F59E0B" />
+      <stop offset="100%" stopColor="#D97706" />
     </linearGradient>
-    <radialGradient id="vl-aperture" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stopColor="#0B0F17" />
-      <stop offset="100%" stopColor="#1E293B" />
+    <linearGradient id="vl-shutter" x1="36" y1="4" x2="46" y2="10" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#FDE68A" />
+      <stop offset="100%" stopColor="#F59E0B" />
+    </linearGradient>
+    <radialGradient id="vl-lens-depth" cx="38%" cy="38%" r="65%">
+      <stop offset="0%" stopColor="#1E293B" />
+      <stop offset="50%" stopColor="#0F172A" />
+      <stop offset="100%" stopColor="#020617" />
     </radialGradient>
-    <linearGradient id="vl-star-grad" x1="28" y1="12" x2="38" y2="22" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stopColor="#FFFFFF" />
-      <stop offset="100%" stopColor="#FEF3C7" />
-    </linearGradient>
   </defs>
 
-  <!-- Housing Squircle with Speech Tail -->
-  <path d="M17 5C8 5 5 8 5 17V35C5 44 8 47 17 47H31L40 50L38 43.5C44 42 47 39 47 31V17C47 8 44 5 35 5H17Z" fill="url(#vl-bg-grad)" />
+  <!-- Camera Shutter Button -->
+  <rect x="36" y="4" width="10" height="6" rx="3" fill="url(#vl-shutter)" />
 
-  <!-- Lens Aperture -->
-  <circle cx="25" cy="24" r="13" fill="url(#vl-aperture)" stroke="rgba(255,255,255,0.2)" stroke-width="1.2" />
+  <!-- Friendly Camera Body with Speech Bubble Tail -->
+  <path d="M17 9C9.5 9 6 12.5 6 20V37C6 44.5 9.5 48 17 48H19L15 54L25 48H43C50.5 48 54 44.5 54 37V20C54 12.5 50.5 9 43 9H17Z" fill="url(#vl-cam-body)" />
 
-  <!-- Optical Viewfinder Brackets -->
-  <path d="M16 19V17C16 16.4 16.4 16 17 16H19" stroke="#FDE68A" stroke-width="1.5" stroke-linecap="round" />
-  <path d="M31 16H33C33.6 16 34 16.4 34 17V19" stroke="#FDE68A" stroke-width="1.5" stroke-linecap="round" />
-  <path d="M16 29V31C16 31.6 16.4 32 17 32H19" stroke="#FDE68A" stroke-width="1.5" stroke-linecap="round" />
-  <path d="M31 32H33C33.6 32 34 31.6 34 31V29" stroke="#FDE68A" stroke-width="1.5" stroke-linecap="round" />
+  <!-- Camera Flash -->
+  <circle cx="16" cy="18" r="4.5" fill="#0F172A" />
+  <circle cx="16" cy="18" r="3" fill="#FDE68A" />
+  <circle cx="15.2" cy="17.2" r="1" fill="#FFFFFF" />
 
-  <!-- Stylized "V" Iris -->
-  <path d="M19 20L25 29.5L31 20" stroke="#FBBF24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-  <path d="M22 23.5L25 28L28 23.5" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Big Clear Camera Lens -->
+  <circle cx="32" cy="28.5" r="14" fill="url(#vl-lens-depth)" stroke="rgba(255,255,255,0.25)" stroke-width="1.8" />
+  <circle cx="32" cy="28.5" r="11" fill="#0B0F17" stroke="rgba(251,191,36,0.3)" stroke-width="1.2" />
+
+  <!-- Glass Arc Reflection -->
+  <path d="M24 23.5C26 20.5 30 19 34 19.5" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" />
+
+  <!-- Smiling "V" Iris -->
+  <path d="M26.5 27L32 33.5L37.5 27" stroke="#FBBF24" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M28.5 28L32 32L35.5 28" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
 
   <!-- AI Focus Sparkle -->
-  <path d="M34 12C34 14.5 35.5 16 38 16C35.5 16 34 17.5 34 20C34 17.5 32.5 16 30 16C32.5 16 34 14.5 34 12Z" fill="url(#vl-star-grad)" />
+  <path d="M44 14C44 16.5 45.5 18 48 18C45.5 18 44 19.5 44 22C44 19.5 42.5 18 40 18C42.5 18 44 16.5 44 14Z" fill="#FFFFFF" />
 </svg>

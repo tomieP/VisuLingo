@@ -1,0 +1,22 @@
+{
+  "name": "visulingo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "build": "npm run build --workspaces",
+    "install:all": "npm install && npm install --prefix client && npm install --prefix server",
+    "typecheck": "npm run typecheck --workspaces",
+    "migrate": "npm run migrate --prefix server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

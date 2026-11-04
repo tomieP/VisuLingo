@@ -61,6 +61,7 @@ CREATE TABLE vocabularies (
   ipa VARCHAR(100),
   example_sentence TEXT,
   source VARCHAR(20) DEFAULT 'api' CHECK (source IN ('api', 'manual')),
+  status VARCHAR(10) DEFAULT 'auto' CHECK (status IN ('auto', 'verified', 'hidden')),
   cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -129,6 +130,7 @@ CREATE TABLE label_mappings (
   raw_label VARCHAR(255) NOT NULL,
   normalized_label VARCHAR(255) NOT NULL,
   language VARCHAR(10) DEFAULT 'en',
+  is_active BOOLEAN DEFAULT true,
   created_by UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(raw_label, language)

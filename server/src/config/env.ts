@@ -13,6 +13,9 @@ interface Env {
   CONFIDENCE_THRESHOLD: number;
   MAX_UPLOAD_MB: number;
   NODE_ENV: string;
+  CLOUDINARY_CLOUD_NAME: string;
+  CLOUDINARY_API_KEY: string;
+  CLOUDINARY_API_SECRET: string;
 }
 
 export const env: Env = {
@@ -24,6 +27,9 @@ export const env: Env = {
   CONFIDENCE_THRESHOLD: Number(process.env.CONFIDENCE_THRESHOLD) || 0.5,
   MAX_UPLOAD_MB: Number(process.env.MAX_UPLOAD_MB) || 10,
   NODE_ENV: process.env.NODE_ENV || 'development',
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || '',
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',
 };
 
 export const isProduction = env.NODE_ENV === 'production';

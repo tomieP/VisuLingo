@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { lookupWord } from '../services/vocabService';
 
 /**
  * GET /api/vocab/search?q=word

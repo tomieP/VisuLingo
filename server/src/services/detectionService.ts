@@ -118,7 +118,7 @@ export async function analyzeImage(
   }
 
   // --- Normalize labels via label_mappings DB table ---
-  const objects = [];
+  const objects: any[] = [];
   for (const item of detected) {
     const objId = `obj_${objects.length + 1}`;
     let label = normalizeLabel(item.label);

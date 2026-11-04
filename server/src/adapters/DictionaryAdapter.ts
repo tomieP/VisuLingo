@@ -53,7 +53,7 @@ export class DictionaryAdapter {
    */
   private async getFromDatabase(word: string): Promise<DictionaryResult | null> {
     try {
-      const result = await query(
+      const result = await query<{ word: string; meaning_vi: string; ipa: string | null; example_sentence: string | null }>(
         `SELECT word, meaning_vi, ipa, example_sentence FROM vocabularies WHERE word = $1 AND source = 'api'`,
         [word],
       );

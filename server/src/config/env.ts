@@ -1,21 +1,15 @@
 import dotenv from 'dotenv';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-// Load .env from server root
-// dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-dotenv.config({
-    path: path.resolve(__dirname, '../../.env')
-});
+// Load .env from server root.
+// Runtime uses process.cwd() when launched from server/.
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 interface Env {
   PORT: number;
   DATABASE_URL: string;
   JWT_SECRET: string;
+  JWT_EXPIRES_IN: string;
   VISION_API_KEY: string;
   DICTIONARY_API_KEY: string;
   CONFIDENCE_THRESHOLD: number;
@@ -30,6 +24,7 @@ export const env: Env = {
   PORT: Number(process.env.PORT) || 5000,
   DATABASE_URL: process.env.DATABASE_URL || 'postgresql://user:pass@localhost:5432/vocab_db',
   JWT_SECRET: process.env.JWT_SECRET || 'your_jwt_secret',
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
   VISION_API_KEY: process.env.VISION_API_KEY || '',
   DICTIONARY_API_KEY: process.env.DICTIONARY_API_KEY || '',
   CONFIDENCE_THRESHOLD: Number(process.env.CONFIDENCE_THRESHOLD) || 0.5,

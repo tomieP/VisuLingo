@@ -1,27 +1,28 @@
 import { Request, Response, NextFunction } from 'express';
 import * as authService from '../services/authService';
 
-function validateCredentials(email: unknown, password: unknown): string | null {
-  if (typeof email !== 'string' || !email.includes('@')) return 'A valid email is required';
-  if (typeof password !== 'string' || password.length < 8) return 'Password must be at least 8 characters';
-  return null;
-}
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { email, password, firstName, lastName } = req.body as Record<string, unknown>;
-    const validationError = validateCredentials(email, password);
-    if (validationError) {
-      res.status(400).json({ error: validationError });
+    const { email, password, displayName } = req.body as Record<string, unknown>;
+
+    if (typeof email !== 'string' || !EMAIL_REGEX.test(email.trim())) {
+      res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Email không hợp lệ', retryable: false });
       return;
     }
-    const result = await authService.register(email as string, password as string, firstName as string | undefined, lastName as string | undefined);
+    if (typeof password !== 'string' || password.length < 8) {
+      res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Mật khẩu tối thiểu 8 ký tự', retryable: false });
+      return;
+    }
+
+    const result = await authService.register(
+      email as string,
+      password as string,
+      typeof displayName === 'string' ? displayName : undefined,
+    );
     res.status(201).json(result);
-  } catch (error: any) {
-    if (error?.code === '23505') {
-      res.status(409).json({ error: 'Email is already registered' });
-      return;
-    }
+  } catch (error) {
     next(error);
   }
 }
@@ -29,11 +30,16 @@ export async function register(req: Request, res: Response, next: NextFunction):
 export async function login(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { email, password } = req.body as Record<string, unknown>;
-    const validationError = validateCredentials(email, password);
-    if (validationError) {
-      res.status(400).json({ error: validationError });
+
+    if (typeof email !== 'string' || !EMAIL_REGEX.test(email.trim())) {
+      res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Email không hợp lệ', retryable: false });
       return;
     }
+    if (typeof password !== 'string' || password.length < 8) {
+      res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Mật khẩu tối thiểu 8 ký tự', retryable: false });
+      return;
+    }
+
     const result = await authService.login(email as string, password as string);
     res.status(200).json(result);
   } catch (error) {
@@ -41,6 +47,12 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
   }
 }
 
-export function getProfile(req: Request, res: Response): void {
-  res.status(200).json({ user: req.user });
+export async function getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = req.user!.userId;
+    const profile = await authService.getCurrentUser(userId);
+    res.status(200).json(profile);
+  } catch (error) {
+    next(error);
+  }
 }

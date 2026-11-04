@@ -1,15 +1,29 @@
 import { Router } from 'express';
-import { upload } from '../middlewares/uploadMiddleware';
+import { upload, validateUploadedImage } from '../middlewares/uploadMiddleware';
 import { analyzeImageController } from '../controllers/detectionController';
-import { authenticate } from '../middlewares/authMiddleware';
+import { detectionLimiter } from '../middlewares/rateLimiter';
+import { optionalAuthenticate } from '../middlewares/authMiddleware';
 
 const router = Router();
 
-// Guest analysis supported; optional JWT lets service associate image with user.
-router.post('/analyze', upload.single('image'), (req, res, next) => {
-  // Authentication remains optional for this endpoint in current phase.
-  void authenticate;
-  analyzeImageController(req, res, next);
-});
+// POST /api/detections — guest and authenticated analysis
+router.post(
+  '/',
+  detectionLimiter,
+  optionalAuthenticate,
+  upload.single('image'),
+  validateUploadedImage,
+  analyzeImageController,
+);
+
+// Backward-compatible alias
+router.post(
+  '/analyze',
+  detectionLimiter,
+  optionalAuthenticate,
+  upload.single('image'),
+  validateUploadedImage,
+  analyzeImageController,
+);
 
 export default router;

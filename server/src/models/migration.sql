@@ -8,16 +8,16 @@ CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  first_name VARCHAR(100),
-  last_name VARCHAR(100),
+  display_name VARCHAR(100),
   role VARCHAR(20) CHECK (role IN ('user', 'admin')) DEFAULT 'user',
-  is_active BOOLEAN DEFAULT true,
+  status VARCHAR(10) CHECK (status IN ('active', 'locked')) DEFAULT 'active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  last_login_at TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
 
 -- 2. images table
 CREATE TABLE IF NOT EXISTS images (
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS saved_words (
   vocabulary_id UUID REFERENCES vocabularies(id) ON DELETE CASCADE NOT NULL,
   image_id UUID REFERENCES images(id) ON DELETE SET NULL,
   notes TEXT,
-  saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  saved_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_saved_words_user_vocab ON saved_words(user_id, vocabulary_id);

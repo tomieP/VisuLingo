@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { authenticate, authorize } from '../middlewares/authMiddleware';
+import { authenticateJwt, requireRole } from '../middlewares/authMiddleware';
 import { ROLES } from '../config/constants';
 import { getStats, listUsers } from '../controllers/adminController';
 
 const router = Router();
-router.use(authenticate, authorize(ROLES.ADMIN));
+router.use(authenticateJwt, requireRole([ROLES.ADMIN]));
 router.get('/stats', getStats);
 router.get('/users', listUsers);
 

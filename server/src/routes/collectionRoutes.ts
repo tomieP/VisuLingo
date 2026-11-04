@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { authenticate } from '../middlewares/authMiddleware';
+import { authenticateJwt } from '../middlewares/authMiddleware';
 import { listCollections, createCollection, getCollection, updateCollection, deleteCollection } from '../controllers/collectionController';
 
 const router = Router();
-router.use(authenticate);
+router.use(authenticateJwt);
 router.get('/', listCollections);
 router.post('/', createCollection);
 router.get('/:id', getCollection);

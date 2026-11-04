@@ -4,7 +4,7 @@
 BEGIN;
 
 -- 1. users table
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
@@ -16,11 +16,11 @@ CREATE TABLE users (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 
 -- 2. images table
-CREATE TABLE images (
+CREATE TABLE IF NOT EXISTS images (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   original_filename VARCHAR(255) NOT NULL,
@@ -32,11 +32,11 @@ CREATE TABLE images (
   uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_images_user_id ON images(user_id);
-CREATE INDEX idx_images_uploaded_at ON images(uploaded_at);
+CREATE INDEX IF NOT EXISTS idx_images_user_id ON images(user_id);
+CREATE INDEX IF NOT EXISTS idx_images_uploaded_at ON images(uploaded_at);
 
 -- 3. detected_objects table
-CREATE TABLE detected_objects (
+CREATE TABLE IF NOT EXISTS detected_objects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   image_id UUID REFERENCES images(id) ON DELETE CASCADE NOT NULL,
   label VARCHAR(255) NOT NULL,
@@ -49,12 +49,12 @@ CREATE TABLE detected_objects (
   detected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_detected_objects_image_id ON detected_objects(image_id);
-CREATE INDEX idx_detected_objects_label ON detected_objects(label);
-CREATE INDEX idx_detected_objects_confidence ON detected_objects(confidence);
+CREATE INDEX  IF NOT EXISTS idx_detected_objects_image_id ON detected_objects(image_id);
+CREATE INDEX  IF NOT EXISTS idx_detected_objects_label ON detected_objects(label);
+CREATE INDEX  IF NOT EXISTS idx_detected_objects_confidence ON detected_objects(confidence);
 
 -- 4. vocabularies table
-CREATE TABLE vocabularies (
+CREATE TABLE IF NOT EXISTS vocabularies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   word VARCHAR(255) UNIQUE NOT NULL,
   meaning_vi VARCHAR(1000) NOT NULL,
@@ -66,11 +66,11 @@ CREATE TABLE vocabularies (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_vocabularies_word ON vocabularies(word);
-CREATE INDEX idx_vocabularies_source ON vocabularies(source);
+CREATE INDEX  IF NOT EXISTS idx_vocabularies_word ON vocabularies(word);
+CREATE INDEX  IF NOT EXISTS idx_vocabularies_source ON vocabularies(source);
 
 -- 5. saved_words table
-CREATE TABLE saved_words (
+CREATE TABLE IF NOT EXISTS saved_words (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
   vocabulary_id UUID REFERENCES vocabularies(id) ON DELETE CASCADE NOT NULL,
@@ -79,12 +79,12 @@ CREATE TABLE saved_words (
   saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE UNIQUE INDEX idx_saved_words_user_vocab ON saved_words(user_id, vocabulary_id);
-CREATE INDEX idx_saved_words_user_id ON saved_words(user_id);
-CREATE INDEX idx_saved_words_vocabulary_id ON saved_words(vocabulary_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_saved_words_user_vocab ON saved_words(user_id, vocabulary_id);
+CREATE INDEX  IF NOT EXISTS idx_saved_words_user_id ON saved_words(user_id);
+CREATE INDEX  IF NOT EXISTS idx_saved_words_vocabulary_id ON saved_words(vocabulary_id);
 
 -- 6. collections table
-CREATE TABLE collections (
+CREATE TABLE IF NOT EXISTS collections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
   name VARCHAR(255) NOT NULL,
@@ -94,22 +94,22 @@ CREATE TABLE collections (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_collections_user_id ON collections(user_id);
-CREATE INDEX idx_collections_is_public ON collections(is_public);
+CREATE INDEX  IF NOT EXISTS idx_collections_user_id ON collections(user_id);
+CREATE INDEX  IF NOT EXISTS idx_collections_is_public ON collections(is_public);
 
 -- 7. collection_images table
-CREATE TABLE collection_images (
+CREATE TABLE IF NOT EXISTS collection_images (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   collection_id UUID REFERENCES collections(id) ON DELETE CASCADE NOT NULL,
   image_id UUID REFERENCES images(id) ON DELETE CASCADE NOT NULL,
   added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE UNIQUE INDEX idx_collection_images_collection_image ON collection_images(collection_id, image_id);
-CREATE INDEX idx_collection_images_collection_id ON collection_images(collection_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_collection_images_collection_image ON collection_images(collection_id, image_id);
+CREATE INDEX  IF NOT EXISTS idx_collection_images_collection_id ON collection_images(collection_id);
 
 -- 8. analysis_sessions table
-CREATE TABLE analysis_sessions (
+CREATE TABLE IF NOT EXISTS analysis_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   image_id UUID REFERENCES images(id) ON DELETE CASCADE NOT NULL,
@@ -120,12 +120,12 @@ CREATE TABLE analysis_sessions (
   status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed'))
 );
 
-CREATE INDEX idx_analysis_sessions_image_id ON analysis_sessions(image_id);
-CREATE INDEX idx_analysis_sessions_user_id ON analysis_sessions(user_id);
-CREATE INDEX idx_analysis_sessions_status ON analysis_sessions(status);
+CREATE INDEX  IF NOT EXISTS idx_analysis_sessions_image_id ON analysis_sessions(image_id);
+CREATE INDEX  IF NOT EXISTS idx_analysis_sessions_user_id ON analysis_sessions(user_id);
+CREATE INDEX  IF NOT EXISTS idx_analysis_sessions_status ON analysis_sessions(status);
 
 -- 9. label_mappings table
-CREATE TABLE label_mappings (
+CREATE TABLE IF NOT EXISTS label_mappings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   raw_label VARCHAR(255) NOT NULL,
   normalized_label VARCHAR(255) NOT NULL,
@@ -136,11 +136,11 @@ CREATE TABLE label_mappings (
   UNIQUE(raw_label, language)
 );
 
-CREATE INDEX idx_label_mappings_raw ON label_mappings(raw_label);
-CREATE INDEX idx_label_mappings_normalized ON label_mappings(normalized_label);
+CREATE INDEX  IF NOT EXISTS idx_label_mappings_raw ON label_mappings(raw_label);
+CREATE INDEX  IF NOT EXISTS idx_label_mappings_normalized ON label_mappings(normalized_label);
 
 -- 10. app_settings table
-CREATE TABLE app_settings (
+CREATE TABLE IF NOT EXISTS app_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   key VARCHAR(100) UNIQUE NOT NULL,
   value TEXT NOT NULL,
@@ -149,10 +149,10 @@ CREATE TABLE app_settings (
   updated_by UUID REFERENCES users(id) ON DELETE SET NULL
 );
 
-CREATE INDEX idx_app_settings_key ON app_settings(key);
+CREATE INDEX  IF NOT EXISTS idx_app_settings_key ON app_settings(key);
 
 -- 11. usage_events table
-CREATE TABLE usage_events (
+CREATE TABLE IF NOT EXISTS usage_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   event_type VARCHAR(100) NOT NULL,
@@ -162,11 +162,11 @@ CREATE TABLE usage_events (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_usage_events_user_id ON usage_events(user_id);
-CREATE INDEX idx_usage_events_created_at ON usage_events(created_at);
+CREATE INDEX  IF NOT EXISTS idx_usage_events_user_id ON usage_events(user_id);
+CREATE INDEX  IF NOT EXISTS idx_usage_events_created_at ON usage_events(created_at);
 
 -- 12. audit_logs table
-CREATE TABLE audit_logs (
+CREATE TABLE IF NOT EXISTS audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   action VARCHAR(255) NOT NULL,
@@ -178,7 +178,7 @@ CREATE TABLE audit_logs (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
-CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
+CREATE INDEX  IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
+CREATE INDEX  IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
 
 COMMIT;

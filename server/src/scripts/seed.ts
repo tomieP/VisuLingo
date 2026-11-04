@@ -1,7 +1,5 @@
-"""
-Database seed script for VisuLingo.
-Populates label_mappings and vocabularies tables with initial data.
-"""
+// Database seed script for VisuLingo.
+// Populates label_mappings and vocabularies tables with initial data.
 
 import { query } from '../config/database';
 import logger from '../utils/logger';
@@ -32,20 +30,20 @@ async function seedLabelMappings(): Promise<void> {
     { raw: 'jar', normalized: 'bottle' },
     { raw: 'keyboard', normalized: 'keyboard' },
     { raw: 'keypad', normalized: 'keyboard' },
-    { raw: 'computer', normalized: 'laptop' }, // Generic computer mapping
-    { raw: 'monitor', normalized: 'laptop' }, // General display mapping
-    { raw: 'printer', normalized: 'laptop' }, // Output device mapping
-    { raw: 'router', normalized: 'phone' }, // Network device mapping
-    { raw: 'modem', normalized: 'phone' }, // Connectivity mapping
-    { raw: 'headphone', normalized: 'phone' }, // Audio device mapping
+    { raw: 'computer', normalized: 'laptop' },
+    { raw: 'monitor', normalized: 'laptop' },
+    { raw: 'printer', normalized: 'laptop' },
+    { raw: 'router', normalized: 'phone' },
+    { raw: 'modem', normalized: 'phone' },
+    { raw: 'headphone', normalized: 'phone' },
   ];
 
   try {
     for (const mapping of labelMappings) {
       await query(
-        `INSERT INTO label_mappings (raw_label, normalized_label, is_active)
-         VALUES ($1, $2, true)
-         ON CONFLICT (raw_label, language) DO NOTHING`,
+        `INSERT INTO label_mappings (raw_label, normalized_label, language)
+        VALUES ($1, $2, 'en')
+        ON CONFLICT (raw_label, language) DO NOTHING`,
         [mapping.raw, mapping.normalized],
       );
     }
@@ -62,81 +60,91 @@ async function seedBasicVocabularies(): Promise<void> {
       word: 'phone',
       meaning_vi: 'điện thoại di động',
       ipa: '/foʊn/',
-      example: 'He is talking on the phone.',
+      example_sentence: 'He is talking on the phone.',
       source: 'manual',
+      status: 'verified',
     },
     {
       word: 'laptop',
       meaning_vi: 'máy tính xách tay',
       ipa: '/`læp.tɒp/',
-      example: 'She works on her laptop every day.',
+      example_sentence: 'She works on her laptop every day.',
       source: 'manual',
+      status: 'verified',
     },
     {
       word: 'cup',
       meaning_vi: 'cái cốc',
       ipa: '/kʌp/',
-      example: 'There is a cup on the table.',
+      example_sentence: 'There is a cup on the table.',
       source: 'manual',
+      status: 'verified',
     },
     {
       word: 'book',
       meaning_vi: 'quyển sách',
       ipa: '/bʊk/',
-      example: 'I am reading an interesting book.',
+      example_sentence: 'I am reading an interesting book.',
       source: 'manual',
+      status: 'verified',
     },
     {
       word: 'chair',
       meaning_vi: 'cái ghế',
       ipa: '/tʃeər/',
-      example: 'Please sit on this chair.',
+      example_sentence: 'Please sit on this chair.',
       source: 'manual',
+      status: 'verified',
     },
     {
       word: 'table',
       meaning_vi: 'cái bàn',
       ipa: '/`teɪ.bəl/',
-      example: 'The keys are on the table.',
+      example_sentence: 'The keys are on the table.',
       source: 'manual',
+      status: 'verified',
     },
     {
       word: 'pen',
       meaning_vi: 'cây bút',
       ipa: '/pen/',
-      example: 'Can I borrow your pen?',
+      example_sentence: 'Can I borrow your pen?',
       source: 'manual',
+      status: 'verified',
     },
     {
       word: 'clock',
       meaning_vi: 'đồng hồ',
       ipa: '/klɒk/',
-      example: 'The clock shows ten o’clock.',
+      example_sentence: 'The clock shows ten o’clock.',
       source: 'manual',
+      status: 'verified',
     },
     {
       word: 'bottle',
       meaning_vi: 'cái chai',
       ipa: '/`bɒt.əl/',
-      example: 'She filled the bottle with water.',
+      example_sentence: 'She filled the bottle with water.',
       source: 'manual',
+      status: 'verified',
     },
     {
       word: 'keyboard',
       meaning_vi: 'bàn phím',
       ipa: '/`kiː.bɔːd/',
-      example: 'The keyboard is next to the monitor.',
+      example_sentence: 'The keyboard is next to the monitor.',
       source: 'manual',
+      status: 'verified',
     },
   ];
 
   try {
     for (const vocab of vocabularies) {
       await query(
-        `INSERT INTO vocabularies (word, meaning_vi, ipa, example_sentence, source, status)
-         VALUES ($1, $2, $3, $4, $5, 'verified')
+        `INSERT INTO vocabularies (word, meaning_vi, ipa, example_sentence, source)
+         VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT (word) DO NOTHING`,
-        [vocab.word, vocab.meaning_vi, vocab.ipa, vocab.example, vocab.source],
+        [vocab.word, vocab.meaning_vi, vocab.ipa, vocab.example_sentence, vocab.source],
       );
     }
     logger.info(`Seeded ${vocabularies.length} vocabularies`);
@@ -196,8 +204,8 @@ async function main(): Promise<void> {
   }
 }
 
-if (require.main === module) {
-  main();
-}
+// This file runs directly through `tsx src/scripts/seed.ts`.
+// Do not use require.main here because project runtime uses ES modules.
+void main();
 
 export { seedLabelMappings, seedBasicVocabularies, seedAppSettings };

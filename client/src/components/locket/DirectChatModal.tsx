@@ -59,6 +59,7 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
   const [playingAudioWord, setPlayingAudioWord] = useState<string | null>(null);
   const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null);
   const [mainTab, setMainTab] = useState<'messages' | 'activity'>('messages');
+  const [featuredFriendId, setFeaturedFriendId] = useState<string>('friend-2');
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -741,105 +742,171 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
             {/* TAB CONTENT */}
             <div className="flex-1 overflow-y-auto px-2 py-2">
               {mainTab === 'messages' ? (
-                /* 1. SEAMLESS CONVERSATIONS LIST */
-                <div className="space-y-1">
-                  {friends.map((friend) => {
-                    const convo = conversations[friend.id];
-                    const lastMsg = convo?.messages?.[convo.messages.length - 1];
-                    const hasUnread = (convo?.unreadCount || 0) > 0;
-                    const streak = convo?.streakDays || friend.streak;
+                /* ========================================================
+                   AUTHENTIC LOCKET-STYLE HERO CAROUSEL + DM LIST
+                ======================================================== */
+                <div className="flex flex-col h-full overflow-hidden">
+                  {/* 1. HERO FRIEND STORIES CAPSULES (Locket-style) */}
+                  <div className="pt-2 pb-3 px-3 shrink-0">
+                    <div className="flex items-center justify-center gap-3 sm:gap-4.5 overflow-x-auto scrollbar-none py-1">
+                      {friends.map((friend) => {
+                        const isSelected = (featuredFriendId || 'friend-2') === friend.id;
+                        const shortName = friend.name.split(' ').pop() || friend.name;
+                        const convo = conversations[friend.id];
+                        const streak = convo?.streakDays || friend.streak;
 
-                    return (
-                      <div
-                        key={friend.id}
-                        onClick={() => setActiveFriendId(friend.id)}
-                        className={`flex items-center justify-between p-3 rounded-2xl transition-all cursor-pointer group select-none ${
-                          hasUnread
-                            ? 'bg-white/[0.07] hover:bg-white/[0.09]'
-                            : 'hover:bg-white/[0.04]'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          <div className="relative shrink-0">
-                            <img
-                              src={friend.avatar}
-                              alt={friend.name}
-                              className="w-12 h-12 rounded-full object-cover ring-1 ring-white/10 group-hover:ring-amber-400/60 transition-all"
-                            />
-                            <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-[#0E131F]" />
-                          </div>
+                        return (
+                          <button
+                            key={friend.id}
+                            type="button"
+                            onClick={() => {
+                              setFeaturedFriendId(friend.id);
+                              setActiveFriendId(friend.id);
+                            }}
+                            className="flex flex-col items-center shrink-0 cursor-pointer group transition-all"
+                          >
+                            {/* Portrait Oval/Capsule Frame */}
+                            <div
+                              className={`relative transition-all duration-300 overflow-hidden ${
+                                isSelected
+                                  ? 'w-28 sm:w-32 h-40 sm:h-44 rounded-[44px] border-2 border-amber-400 ring-4 ring-amber-400/20 shadow-xl shadow-amber-500/20 scale-105 z-10'
+                                  : 'w-22 sm:w-26 h-32 sm:h-36 rounded-[38px] border-2 border-amber-400/70 hover:border-amber-400 opacity-90 hover:opacity-100 hover:scale-102'
+                              }`}
+                            >
+                              <img
+                                src={friend.avatar}
+                                alt={friend.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
 
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`text-sm tracking-tight transition-colors truncate ${
-                                  hasUnread
-                                    ? 'font-black text-white'
-                                    : 'font-semibold text-slate-200 group-hover:text-amber-300'
-                                }`}
-                              >
-                                {friend.name}
-                              </span>
-                              <span className="text-xs text-amber-400 font-bold shrink-0">
-                                🔥 {streak}
-                              </span>
+                              {/* Flame Streak Pill Badge */}
+                              <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-full bg-black/80 backdrop-blur-md border border-amber-400/40 text-[10px] text-amber-300 font-black flex items-center gap-0.5 shadow-md">
+                                <Flame className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                <span>{streak}</span>
+                              </div>
                             </div>
 
-                            <p
-                              className={`text-xs truncate max-w-[190px] sm:max-w-[260px] mt-0.5 ${
-                                hasUnread
-                                  ? 'font-bold text-slate-100'
-                                  : 'text-slate-400 group-hover:text-slate-300 font-medium'
-                              }`}
-                            >
-                              {lastMsg?.snapImage ? (
-                                <span className="text-amber-300 font-semibold flex items-center gap-1">
-                                  <Camera className="w-3.5 h-3.5" />
-                                  Snap ảnh mới
-                                </span>
-                              ) : lastMsg?.audioWord ? (
-                                <span className="text-sky-300 font-semibold flex items-center gap-1">
-                                  <Volume2 className="w-3.5 h-3.5" />
-                                  Phát âm: {lastMsg.audioWord}
-                                </span>
-                              ) : (
-                                lastMsg?.text || 'Nhắn tin để giữ lửa streak...'
-                              )}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2.5 shrink-0 ml-2">
-                          <div className="flex flex-col items-end gap-1">
+                            {/* Friend Short Name */}
                             <span
-                              className={`text-[11px] ${
-                                hasUnread ? 'text-amber-400 font-black' : 'text-slate-500 font-medium'
+                              className={`text-xs mt-2 transition-colors ${
+                                isSelected
+                                  ? 'font-extrabold text-amber-400'
+                                  : 'font-semibold text-slate-300 group-hover:text-white'
                               }`}
                             >
-                              {lastMsg ? lastMsg.time : ''}
+                              {shortName}
                             </span>
-                            {hasUnread && (
-                              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 ring-4 ring-amber-400/20" />
-                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 2. SEAMLESS CONVERSATIONS LIST */}
+                  <div className="flex-1 overflow-y-auto space-y-1 pt-1 px-1 border-t border-white/5">
+                    {friends.map((friend) => {
+                      const convo = conversations[friend.id];
+                      const lastMsg = convo?.messages?.[convo.messages.length - 1];
+                      const hasUnread = (convo?.unreadCount || 0) > 0;
+                      const streak = convo?.streakDays || friend.streak;
+
+                      return (
+                        <div
+                          key={friend.id}
+                          onClick={() => setActiveFriendId(friend.id)}
+                          className={`flex items-center justify-between p-3 rounded-2xl transition-all cursor-pointer group select-none ${
+                            hasUnread
+                              ? 'bg-white/[0.07] hover:bg-white/[0.09]'
+                              : 'hover:bg-white/[0.04]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            {/* Round Avatar with Online Indicator */}
+                            <div className="relative shrink-0">
+                              <img
+                                src={friend.avatar}
+                                alt={friend.name}
+                                className="w-12 h-12 rounded-full object-cover ring-1 ring-white/10 group-hover:ring-amber-400/60 transition-all"
+                              />
+                              <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-[#0E131F]" />
+                            </div>
+
+                            <div className="min-w-0">
+                              {/* Friend Name + Flame Streak Number */}
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className={`text-sm tracking-tight transition-colors truncate ${
+                                    hasUnread
+                                      ? 'font-black text-white'
+                                      : 'font-semibold text-slate-200 group-hover:text-amber-300'
+                                  }`}
+                                >
+                                  {friend.name}
+                                </span>
+                                <span className="text-xs text-amber-500 font-bold flex items-center gap-0.5 shrink-0">
+                                  <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500 inline" />
+                                  <span>{streak}</span>
+                                </span>
+                              </div>
+
+                              {/* Message Subtext Preview */}
+                              <p
+                                className={`text-xs truncate max-w-[180px] sm:max-w-[260px] mt-0.5 ${
+                                  hasUnread
+                                    ? 'font-bold text-slate-100'
+                                    : 'text-slate-400 group-hover:text-slate-300 font-medium'
+                                }`}
+                              >
+                                {lastMsg?.audioWord ? (
+                                  <span className="text-sky-300 font-semibold flex items-center gap-1">
+                                    <Volume2 className="w-3.5 h-3.5" />
+                                    Phát âm: {lastMsg.audioWord}
+                                  </span>
+                                ) : lastMsg?.snapImage ? (
+                                  <span className="text-amber-300 font-semibold flex items-center gap-1">
+                                    <Camera className="w-3.5 h-3.5" />
+                                    Snap ảnh mới
+                                  </span>
+                                ) : (
+                                  lastMsg?.text || 'Nhắn tin để giữ lửa streak...'
+                                )}
+                              </p>
+                            </div>
                           </div>
 
-                          {/* Direct camera snap shutter */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveFriendId(friend.id);
-                              setTimeout(() => quickPhotoInputRef.current?.click(), 100);
-                            }}
-                            className="p-2 rounded-full text-slate-500 hover:text-amber-400 hover:bg-white/10 transition-colors"
-                            title="Gửi Snap ảnh ngay"
-                          >
-                            <Camera className="w-4 h-4" />
-                          </button>
+                          {/* Right Actions: Time, Unread Dot, and Quick Camera Button */}
+                          <div className="flex items-center gap-2.5 shrink-0 ml-2">
+                            <div className="flex flex-col items-end gap-1">
+                              <span
+                                className={`text-[11px] ${
+                                  hasUnread ? 'text-amber-400 font-black' : 'text-slate-400 font-medium'
+                                }`}
+                              >
+                                {lastMsg ? lastMsg.time : ''}
+                              </span>
+                              {hasUnread && (
+                                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 ring-4 ring-amber-400/20" />
+                              )}
+                            </div>
+
+                            {/* Direct camera snap shutter */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveFriendId(friend.id);
+                                setTimeout(() => quickPhotoInputRef.current?.click(), 100);
+                              }}
+                              className="p-1.5 rounded-full text-slate-400 hover:text-amber-400 hover:bg-white/10 transition-colors"
+                              title="Gửi Snap ảnh ngay"
+                            >
+                              <Camera className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               ) : (
                 /* 2. ACTIVITY & NOTIFICATIONS LIST */

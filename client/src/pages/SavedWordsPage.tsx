@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Flame } from 'lucide-react';
+import { ArrowLeft, Flame } from 'lucide-react';
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
-import { SavedWordsList } from '@/components/vocabulary/SavedWordsList';
+import { LocketPocketView } from '@/components/locket/LocketPocketView';
 
 function SavedWordsPage() {
   return (
@@ -30,21 +30,8 @@ function SavedWordsPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full space-y-6">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
-            <Sparkles className="w-4 h-4" />
-            <span>Kho Từ Vựng Thị Giác</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Sổ từ vựng đã lưu (Snapbook)
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-400">
-            Ôn tập, nghe phát âm bản xứ và luyện Flashcard lật thẻ phản xạ từ những bức ảnh bạn đã chụp.
-          </p>
-        </div>
-
-        <SavedWordsList />
+      <main className="max-w-2xl mx-auto px-4 py-4 flex-1 w-full">
+        <LocketPocketView initialSubTab="words" />
       </main>
     </div>
   );

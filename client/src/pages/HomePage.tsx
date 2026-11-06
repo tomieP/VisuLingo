@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Flame, Settings as SettingsIcon, X, MessageSquare } from 'lucide-react';
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { LocketBottomBar, LocketTab } from '@/components/locket/LocketBottomBar';
@@ -18,7 +18,16 @@ import { getUnreadNotificationsCount } from '@/utils/notifications';
 import { getTotalUnreadChatCount } from '@/utils/chat';
 
 function HomePage() {
-  const [activeTab, setActiveTab] = useState<LocketTab>('snap');
+  const [searchParams] = useSearchParams();
+  const initialTab = (searchParams.get('tab') as LocketTab) || 'snap';
+  const [activeTab, setActiveTab] = useState<LocketTab>(initialTab);
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as LocketTab;
+    if (tabParam === 'pocket' || tabParam === 'feed' || tabParam === 'snap') {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
   const [moments, setMoments] = useState<MomentPost[]>([]);
   const [friends, setFriends] = useState<FriendProfile[]>([]);
   const [savedCount, setSavedCount] = useState<number>(0);

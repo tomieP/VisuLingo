@@ -20,8 +20,6 @@ import {
   X,
   Layers,
   ChevronRight,
-  TrendingUp,
-  BrainCircuit,
 } from 'lucide-react';
 import { speakWord } from '@/utils/speech';
 import { getAlbums, getPhotos, Album, SnapPhoto } from '@/utils/albums';
@@ -98,7 +96,6 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
   // Calculations
   const masteredCount = savedWords.filter((w) => w.isMastered).length;
   const reviewCount = savedWords.length - masteredCount;
-  const retentionPercent = savedWords.length > 0 ? Math.round((masteredCount / savedWords.length) * 100) : 0;
 
   // Filtered words
   const filteredWords = savedWords.filter((w) => {
@@ -156,48 +153,16 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
             </div>
           </div>
 
-          {/* Quick Memory Retention Gauge */}
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] text-slate-400 font-medium">Độ bền trí nhớ</span>
-            <div className="flex items-center gap-1 text-emerald-400 font-black text-base">
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>{retentionPercent}%</span>
+          {/* Quick Word Counters */}
+          <div className="flex items-center gap-2">
+            <div className="px-3 py-1.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-right">
+              <span className="text-[10px] text-emerald-400/80 block">Đã thuộc</span>
+              <span className="text-xs font-black text-emerald-400">{masteredCount} từ</span>
             </div>
-          </div>
-        </div>
-
-        {/* Smart Memory Retention Bar */}
-        <div className="p-2.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-2">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="text-slate-300 font-bold flex items-center gap-1">
-              <BrainCircuit className="w-3.5 h-3.5 text-amber-400" />
-              Tiến độ ghi nhớ thông minh:
-            </span>
-            <span className="text-amber-400 font-bold">{masteredCount}/{savedWords.length} từ</span>
-          </div>
-
-          <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden flex">
-            <div
-              style={{ width: `${retentionPercent}%` }}
-              className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
-              title="Đã thuộc lòng"
-            />
-            <div
-              style={{ width: `${100 - retentionPercent}%` }}
-              className="h-full bg-amber-400/60 transition-all duration-500"
-              title="Cần ôn tập"
-            />
-          </div>
-
-          <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
-            <span className="flex items-center gap-1 text-emerald-400 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              {masteredCount} Thuộc lòng
-            </span>
-            <span className="flex items-center gap-1 text-amber-300 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              {reviewCount} Cần kích hoạt hôm nay
-            </span>
+            <div className="px-3 py-1.5 rounded-2xl bg-amber-400/10 border border-amber-400/20 text-right">
+              <span className="text-[10px] text-amber-300/80 block">Cần ôn</span>
+              <span className="text-xs font-black text-amber-300">{reviewCount} từ</span>
+            </div>
           </div>
         </div>
       </div>
@@ -372,7 +337,7 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
                     <Sparkles className="w-3.5 h-3.5 fill-slate-950" />
                   </div>
                   <span className="text-[11px] font-semibold opacity-85 block">
-                    {reviewCount > 0 ? `${reviewCount} từ cần kích hoạt lại trí nhớ` : `Toàn bộ ${savedWords.length} từ trong sổ`}
+                    {reviewCount > 0 ? `${reviewCount} từ cần ôn tập hôm nay` : `Toàn bộ ${savedWords.length} từ trong sổ`}
                   </span>
                 </div>
               </div>

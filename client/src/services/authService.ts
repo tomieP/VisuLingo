@@ -13,12 +13,13 @@ export async function loginUser(data: LoginRequest): Promise<AuthResponse> {
   } catch (error: any) {
     // If backend DB is not connected in local dev, provide seamless local session
     if (error?.response?.status === 500 || !error?.response) {
+      const isAdmin = data.email.toLowerCase().includes('admin');
       const mockUser: User = {
-        id: 'user-demo',
+        id: isAdmin ? 'admin-1' : 'user-demo',
         email: data.email,
-        firstName: data.email.split('@')[0],
-        lastName: '',
-        role: 'user',
+        firstName: isAdmin ? 'Admin' : data.email.split('@')[0],
+        lastName: isAdmin ? 'Hệ Thống' : '',
+        role: isAdmin ? 'admin' : 'user',
       };
       const mockAuth: AuthResponse = {
         token: 'mock-jwt-token-dev',

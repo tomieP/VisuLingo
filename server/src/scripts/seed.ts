@@ -1,6 +1,7 @@
 // Database seed script for VisuLingo.
-// Populates label_mappings and vocabularies tables with initial data.
+// Populates label_mappings, vocabularies, app_settings, and default users tables with initial data.
 
+import bcrypt from 'bcryptjs';
 import { query } from '../config/database';
 import logger from '../utils/logger';
 
@@ -12,30 +13,52 @@ async function seedLabelMappings(): Promise<void> {
     { raw: 'mobile phone', normalized: 'phone' },
     { raw: 'laptop computer', normalized: 'laptop' },
     { raw: 'notebook', normalized: 'laptop' },
+    { raw: 'personal computer', normalized: 'laptop' },
     { raw: 'cup', normalized: 'cup' },
     { raw: 'mug', normalized: 'cup' },
+    { raw: 'teacup', normalized: 'cup' },
+    { raw: 'coffee cup', normalized: 'cup' },
     { raw: 'book', normalized: 'book' },
     { raw: 'novel', normalized: 'book' },
     { raw: 'magazine', normalized: 'book' },
+    { raw: 'textbook', normalized: 'book' },
     { raw: 'chair', normalized: 'chair' },
     { raw: 'stool', normalized: 'chair' },
+    { raw: 'armchair', normalized: 'chair' },
+    { raw: 'couch', normalized: 'chair' },
+    { raw: 'sofa', normalized: 'chair' },
     { raw: 'table', normalized: 'table' },
     { raw: 'desk', normalized: 'table' },
+    { raw: 'dining table', normalized: 'table' },
+    { raw: 'coffee table', normalized: 'table' },
     { raw: 'pen', normalized: 'pen' },
+    { raw: 'ballpoint pen', normalized: 'pen' },
     { raw: 'pencil', normalized: 'pen' },
     { raw: 'marker', normalized: 'pen' },
+    { raw: 'highlighter', normalized: 'pen' },
     { raw: 'clock', normalized: 'clock' },
     { raw: 'watch', normalized: 'clock' },
+    { raw: 'wristwatch', normalized: 'clock' },
+    { raw: 'alarm clock', normalized: 'clock' },
     { raw: 'bottle', normalized: 'bottle' },
+    { raw: 'water bottle', normalized: 'bottle' },
+    { raw: 'flask', normalized: 'bottle' },
     { raw: 'jar', normalized: 'bottle' },
     { raw: 'keyboard', normalized: 'keyboard' },
     { raw: 'keypad', normalized: 'keyboard' },
-    { raw: 'computer', normalized: 'laptop' },
-    { raw: 'monitor', normalized: 'laptop' },
-    { raw: 'printer', normalized: 'laptop' },
-    { raw: 'router', normalized: 'phone' },
-    { raw: 'modem', normalized: 'phone' },
-    { raw: 'headphone', normalized: 'phone' },
+    { raw: 'computer mouse', normalized: 'mouse' },
+    { raw: 'wireless mouse', normalized: 'mouse' },
+    { raw: 'backpack', normalized: 'backpack' },
+    { raw: 'schoolbag', normalized: 'backpack' },
+    { raw: 'rucksack', normalized: 'backpack' },
+    { raw: 'headphone', normalized: 'headphone' },
+    { raw: 'earphone', normalized: 'headphone' },
+    { raw: 'earbuds', normalized: 'headphone' },
+    { raw: 'glasses', normalized: 'glasses' },
+    { raw: 'spectacles', normalized: 'glasses' },
+    { raw: 'sunglasses', normalized: 'glasses' },
+    { raw: 'umbrella', normalized: 'umbrella' },
+    { raw: 'parasol', normalized: 'umbrella' },
   ];
 
   try {
@@ -67,7 +90,7 @@ async function seedBasicVocabularies(): Promise<void> {
     {
       word: 'laptop',
       meaning_vi: 'máy tính xách tay',
-      ipa: '/`læp.tɒp/',
+      ipa: '/ˈlæp.tɒp/',
       example_sentence: 'She works on her laptop every day.',
       source: 'manual',
       status: 'verified',
@@ -99,7 +122,7 @@ async function seedBasicVocabularies(): Promise<void> {
     {
       word: 'table',
       meaning_vi: 'cái bàn',
-      ipa: '/`teɪ.bəl/',
+      ipa: '/ˈteɪ.bəl/',
       example_sentence: 'The keys are on the table.',
       source: 'manual',
       status: 'verified',
@@ -123,7 +146,7 @@ async function seedBasicVocabularies(): Promise<void> {
     {
       word: 'bottle',
       meaning_vi: 'cái chai',
-      ipa: '/`bɒt.əl/',
+      ipa: '/ˈbɒt.əl/',
       example_sentence: 'She filled the bottle with water.',
       source: 'manual',
       status: 'verified',
@@ -131,7 +154,7 @@ async function seedBasicVocabularies(): Promise<void> {
     {
       word: 'keyboard',
       meaning_vi: 'bàn phím',
-      ipa: '/`kiː.bɔːd/',
+      ipa: '/ˈkiː.bɔːd/',
       example_sentence: 'The keyboard is next to the monitor.',
       source: 'manual',
       status: 'verified',
@@ -171,6 +194,16 @@ async function seedAppSettings(): Promise<void> {
       value: '10',
       description: 'Maximum API requests per minute per IP',
     },
+    {
+      key: 'max_collections_per_user',
+      value: '20',
+      description: 'Maximum personal collections allowed per user',
+    },
+    {
+      key: 'max_images_per_collection',
+      value: '50',
+      description: 'Maximum images allowed per collection',
+    },
   ];
 
   try {
@@ -189,6 +222,45 @@ async function seedAppSettings(): Promise<void> {
   }
 }
 
+async function seedDefaultUsers(): Promise<void> {
+  try {
+    const passwordHash = await bcrypt.hash('password123', 10);
+    const defaultUsers = [
+      {
+        email: 'admin@visulingo.com',
+        password_hash: passwordHash,
+        display_name: 'Quản trị viên VisuLingo',
+        role: 'admin',
+        status: 'active',
+      },
+      {
+        email: 'student@visulingo.com',
+        password_hash: passwordHash,
+        display_name: 'Nguyễn Hoàng Phúc',
+        role: 'user',
+        status: 'active',
+      },
+    ];
+
+    for (const u of defaultUsers) {
+      const existing = await query<{ id: string }>(
+        'SELECT id FROM users WHERE lower(email) = $1',
+        [u.email.toLowerCase()],
+      );
+      if (existing.length === 0) {
+        await query(
+          `INSERT INTO users (email, password_hash, display_name, role, status)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [u.email, u.password_hash, u.display_name, u.role, u.status],
+        );
+      }
+    }
+    logger.info(`Seeded ${defaultUsers.length} default users`);
+  } catch (error) {
+    logger.error('Failed to seed default users', error);
+  }
+}
+
 async function main(): Promise<void> {
   try {
     logger.info('Starting database seeding...');
@@ -196,6 +268,7 @@ async function main(): Promise<void> {
     await seedLabelMappings();
     await seedBasicVocabularies();
     await seedAppSettings();
+    await seedDefaultUsers();
 
     logger.info('Database seeding completed successfully');
   } catch (error) {
@@ -208,4 +281,4 @@ async function main(): Promise<void> {
 // Do not use require.main here because project runtime uses ES modules.
 void main();
 
-export { seedLabelMappings, seedBasicVocabularies, seedAppSettings };
+export { seedLabelMappings, seedBasicVocabularies, seedAppSettings, seedDefaultUsers };

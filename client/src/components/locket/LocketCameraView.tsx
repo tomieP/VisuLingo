@@ -11,21 +11,6 @@ interface LocketCameraViewProps {
   onMomentShared?: () => void;
 }
 
-const LOCKET_PRESETS = [
-  {
-    name: 'Góc học tập 💻',
-    url: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    name: 'Phòng khách 🌿',
-    url: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    name: 'Bàn ăn sáng 🥐',
-    url: 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=800&q=80',
-  },
-];
-
 export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null);
@@ -140,31 +125,7 @@ export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
     e.target.value = '';
   };
 
-  const handleSelectPreset = async (presetUrl: string) => {
-    try {
-      setImageUrl(presetUrl);
-      const res = await fetch(presetUrl);
-      const blob = await res.blob();
-      const file = new File([blob], 'preset.jpg', { type: 'image/jpeg' });
-
-      setDetectionResult(null);
-      setSelectedObjectId(null);
-
-      analyzeImage(file, {
-        onSuccess: (data) => {
-          setDetectionResult(data);
-        },
-        onError: (err) => {
-          console.error(err);
-          alert('Không thể nhận diện ảnh. Vui lòng thử lại!');
-        },
-      });
-    } catch {
-      alert('Không thể tải ảnh mẫu. Vui lòng chọn ảnh từ máy.');
-    }
-  };
-
-  const getMeaningForWord = (word: string) => {
+const getMeaningForWord = (word: string) => {
     const dict: Record<string, string> = {
       laptop: 'máy tính xách tay',
       notebook: 'quyển sổ tay',
@@ -389,40 +350,7 @@ export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
         )}
       </div>
 
-      {/* Preset Test Photos Tray */}
-      {!imageUrl && !isLiveCamera && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Hoặc thử nhanh với ảnh mẫu:</span>
-            </span>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2">
-            {LOCKET_PRESETS.map((preset, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleSelectPreset(preset.url)}
-                className="group relative rounded-2xl overflow-hidden aspect-4/3 bg-black/40 border border-white/10 hover:border-amber-400/60 transition-all text-left shadow-md hover:scale-[1.02]"
-              >
-                <img
-                  src={preset.url}
-                  alt={preset.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                <span className="absolute bottom-1.5 left-2 right-1 text-[11px] font-bold text-white drop-shadow-sm truncate">
-                  {preset.name}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Sharing and Album Options when Photo is Ready */}
+{/* Sharing and Album Options when Photo is Ready */}
       {imageUrl && detectionResult && (
         <div className="bg-[#161D2B]/90 border border-white/10 rounded-[28px] p-4 shadow-xl space-y-3.5 animate-in fade-in duration-200">
           {/* Target Album Selection */}

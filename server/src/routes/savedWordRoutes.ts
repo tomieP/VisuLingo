@@ -1,10 +1,14 @@
 import { Router } from 'express';
-import { listSavedWords, saveWord, deleteSavedWord } from '../controllers/savedWordController';
+import { listSavedWords, saveWord, deleteSavedWord, checkSavedStatus } from '../controllers/savedWordController';
+import { authenticateJwt } from '../middlewares/authMiddleware';
 
 const router = Router();
 
-// All routes require authenticateJwt — applied at app.use level in app.ts
+// Tất cả route bắt buộc yêu cầu authenticateJwt
+router.use(authenticateJwt);
+
 router.get('/', listSavedWords);
+router.get('/check', checkSavedStatus);
 router.post('/', saveWord);
 router.delete('/:id', deleteSavedWord);
 

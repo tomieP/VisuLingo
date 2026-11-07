@@ -1,159 +1,33 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
   Search,
   Flame,
-  UserPlus,
   Sparkles,
   Camera,
   Compass,
-  Trophy,
-  Check,
   Volume2,
   BookmarkPlus,
   Heart,
-  TrendingUp,
+  Tag,
+  Check,
 } from 'lucide-react';
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { LocketBottomBar } from '@/components/locket/LocketBottomBar';
 import { speakWord } from '@/utils/speech';
 import { saveWord, getSavedWords } from '@/utils/storage';
+import { getMoments, reactToMoment, MomentPost } from '@/utils/moments';
 
-interface SuggestedBuddy {
-  id: string;
-  name: string;
-  username: string;
-  avatar: string;
-  streak: number;
-  goal: string;
-  mutualCount: number;
-  isInvited?: boolean;
-}
-
-const INITIAL_BUDDIES: SuggestedBuddy[] = [
-  {
-    id: 'b-1',
-    name: 'Hoàng Long',
-    username: '@long_ielts',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-    streak: 15,
-    goal: 'Mục tiêu: IELTS 7.5+ & Từ vựng Học thuật',
-    mutualCount: 3,
-  },
-  {
-    id: 'b-2',
-    name: 'Bảo Trâm',
-    username: '@tram_traveler',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
-    streak: 8,
-    goal: 'Mục tiêu: Tiếng Anh Du lịch & Giao tiếp',
-    mutualCount: 2,
-  },
-  {
-    id: 'b-3',
-    name: 'Đức Anh',
-    username: '@ducanh_dev',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
-    streak: 11,
-    goal: 'Mục tiêu: Từ vựng Công nghệ & IT',
-    mutualCount: 4,
-  },
-  {
-    id: 'b-4',
-    name: 'Minh Thư',
-    username: '@thu_coffeesnap',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
-    streak: 6,
-    goal: 'Mục tiêu: Giao tiếp đời sống thường ngày',
-    mutualCount: 1,
-  },
-];
-
-interface CommunityChallenge {
-  id: string;
-  title: string;
-  description: string;
-  reward: string;
-  participants: number;
-  daysLeft: number;
-  badgeEmoji: string;
-}
-
-const CHALLENGES_LIST: CommunityChallenge[] = [
-  {
-    id: 'ch-1',
-    title: 'Góc Bàn Học & Công Nghệ 💻',
-    description: 'Chụp 5 ảnh đồ vật quanh bàn làm việc (laptop, notebook, mug).',
-    reward: '+50 Lửa Streak',
-    participants: 412,
-    daysLeft: 3,
-    badgeEmoji: '💻',
-  },
-  {
-    id: 'ch-2',
-    title: 'Ẩm Thực & Cà Phê Chill ☕🥐',
-    description: 'Chụp và phát hiện 10 từ vựng về món ăn, thức uống quán xá.',
-    reward: '+70 Lửa Streak',
-    participants: 680,
-    daysLeft: 5,
-    badgeEmoji: '🥐',
-  },
-  {
-    id: 'ch-3',
-    title: 'Cây Cảnh & Phòng Khách 🌿',
-    description: 'Khám phá các vật dụng trong nhà và cây xanh thư giãn.',
-    reward: '+40 Lửa Streak',
-    participants: 290,
-    daysLeft: 7,
-    badgeEmoji: '🌿',
-  },
-];
-
-interface TrendingSnap {
-  id: string;
-  authorName: string;
-  authorAvatar: string;
-  imageUrl: string;
-  caption: string;
-  likes: number;
-  vocabWords: Array<{ word: string; meaningVi: string }>;
-}
-
-const TRENDING_SNAPS: TrendingSnap[] = [
-  {
-    id: 'ts-1',
-    authorName: 'Khánh Linh',
-    authorAvatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&q=80',
-    imageUrl: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=500&q=80',
-    caption: 'Quán cafe có chiếc sofa xanh decor siêu vintage 🌿',
-    likes: 42,
-    vocabWords: [
-      { word: 'sofa', meaningVi: 'ghế xô-pha' },
-      { word: 'cushion', meaningVi: 'gối tựa lưng' },
-    ],
-  },
-  {
-    id: 'ts-2',
-    authorName: 'Thành Nam',
-    authorAvatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=150&q=80',
-    imageUrl: 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=500&q=80',
-    caption: 'Bánh sừng bò mới ra lò thơm bơ giòn rụm 🥐',
-    likes: 38,
-    vocabWords: [
-      { word: 'croissant', meaningVi: 'bánh sừng bò' },
-      { word: 'bakery', meaningVi: 'tiệm bánh ngọt' },
-    ],
-  },
-];
-
-const FILTER_PILLS = ['Tất cả', 'IELTS 7.5+', 'Công nghệ IT', 'Cà phê & Đời sống'];
+type SortFilter = 'latest' | 'popular' | 'words';
 
 function ExplorePage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('Tất cả');
-  const [buddies, setBuddies] = useState<SuggestedBuddy[]>(INITIAL_BUDDIES);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [sortFilter, setSortFilter] = useState<SortFilter>('latest');
+  const [moments, setMoments] = useState<MomentPost[]>(getMoments());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [savedWordIds, setSavedWordIds] = useState<Set<string>>(new Set());
 
   const savedCount = getSavedWords().length;
 
@@ -162,38 +36,74 @@ function ExplorePage() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handleInviteBuddy = (buddyId: string, name: string) => {
-    setBuddies((prev) =>
-      prev.map((b) => (b.id === buddyId ? { ...b, isInvited: true } : b))
-    );
-    showToast(`Đã gửi lời mời cùng giữ lửa Streak tới ${name}! 🔥`);
+  const handleReact = (momentId: string, reaction: 'fire' | 'heart' | 'sparkles') => {
+    reactToMoment(momentId, reaction);
+    setMoments(getMoments());
   };
 
-  const handleSaveVocab = (word: string, meaningVi: string) => {
+  const handleSaveVocab = (word: string, meaningVi: string, ipa?: string) => {
     saveWord({
       id: crypto.randomUUID(),
       word,
       meaningVi,
-      ipa: '',
+      ipa: ipa || '',
       example: '',
       savedAt: new Date().toISOString(),
     });
-    showToast(`Đã lưu từ "${word}" vào Snapbook của bạn! ✨`);
+    setSavedWordIds((prev) => new Set(prev).add(word.toLowerCase()));
+    showToast(`Đã lưu "${word}" vào Sổ từ của bạn! ✨`);
   };
 
-  const filteredBuddies = buddies.filter((b) => {
-    const matchesSearch =
-      b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.goal.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.username.toLowerCase().includes(searchQuery.toLowerCase());
+  // Collect unique vocabulary tags dynamically from real moments
+  const dynamicTags = useMemo(() => {
+    const map = new Map<string, number>();
+    moments.forEach((m) => {
+      (m.vocabTags || []).forEach((t) => {
+        const w = t.word.toLowerCase();
+        map.set(w, (map.get(w) || 0) + 1);
+      });
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([word]) => word);
+  }, [moments]);
 
-    if (!matchesSearch) return false;
+  // Filter & Sort moments
+  const filteredMoments = useMemo(() => {
+    return moments
+      .filter((m) => {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesQuery =
+          !q ||
+          m.caption.toLowerCase().includes(q) ||
+          m.author.name.toLowerCase().includes(q) ||
+          (m.vocabTags || []).some(
+            (t) =>
+              t.word.toLowerCase().includes(q) ||
+              t.meaningVi.toLowerCase().includes(q)
+          );
 
-    if (selectedFilter === 'IELTS 7.5+') return b.goal.includes('IELTS');
-    if (selectedFilter === 'Công nghệ IT') return b.goal.includes('IT');
-    if (selectedFilter === 'Cà phê & Đời sống') return b.goal.includes('đời sống') || b.goal.includes('Du lịch');
-    return true;
-  });
+        const matchesTag =
+          !selectedTag ||
+          (m.vocabTags || []).some(
+            (t) => t.word.toLowerCase() === selectedTag.toLowerCase()
+          );
+
+        return matchesQuery && matchesTag;
+      })
+      .sort((a, b) => {
+        if (sortFilter === 'popular') {
+          const likesA = (a.reactions?.heart || 0) + (a.reactions?.fire || 0);
+          const likesB = (b.reactions?.heart || 0) + (b.reactions?.fire || 0);
+          return likesB - likesA;
+        }
+        if (sortFilter === 'words') {
+          return (b.vocabTags?.length || 0) - (a.vocabTags?.length || 0);
+        }
+        return 0; // Default latest order
+      });
+  }, [moments, searchQuery, selectedTag, sortFilter]);
 
   return (
     <div className="min-h-screen bg-[#0B0F17] text-white flex flex-col font-sans selection:bg-amber-400 selection:text-black pb-28">
@@ -214,241 +124,316 @@ function ExplorePage() {
           <div className="flex items-center gap-1.5">
             <span className="px-2.5 py-1 rounded-full bg-amber-400/15 border border-amber-400/30 text-xs font-bold text-amber-300 flex items-center gap-1">
               <Compass className="w-3.5 h-3.5 text-amber-400" />
-              <span>Khám phá</span>
+              <span>Khám phá Snaps</span>
             </span>
           </div>
         </div>
       </header>
 
       {/* Main Content (Mobile Width Container) */}
-      <main className="max-w-md mx-auto px-3.5 py-4 flex-1 w-full space-y-4.5">
-        {/* Mobile Search & Filter Chips */}
-        <div className="space-y-2">
+      <main className="max-w-md mx-auto px-4 py-4 flex-1 w-full space-y-4">
+        {/* ========================================================
+            1. INSPIRING DAILY SNAP PROMPT (Tối ưu, sáng tạo, gọn gàng)
+        ======================================================== */}
+        <div className="relative overflow-hidden rounded-3xl p-4 bg-gradient-to-r from-amber-400/15 via-orange-500/10 to-amber-500/5 border border-amber-400/25 shadow-lg backdrop-blur-xl flex items-center justify-between gap-3">
+          <div className="space-y-1 min-w-0">
+            <div className="flex items-center gap-1.5 text-amber-300 text-xs font-extrabold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Thử thách Snapper hôm nay</span>
+            </div>
+            <p className="text-xs text-slate-300 font-medium leading-snug">
+              Chụp 1 vật thể quanh bạn để AI bóc tách từ vựng & thắp sáng Streak 🔥
+            </p>
+          </div>
+
+          <Link
+            to="/?tab=snap"
+            className="px-3.5 py-2 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center gap-1.5 shrink-0 shadow-md shadow-amber-400/20 active:scale-95 transition-all"
+          >
+            <Camera className="w-4 h-4" />
+            <span>Snap ngay</span>
+          </Link>
+        </div>
+
+        {/* ========================================================
+            2. SMART SEARCH & DYNAMIC FILTER BAR
+        ======================================================== */}
+        <div className="space-y-2.5">
+          {/* Search Box */}
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Tìm bạn bè, mục tiêu IELTS, IT..."
+              placeholder="Tìm đồ vật, từ vựng hoặc Snapper..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-[#161D2B] border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-hidden focus:border-amber-400 transition-colors"
+              className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-[#161D2B] border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-hidden focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
             />
           </div>
 
-          {/* Quick Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
-            {FILTER_PILLS.map((pill) => (
+          {/* Dynamic Keyword Pills & Sorting */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Quick Sort Tabs */}
+            <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-xl border border-white/10 text-[11px] font-bold">
               <button
-                key={pill}
                 type="button"
-                onClick={() => setSelectedFilter(pill)}
-                className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer ${
-                  selectedFilter === pill
-                    ? 'bg-amber-400 text-slate-950 shadow-sm'
-                    : 'bg-white/5 border border-white/10 text-slate-400 hover:text-white'
+                onClick={() => setSortFilter('latest')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  sortFilter === 'latest'
+                    ? 'bg-amber-400 text-slate-950 shadow-xs'
+                    : 'text-slate-400 hover:text-white'
                 }`}
               >
-                {pill}
+                Mới nhất
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* ========================================================
-            SECTION 1: WEEKLY COMMUNITY CHALLENGES (HORIZONTAL SCROLL)
-        ======================================================== */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between px-0.5">
-            <div className="flex items-center gap-1.5">
-              <Trophy className="w-4 h-4 text-amber-400" />
-              <h2 className="text-xs font-black uppercase tracking-wider text-white">
-                Thử Thách Tuần Này
-              </h2>
+              <button
+                type="button"
+                onClick={() => setSortFilter('popular')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  sortFilter === 'popular'
+                    ? 'bg-amber-400 text-slate-950 shadow-xs'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Yêu thích ❤️
+              </button>
+              <button
+                type="button"
+                onClick={() => setSortFilter('words')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  sortFilter === 'words'
+                    ? 'bg-amber-400 text-slate-950 shadow-xs'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Nhiều từ 📚
+              </button>
             </div>
-            <span className="text-[10px] font-bold text-amber-300">
-              Vuốt để xem thêm →
+
+            <span className="text-[11px] text-slate-500 font-mono">
+              {filteredMoments.length} Snaps
             </span>
           </div>
 
-          {/* Horizontal Track Carousel */}
-          <div className="flex items-center gap-3 overflow-x-auto scrollbar-none pb-1">
-            {CHALLENGES_LIST.map((ch) => (
-              <div
-                key={ch.id}
-                className="w-68 shrink-0 p-3.5 rounded-2xl bg-gradient-to-br from-[#161D2B] to-[#0E131F] border border-white/10 space-y-2.5 shadow-md flex flex-col justify-between"
+          {/* Dynamic Vocab Hashtags (Only when tags exist) */}
+          {dynamicTags.length > 0 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
+              <button
+                type="button"
+                onClick={() => setSelectedTag(null)}
+                className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all shrink-0 cursor-pointer ${
+                  selectedTag === null
+                    ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40'
+                    : 'bg-white/5 text-slate-400 border border-white/10 hover:text-white'
+                }`}
               >
-                <div className="flex items-start justify-between">
-                  <div className="w-10 h-10 rounded-xl bg-amber-400/20 text-xl flex items-center justify-center border border-amber-400/30">
-                    {ch.badgeEmoji}
+                # Tất cả từ vựng
+              </button>
+
+              {dynamicTags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                  className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+                    selectedTag === tag
+                      ? 'bg-amber-400 text-slate-950 shadow-sm font-bold'
+                      : 'bg-white/5 text-slate-400 border border-white/10 hover:text-white'
+                  }`}
+                >
+                  <Tag className="w-3 h-3" />
+                  <span>#{tag}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ========================================================
+            3. COMMUNITY SNAPS STREAM (Locket-Style Cards)
+        ======================================================== */}
+        {filteredMoments.length === 0 ? (
+          /* Empty State Sáng Tạo, Thân Thiện */
+          <div className="py-16 px-6 text-center rounded-3xl bg-[#161D2B]/60 border border-white/10 space-y-4 my-4 backdrop-blur-xl">
+            <div className="w-14 h-14 rounded-full bg-amber-400/15 text-amber-300 mx-auto flex items-center justify-center border border-amber-400/30">
+              <Camera className="w-7 h-7 text-amber-400" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-extrabold text-base text-white">Chưa có Snaps nào</h3>
+              <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+                {searchQuery || selectedTag
+                  ? 'Không tìm thấy Snap nào phù hợp với tìm kiếm của bạn. Hãy thử từ khóa khác!'
+                  : 'Hãy là người đầu tiên chụp ảnh đồ vật, bóc tách từ vựng và chia sẻ cùng cộng đồng Snapper!'}
+              </p>
+            </div>
+            <Link
+              to="/?tab=snap"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-xs shadow-lg shadow-amber-400/20 active:scale-95 transition-all"
+            >
+              <Sparkles className="w-4 h-4 text-slate-950" />
+              <span>Chụp khoảnh khắc đầu tiên</span>
+            </Link>
+          </div>
+        ) : (
+          /* Stream of Clean, Modern Locket Cards */
+          <div className="space-y-4">
+            {filteredMoments.map((moment) => {
+              const hasTags = (moment.vocabTags || []).length > 0;
+              const likes = (moment.reactions?.heart || 0) + (moment.reactions?.fire || 0);
+
+              return (
+                <article
+                  key={moment.id}
+                  className="rounded-3xl bg-[#161D2B]/90 border border-white/10 p-3.5 space-y-3 shadow-xl backdrop-blur-xl transition-all hover:border-white/20"
+                >
+                  {/* Author Header */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <img
+                        src={moment.author.avatar}
+                        alt={moment.author.name}
+                        className="w-8 h-8 rounded-full object-cover ring-1 ring-amber-400/30"
+                      />
+                      <div>
+                        <span className="font-bold text-xs text-white block">
+                          {moment.author.name}
+                        </span>
+                        <span className="text-[10px] text-slate-400 block font-medium">
+                          {moment.timeAgo}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Reaction Badge */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleReact(moment.id, 'heart')}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                          moment.userReacted === 'heart'
+                            ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-xs'
+                            : 'bg-white/5 border border-white/10 text-slate-400 hover:text-rose-400'
+                        }`}
+                      >
+                        <Heart
+                          className={`w-3.5 h-3.5 ${
+                            moment.userReacted === 'heart' ? 'fill-rose-500 text-rose-500' : ''
+                          }`}
+                        />
+                        <span className="font-mono text-[11px]">{likes}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleReact(moment.id, 'fire')}
+                        className={`p-1.5 rounded-full transition-all cursor-pointer ${
+                          moment.userReacted === 'fire'
+                            ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40 shadow-xs'
+                            : 'bg-white/5 border border-white/10 text-slate-400 hover:text-amber-400'
+                        }`}
+                        title="Thả lửa streak"
+                      >
+                        <Flame
+                          className={`w-3.5 h-3.5 ${
+                            moment.userReacted === 'fire' ? 'fill-amber-400 text-amber-400' : ''
+                          }`}
+                        />
+                      </button>
+                    </div>
                   </div>
-                  <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
-                    {ch.reward}
-                  </span>
-                </div>
 
-                <div>
-                  <h3 className="font-extrabold text-xs text-white truncate">
-                    {ch.title}
-                  </h3>
-                  <p className="text-[11px] text-slate-400 line-clamp-2 mt-0.5 leading-relaxed">
-                    {ch.description}
-                  </p>
-                </div>
-
-                <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400 font-mono text-[10px]">
-                    Còn {ch.daysLeft} ngày
-                  </span>
-                  <Link
-                    to="/?tab=snap"
-                    className="px-3 py-1 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] flex items-center gap-1 active:scale-95 transition-all shadow-xs"
-                  >
-                    <Camera className="w-3 h-3" />
-                    <span>Tham gia</span>
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ========================================================
-            SECTION 2: SUGGESTED STUDY BUDDIES (MOBILE CARDS)
-        ======================================================== */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between px-0.5">
-            <div className="flex items-center gap-1.5">
-              <Flame className="w-4 h-4 fill-amber-400 text-amber-400" />
-              <h2 className="text-xs font-black uppercase tracking-wider text-white">
-                Gợi Ý Bạn Học Cùng Giữ Lửa
-              </h2>
-            </div>
-            <span className="text-[11px] text-slate-400 font-medium">
-              {filteredBuddies.length} bạn bè
-            </span>
-          </div>
-
-          <div className="space-y-2">
-            {filteredBuddies.map((buddy) => (
-              <div
-                key={buddy.id}
-                className="p-3 rounded-2xl bg-[#161D2B] border border-white/10 flex items-center justify-between gap-3 shadow-sm"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="relative shrink-0">
+                  {/* Photo Container */}
+                  <div className="relative rounded-2xl overflow-hidden aspect-4/3 bg-black">
                     <img
-                      src={buddy.avatar}
-                      alt={buddy.name}
-                      className="w-11 h-11 rounded-full object-cover ring-1 ring-white/15"
+                      src={moment.imageUrl}
+                      alt={moment.caption || 'Snap photo'}
+                      className="w-full h-full object-cover"
                     />
-                    <span className="absolute -bottom-1 -right-1 px-1 rounded-full bg-[#0E131F] border border-amber-400 text-[9px] font-black text-amber-300 flex items-center">
-                      🔥{buddy.streak}
-                    </span>
+
+                    {/* Quick Vocab Pill Badge Counter */}
+                    {hasTags && (
+                      <div className="absolute bottom-2.5 left-2.5 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[10px] font-black text-amber-300 flex items-center gap-1 shadow-md">
+                        <Sparkles className="w-3 h-3 text-amber-400" />
+                        <span>{moment.vocabTags.length} từ vựng</span>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="min-w-0 space-y-0.5">
-                    <div className="flex items-center gap-1">
-                      <span className="font-bold text-xs text-white truncate">
-                        {buddy.name}
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        {buddy.username}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-amber-300 font-medium line-clamp-1">
-                      {buddy.goal}
+                  {/* Caption */}
+                  {moment.caption && (
+                    <p className="text-xs text-slate-200 font-medium px-0.5 leading-relaxed">
+                      {moment.caption}
                     </p>
-                  </div>
-                </div>
+                  )}
 
-                {buddy.isInvited ? (
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1 shrink-0">
-                    <Check className="w-3 h-3" />
-                    <span>Đã mời</span>
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => handleInviteBuddy(buddy.id, buddy.name)}
-                    className="px-2.5 py-1 rounded-full bg-amber-400 text-slate-950 hover:bg-amber-300 font-bold text-[10px] transition-all flex items-center gap-1 shrink-0 cursor-pointer active:scale-95 shadow-xs"
-                  >
-                    <UserPlus className="w-3 h-3" />
-                    <span>Mời giữ lửa</span>
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+                  {/* Sleek Vocab Tags Grid (Từ vựng bóc tách trực quan) */}
+                  {hasTags && (
+                    <div className="pt-1 space-y-1.5 border-t border-white/5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block px-0.5">
+                        Từ vựng trong ảnh:
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                        {moment.vocabTags.map((t) => {
+                          const isSaved = savedWordIds.has(t.word.toLowerCase());
+                          return (
+                            <div
+                              key={t.id}
+                              className="p-2 rounded-xl bg-white/[0.04] border border-white/5 hover:border-amber-400/30 flex items-center justify-between gap-2 transition-all"
+                            >
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-extrabold text-xs text-amber-300 capitalize truncate">
+                                    {t.word}
+                                  </span>
+                                  {t.ipa && (
+                                    <span className="text-[9px] text-slate-400 font-mono truncate">
+                                      {t.ipa}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-slate-300 line-clamp-1">
+                                  {t.meaningVi}
+                                </span>
+                              </div>
 
-        {/* ========================================================
-            SECTION 3: TRENDING SNAPS IN COMMUNITY
-        ======================================================== */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between px-0.5">
-            <div className="flex items-center gap-1.5">
-              <TrendingUp className="w-4 h-4 text-amber-400" />
-              <h2 className="text-xs font-black uppercase tracking-wider text-white">
-                Snaps Thịnh Hành
-              </h2>
-            </div>
-            <span className="text-[11px] text-slate-400 font-medium">Bình chọn nhiều</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2.5">
-            {TRENDING_SNAPS.map((snap) => (
-              <div
-                key={snap.id}
-                className="p-2 rounded-2xl bg-[#161D2B] border border-white/10 space-y-2 shadow-sm"
-              >
-                <div className="relative aspect-square rounded-xl overflow-hidden bg-black">
-                  <img src={snap.imageUrl} alt="" className="w-full h-full object-cover" />
-                  <div className="absolute top-1.5 left-1.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md text-[9px] font-bold text-white">
-                    <img src={snap.authorAvatar} alt="" className="w-3.5 h-3.5 rounded-full" />
-                    <span className="truncate max-w-[60px]">{snap.authorName}</span>
-                  </div>
-
-                  <div className="absolute bottom-1.5 right-1.5 flex items-center gap-0.5 px-2 py-0.2 rounded-full bg-black/75 backdrop-blur-md text-[9px] font-bold text-rose-400">
-                    <Heart className="w-2.5 h-2.5 fill-rose-500 text-rose-500" />
-                    <span>{snap.likes}</span>
-                  </div>
-                </div>
-
-                <p className="text-[11px] text-slate-200 font-medium truncate px-0.5">
-                  {snap.caption}
-                </p>
-
-                {/* Vocab Tag Buttons */}
-                <div className="space-y-1 px-0.5">
-                  {snap.vocabWords.map((v, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between p-1 rounded-lg bg-white/5 border border-white/5 text-[10px]"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => speakWord(v.word)}
-                        className="text-amber-300 hover:text-white font-bold capitalize flex items-center gap-1 cursor-pointer truncate"
-                      >
-                        <Volume2 className="w-2.5 h-2.5 shrink-0" />
-                        <span className="truncate">{v.word}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleSaveVocab(v.word, v.meaningVi)}
-                        className="text-slate-400 hover:text-emerald-400 transition-colors p-0.5 cursor-pointer shrink-0"
-                        title="Lưu từ vào Snapbook"
-                      >
-                        <BookmarkPlus className="w-3 h-3" />
-                      </button>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => speakWord(t.word)}
+                                  className="p-1.5 rounded-lg bg-white/5 hover:bg-amber-400 hover:text-slate-950 text-slate-400 transition-colors cursor-pointer"
+                                  title="Nghe phát âm"
+                                >
+                                  <Volume2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveVocab(t.word, t.meaningVi, t.ipa)}
+                                  disabled={isSaved}
+                                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                                    isSaved
+                                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                      : 'bg-white/5 hover:bg-amber-400 hover:text-slate-950 text-slate-400'
+                                  }`}
+                                  title={isSaved ? 'Đã lưu vào sổ' : 'Lưu vào Sổ từ'}
+                                >
+                                  {isSaved ? (
+                                    <Check className="w-3.5 h-3.5" />
+                                  ) : (
+                                    <BookmarkPlus className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+                  )}
+                </article>
+              );
+            })}
           </div>
-        </div>
+        )}
       </main>
 
       {/* Floating Action Toast Notification */}

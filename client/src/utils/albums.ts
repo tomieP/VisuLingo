@@ -1,3 +1,4 @@
+import api from '@/services/api';
 import { VocabTag } from './moments';
 
 export interface Album {
@@ -6,6 +7,8 @@ export interface Album {
   emoji: string;
   description?: string;
   createdAt: string;
+  coverImageUrl?: string | null;
+  imageCount?: number;
 }
 
 export interface SnapPhoto {
@@ -20,89 +23,99 @@ export interface SnapPhoto {
 const ALBUMS_KEY = 'visulingo_user_albums';
 const PHOTOS_KEY = 'visulingo_user_photos';
 
-const INITIAL_ALBUMS: Album[] = [
-  {
-    id: 'album-workspace',
-    title: 'Góc học tập & Làm việc',
-    emoji: '💻',
-    description: 'Bàn làm việc, sách vở, laptop và công nghệ',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'album-cafe',
-    title: 'Quán cà phê & Chill',
-    emoji: '☕',
-    description: 'Ly tách, thức uống, không gian quán xá',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'album-daily',
-    title: 'Đời thường & Phòng khách',
-    emoji: '🌿',
-    description: 'Vật dụng trong nhà và đời sống hàng ngày',
-    createdAt: new Date().toISOString(),
-  },
-];
-
-const INITIAL_PHOTOS: SnapPhoto[] = [
-  {
-    id: 'photo-1',
-    albumId: 'album-workspace',
-    imageUrl: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=800&q=80',
-    caption: 'Bàn làm việc sáng nay',
-    createdAt: new Date().toISOString(),
-    vocabTags: [
-      { id: 'v1', word: 'laptop', meaningVi: 'máy tính xách tay', ipa: '/ˈlæp.tɒp/', x: 30, y: 35 },
-      { id: 'v2', word: 'coffee cup', meaningVi: 'ly cà phê', ipa: '/ˈkɒf.i kʌp/', x: 67, y: 46 },
-      { id: 'v3', word: 'notebook', meaningVi: 'quyển sổ tay', ipa: '/ˈnəʊt.bʊk/', x: 38, y: 75 },
-    ],
-  },
-  {
-    id: 'photo-2',
-    albumId: 'album-daily',
-    imageUrl: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80',
-    caption: 'Góc phòng khách ấm cúng',
-    createdAt: new Date().toISOString(),
-    vocabTags: [
-      { id: 'v4', word: 'sofa', meaningVi: 'ghế xô-pha', ipa: '/ˈsəʊ.fə/', x: 45, y: 55 },
-      { id: 'v5', word: 'houseplant', meaningVi: 'cây cảnh', ipa: '/ˈhaʊs.plɑːnt/', x: 80, y: 35 },
-    ],
-  },
-];
-
 export function getAlbums(): Album[] {
   try {
     const raw = localStorage.getItem(ALBUMS_KEY);
     if (!raw) {
-      localStorage.setItem(ALBUMS_KEY, JSON.stringify(INITIAL_ALBUMS));
-      return INITIAL_ALBUMS;
+      return [];
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return INITIAL_ALBUMS;
+    return [];
   }
 }
 
-export function createAlbum(title: string, emoji: string, description?: string): Album {
+/**
+ * Đồng bộ danh sách bộ sưu tập từ CSDL PostgreSQL qua API /api/collections
+ */
+export async function syncCollectionsFromApi(): Promise<Album[]> {
+  const token = localStorage.getItem('visulingo_token');
+  if (!token) {
+    return getAlbums();
+  }
+
+  try {
+    const res = await api.get<{ data: any[] }>('/collections');
+    if (res.data?.data) {
+      const mapped: Album[] = res.data.data.map((c) => ({
+        id: c.id,
+        title: c.name,
+        emoji: c.theme || '📁',
+        description: c.description || '',
+        createdAt: c.createdAt,
+        coverImageUrl: c.coverImageUrl,
+        imageCount: c.imageCount,
+      }));
+
+      localStorage.setItem(ALBUMS_KEY, JSON.stringify(mapped));
+      window.dispatchEvent(new Event('visulingo_albums_changed'));
+      return mapped;
+    }
+  } catch (err) {
+    console.warn('Backend collections sync error, using local cache:', err);
+  }
+
+  return getAlbums();
+}
+
+export async function createAlbum(title: string, emoji: string, description?: string): Promise<Album> {
+  const token = localStorage.getItem('visulingo_token');
+  let createdId = `album-${Date.now()}`;
+
+  if (token) {
+    try {
+      const res = await api.post<{ collection: any }>('/collections', {
+        name: title.trim(),
+        theme: emoji || '📁',
+        description: description?.trim(),
+      });
+      if (res.data?.collection?.id) {
+        createdId = res.data.collection.id;
+      }
+    } catch (err) {
+      console.warn('Failed to create collection on backend:', err);
+    }
+  }
+
   const albums = getAlbums();
   const newAlbum: Album = {
-    id: `album-${Date.now()}`,
+    id: createdId,
     title: title.trim(),
     emoji: emoji || '📁',
     description: description?.trim() || '',
     createdAt: new Date().toISOString(),
   };
-  albums.push(newAlbum);
+
+  albums.unshift(newAlbum);
   localStorage.setItem(ALBUMS_KEY, JSON.stringify(albums));
   window.dispatchEvent(new Event('visulingo_albums_changed'));
   return newAlbum;
 }
 
-export function deleteAlbum(albumId: string): void {
+export async function deleteAlbum(albumId: string): Promise<void> {
+  const token = localStorage.getItem('visulingo_token');
+  if (token && !albumId.startsWith('album-')) {
+    try {
+      await api.delete(`/collections/${albumId}`);
+    } catch (err) {
+      console.warn('Failed to delete collection from backend:', err);
+    }
+  }
+
   const albums = getAlbums().filter((a) => a.id !== albumId);
   localStorage.setItem(ALBUMS_KEY, JSON.stringify(albums));
 
-  // Also remove photos belonging to this album
   const photos = getPhotos().filter((p) => p.albumId !== albumId);
   localStorage.setItem(PHOTOS_KEY, JSON.stringify(photos));
 
@@ -112,29 +125,40 @@ export function deleteAlbum(albumId: string): void {
 export function getPhotos(albumId?: string): SnapPhoto[] {
   try {
     const raw = localStorage.getItem(PHOTOS_KEY);
-    const photos: SnapPhoto[] = raw ? JSON.parse(raw) : INITIAL_PHOTOS;
-    if (!raw) {
-      localStorage.setItem(PHOTOS_KEY, JSON.stringify(INITIAL_PHOTOS));
-    }
+    const photos: SnapPhoto[] = raw ? JSON.parse(raw) : [];
     if (albumId && albumId !== 'all') {
       return photos.filter((p) => p.albumId === albumId);
     }
     return photos;
   } catch {
-    return INITIAL_PHOTOS;
+    return [];
   }
 }
 
-export function savePhotoToAlbum(
+export async function savePhotoToAlbum(
   albumId: string,
   imageUrl: string,
   vocabTags: VocabTag[],
-  caption?: string
-): SnapPhoto {
+  caption?: string,
+  imageId?: string,
+  analysisId?: string,
+): Promise<SnapPhoto> {
+  const token = localStorage.getItem('visulingo_token');
+  if (token && !albumId.startsWith('album-') && (imageId || analysisId)) {
+    try {
+      await api.post(`/collections/${albumId}/images`, {
+        imageId,
+        analysisId,
+      });
+    } catch (err) {
+      console.warn('Failed to link image to collection on backend:', err);
+    }
+  }
+
   const photos = getPhotos();
   const newPhoto: SnapPhoto = {
     id: `photo-${Date.now()}`,
-    albumId: albumId || 'album-workspace',
+    albumId,
     imageUrl,
     caption: caption || '',
     createdAt: new Date().toISOString(),

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
+  Pencil,
+  X,
   Flame,
   Settings as SettingsIcon,
   Camera,
@@ -16,7 +18,7 @@ import {
 } from 'lucide-react';
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { LocketBottomBar } from '@/components/locket/LocketBottomBar';
-import { getCurrentUser } from '@/services/authService';
+import { getCurrentUser, getUserUsername, setUserUsername } from '@/services/authService';
 import { getSavedWords } from '@/utils/storage';
 import { getMoments } from '@/utils/moments';
 import { speakWord } from '@/utils/speech';
@@ -107,10 +109,25 @@ const WEEK_DAYS = [
 
 function ProfilePage() {
   const currentUser = getCurrentUser();
+  const userTag = getUserUsername();
   const savedWords = getSavedWords();
   const moments = getMoments();
   const [activeTab, setActiveTab] = useState<'badges' | 'snaps' | 'streak'>('badges');
   const [copiedToast, setCopiedToast] = useState(false);
+  const [currentTag, setCurrentTag] = useState(userTag);
+  const [displayName, setDisplayName] = useState(
+    currentUser?.firstName
+      ? `${currentUser.firstName} ${currentUser.lastName || ''}`.trim()
+      : (localStorage.getItem('visulingo_display_name') || 'lowkey')
+  );
+  const [bio, setBio] = useState(
+    localStorage.getItem('visulingo_bio') ||
+    'Mỗi ngày chụp và nạp 10 từ vựng qua ảnh thực tế. Cùng nhau giữ lửa streak! 🚀'
+  );
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editDisplayName, setEditDisplayName] = useState('');
+  const [editTag, setEditTag] = useState('');
+  const [editBio, setEditBio] = useState('');
 
   const userAvatar =
     localStorage.getItem('visulingo_avatar') ||
@@ -174,21 +191,22 @@ function ProfilePage() {
         {/* ========================================================
             HERO PROFILE CARD (MOBILE-OPTIMIZED)
         ======================================================== */}
-        <div className="p-4 sm:p-5 rounded-[28px] bg-[#121824]/95 border border-white/10 relative overflow-hidden shadow-xl space-y-3.5">
-          {/* Ambient Glow */}
-          <div className="absolute top-0 right-0 w-44 h-44 bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="p-4 sm:p-5 rounded-[28px] bg-gradient-to-br from-[#161D2B] via-[#121824] to-[#0D121D] border border-white/10 relative overflow-hidden shadow-2xl space-y-3.5">
+          {/* Ambient Lighting Accent */}
+          <div className="absolute top-0 right-0 w-48 h-48 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="flex items-center gap-3.5 relative z-10">
-            {/* Avatar with Halo Streak Ring */}
+          {/* Profile Header: Avatar & Core Info */}
+          <div className="flex items-start sm:items-center gap-3.5 relative z-10">
+            {/* Avatar with Halo Streak Ring - strictly bounded dimensions */}
             <div className="relative shrink-0">
-              <div className="w-18 h-18 rounded-full p-0.5 bg-gradient-to-tr from-amber-400 via-orange-400 to-yellow-200 shadow-lg shadow-amber-400/20 ring-2 ring-amber-400/30">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-0.5 bg-gradient-to-tr from-amber-400 via-orange-400 to-yellow-300 shadow-lg shadow-amber-400/20 ring-2 ring-amber-400/30 overflow-hidden flex items-center justify-center">
                 <img
                   src={userAvatar}
                   alt="Profile"
-                  className="w-full h-full rounded-full object-cover border-2 border-[#0B0F17]"
+                  className="w-full h-full rounded-[14px] object-cover"
                 />
               </div>
-              <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-[#0B0F17] border border-amber-400 text-[10px] font-black text-amber-300 flex items-center gap-0.5 shadow-md">
+              <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-slate-950/90 border border-amber-400 text-[10px] font-black text-amber-300 flex items-center gap-0.5 shadow-md">
                 <Flame className="w-3 h-3 fill-amber-400 text-amber-400" />
                 5d
               </span>
@@ -196,70 +214,115 @@ function ProfilePage() {
 
             {/* User Meta */}
             <div className="min-w-0 flex-1 space-y-1">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h1 className="text-lg font-black text-white tracking-tight truncate">
-                  {currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Nguyễn Hoàng Phúc'}
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg sm:text-xl font-black text-white tracking-tight truncate">
+                  {displayName}
                 </h1>
-                <span className="px-2 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 text-[10px] font-black flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 text-[10px] font-black flex items-center gap-1 shadow-xs">
                   <Zap className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
                   Level 3
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-mono">@phuc_visulingo</p>
-              <p className="text-[11px] text-slate-300 line-clamp-2 leading-relaxed">
-                "Mỗi ngày chụp và nạp 10 từ vựng qua ảnh thực tế. Cùng nhau giữ lửa streak! 🚀"
-              </p>
+
+              {/* Customizable @Tag pill */}
+              <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditDisplayName(displayName);
+                    setEditTag(currentTag);
+                    setEditBio(bio);
+                    setIsEditingProfile(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/5 hover:bg-amber-400/15 border border-white/10 hover:border-amber-400/30 text-xs text-amber-300 font-mono font-bold transition-all cursor-pointer group"
+                  title="Chạm để đổi @tag và hồ sơ"
+                >
+                  <span>@{currentTag}</span>
+                  <Pencil className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100 text-slate-400 group-hover:text-amber-300" />
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Core Practical Stats (4 Mobile Metric Chips) */}
-          <div className="grid grid-cols-4 gap-1.5 pt-2.5 border-t border-white/10 text-center relative z-10">
-            <div className="p-2 rounded-2xl bg-white/[0.03] border border-white/5">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight block">
-                Streak
-              </span>
-              <span className="text-sm font-black text-amber-400 flex items-center justify-center gap-0.5">
-                <Flame className="w-3 h-3 fill-amber-400" />
+          {/* User Bio Quote */}
+          <div className="relative z-10">
+            <p className="text-xs text-slate-300 leading-relaxed italic bg-white/[0.02] px-3 py-2 rounded-xl border border-white/5">
+              "{bio}"
+            </p>
+          </div>
+
+          {/* Unified Seamless Stats Row (Tối ưu tự nhiên, KHÔNG chia khung hộp cứng nhắc) */}
+          <div className="py-2.5 px-2 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-around divide-x divide-white/5 text-center relative z-10">
+            <div className="flex-1 px-1">
+              <div className="text-base sm:text-lg font-black text-amber-400 flex items-center justify-center gap-1">
+                <Flame className="w-4 h-4 fill-amber-400 text-amber-400" />
                 5d
-              </span>
+              </div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Streak</div>
             </div>
 
-            <div className="p-2 rounded-2xl bg-white/[0.03] border border-white/5">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight block">
-                Snaps
-              </span>
-              <span className="text-sm font-black text-white">{myMoments.length} ảnh</span>
+            <div className="flex-1 px-1">
+              <div className="text-base sm:text-lg font-black text-white">
+                {myMoments.length}
+              </div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Snaps</div>
             </div>
 
-            <div className="p-2 rounded-2xl bg-white/[0.03] border border-white/5">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight block">
-                Sổ từ
-              </span>
-              <span className="text-sm font-black text-amber-300">{savedWords.length} từ</span>
+            <div className="flex-1 px-1">
+              <div className="text-base sm:text-lg font-black text-amber-300">
+                {savedWords.length}
+              </div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Sổ từ</div>
             </div>
 
-            <div className="p-2 rounded-2xl bg-white/[0.03] border border-white/5">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight block">
-                Huy hiệu
-              </span>
-              <span className="text-sm font-black text-emerald-400">
-                {PROFILE_BADGES.filter((b) => b.isUnlocked).length}/6
-              </span>
+            <div className="flex-1 px-1">
+              <div className="text-base sm:text-lg font-black text-emerald-400">
+                {PROFILE_BADGES.filter((b) => b.isUnlocked).length}
+                <span className="text-xs text-slate-500 font-normal">/6</span>
+              </div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Huy hiệu</div>
             </div>
+          </div>
+
+          {/* Action Row */}
+          <div className="flex items-center gap-2 pt-0.5 relative z-10">
+            <button
+              type="button"
+              onClick={() => {
+                setEditDisplayName(displayName);
+                setEditTag(currentTag);
+                setEditBio(bio);
+                setIsEditingProfile(true);
+              }}
+              className="flex-1 py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-200 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+            >
+              <Pencil className="w-3.5 h-3.5 text-amber-400" />
+              <span>Chỉnh sửa hồ sơ</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleShareProfile}
+              className="py-2 px-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+              title="Chia sẻ hồ sơ"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>Chia sẻ</span>
+            </button>
           </div>
         </div>
 
         {/* ========================================================
-            SEGMENTED SUB-TABS (MOBILE THUMB ZONE)
+            SEGMENTED SUB-TABS (MOBILE GLASS STYLE)
         ======================================================== */}
-        <div className="p-1 rounded-2xl bg-[#161D2B]/90 border border-white/10 flex gap-1">
+        <div className="p-1 rounded-2xl bg-[#121824]/90 border border-white/10 backdrop-blur-md flex gap-1 shadow-lg">
           <button
             type="button"
             onClick={() => setActiveTab('badges')}
             className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'badges'
-                ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-amber-400 text-slate-950 font-black shadow-md shadow-amber-400/20'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
             <Trophy className="w-3.5 h-3.5" />
@@ -271,8 +334,8 @@ function ProfilePage() {
             onClick={() => setActiveTab('snaps')}
             className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'snaps'
-                ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-amber-400 text-slate-950 font-black shadow-md shadow-amber-400/20'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
             <Camera className="w-3.5 h-3.5" />
@@ -284,8 +347,8 @@ function ProfilePage() {
             onClick={() => setActiveTab('streak')}
             className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'streak'
-                ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-amber-400 text-slate-950 font-black shadow-md shadow-amber-400/20'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
             <Calendar className="w-3.5 h-3.5" />
@@ -489,6 +552,101 @@ function ProfilePage() {
         onTabChange={() => {}}
         savedCount={savedWords.length}
       />
+      {/* Modal: Edit Profile Dialog */}
+      {isEditingProfile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="w-full max-w-sm bg-[#161D2B] border border-white/15 rounded-3xl p-5 shadow-2xl space-y-4 text-white">
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center">
+                  <Pencil className="w-4 h-4 text-amber-400" />
+                </div>
+                <h3 className="font-extrabold text-sm text-white">Chỉnh sửa Hồ sơ Snapper</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditingProfile(false)}
+                className="p-1.5 rounded-full text-slate-400 hover:text-white cursor-pointer hover:bg-white/10 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {/* Display Name */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tên hiển thị</label>
+                <input
+                  type="text"
+                  value={editDisplayName}
+                  onChange={(e) => setEditDisplayName(e.target.value)}
+                  placeholder="Tên của bạn"
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-xs text-white focus:outline-hidden focus:border-amber-400 transition-colors"
+                />
+              </div>
+
+              {/* @Tag */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tên @tag</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 font-bold text-xs">@</span>
+                  <input
+                    type="text"
+                    value={editTag}
+                    onChange={(e) => setEditTag(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
+                    placeholder="tag_cua_ban"
+                    className="w-full pl-7 pr-3 py-2 rounded-xl bg-white/5 border border-white/15 text-xs text-white font-mono focus:outline-hidden focus:border-amber-400 transition-colors"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400">Cho phép chữ thường, số, dấu gạch dưới và dấu chấm.</p>
+              </div>
+
+              {/* Bio */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tiểu sử (Bio)</label>
+                <textarea
+                  rows={2}
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value)}
+                  placeholder="Giới thiệu bản thân và mục tiêu học..."
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-xs text-white focus:outline-hidden focus:border-amber-400 resize-none transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setIsEditingProfile(false)}
+                className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-slate-300 cursor-pointer transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (editDisplayName.trim()) {
+                    setDisplayName(editDisplayName.trim());
+                    localStorage.setItem('visulingo_display_name', editDisplayName.trim());
+                  }
+                  if (editTag.trim()) {
+                    const saved = setUserUsername(editTag);
+                    setCurrentTag(saved);
+                  }
+                  if (editBio.trim()) {
+                    setBio(editBio.trim());
+                    localStorage.setItem('visulingo_bio', editBio.trim());
+                  }
+                  setIsEditingProfile(false);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black cursor-pointer shadow-md shadow-amber-400/20 active:scale-98 transition-all"
+              >
+                Lưu thay đổi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

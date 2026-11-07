@@ -1,7 +1,7 @@
 import rateLimit from 'express-rate-limit';
 
 /**
- * Rate limiter: max 10 requests per minute per IP (protects /api/detections).
+ * Rate limiter: max 10 requests per minute per IP / User (protects /api/detections).
  */
 export const detectionLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -10,14 +10,11 @@ export const detectionLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     code: 'RATE_LIMITED',
-    message: 'Too many requests. Please try again later.',
-    retryable: false,
+    message: 'Quá nhiều yêu cầu phân tích ảnh. Vui lòng thử lại sau ít phút.',
+    retryable: true,
   },
-  keyGenerator: (req) => req.ip || 'unknown',
-  skip: (req) => {
-    // Skip rate limiting for health checks
-    return req.path === '/health';
-  },
+  keyGenerator: (req) => (req as any).user?.userId || req.ip || 'unknown',
+  skip: (req) => req.path === '/health',
 });
 
 /**
@@ -28,7 +25,12 @@ export const apiLimiter = rateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many requests, please try again later' },
+  message: {
+    code: 'RATE_LIMITED',
+    message: 'Quá nhiều yêu cầu. Vui lòng thử lại sau.',
+    retryable: true,
+  },
+  keyGenerator: (req) => (req as any).user?.userId || req.ip || 'unknown',
 });
 
 /**
@@ -39,5 +41,10 @@ export const authLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many authentication attempts, please try again later' },
+  message: {
+    code: 'RATE_LIMITED',
+    message: 'Quá nhiều yêu cầu xác thực. Vui lòng thử lại sau 15 phút.',
+    retryable: false,
+  },
+  keyGenerator: (req) => req.ip || 'unknown',
 });

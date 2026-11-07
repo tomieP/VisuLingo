@@ -9,8 +9,8 @@ const router = Router();
 // POST /api/detections — guest and authenticated analysis
 router.post(
   '/',
-  detectionLimiter,
   optionalAuthenticate,
+  detectionLimiter,
   upload.single('image'),
   validateUploadedImage,
   analyzeImageController,
@@ -19,8 +19,8 @@ router.post(
 // Backward-compatible alias
 router.post(
   '/analyze',
-  detectionLimiter,
   optionalAuthenticate,
+  detectionLimiter,
   upload.single('image'),
   validateUploadedImage,
   analyzeImageController,

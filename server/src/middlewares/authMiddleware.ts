@@ -2,15 +2,22 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 
+export interface AuthenticatedUser {
+  userId: string;
+  role: string;
+}
+
 interface JwtPayload {
   userId: string;
   role: string;
 }
 
 /**
- * Mandatory JWT authentication middleware.
- * Extracts token from Authorization header, verifies it, and attaches user info to req.user.
- * Returns 401 if token is missing, expired, or invalid.
+ * 1. authenticateJwt:
+ * - Trích xuất token từ Header Authorization: Bearer <token>.
+ * - Giải mã JWT token. Nếu thiếu token, token hết hạn hoặc không hợp lệ:
+ *   -> Trả về lỗi HTTP 401 (code: "UNAUTHORIZED", message: "Phiên đăng nhập không hợp lệ hoặc đã hết hạn", retryable: false).
+ * - Gán thông tin người dùng vào context yêu cầu: req.user = { userId: payload.userId, role: payload.role }.
  */
 export function authenticateJwt(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
@@ -24,10 +31,27 @@ export function authenticateJwt(req: Request, res: Response, next: NextFunction)
     return;
   }
 
-  const token = authHeader.substring(7);
+  const token = authHeader.substring(7).trim();
+  if (!token) {
+    res.status(401).json({
+      code: 'UNAUTHORIZED',
+      message: 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn',
+      retryable: false,
+    });
+    return;
+  }
 
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+
+    if (!decoded || !decoded.userId || !decoded.role) {
+      res.status(401).json({
+        code: 'UNAUTHORIZED',
+        message: 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn',
+        retryable: false,
+      });
+      return;
+    }
 
     req.user = {
       userId: decoded.userId,
@@ -46,9 +70,9 @@ export function authenticateJwt(req: Request, res: Response, next: NextFunction)
 }
 
 /**
- * Role-based authorization middleware.
- * Checks if req.user.role is included in allowed roles.
- * Returns 403 if not authorized.
+ * 2. requireRole(roles: string[]):
+ * - Middleware kiểm tra req.user.role. Nếu không nằm trong danh sách được phép:
+ *   -> Trả về lỗi HTTP 403 (code: "FORBIDDEN", message: "Không có quyền truy cập", retryable: false).
  */
 export function requireRole(roles: string[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -74,14 +98,10 @@ export function requireRole(roles: string[]) {
   };
 }
 
-export interface AuthenticatedUser {
-  userId: string;
-  role: string;
-}
-
 /**
- * Optional JWT authentication middleware.
- * Adds req.user if token is valid; otherwise proceeds as unauthenticated.
+ * 3. optionalAuthenticate:
+ * - Dùng cho các endpoint cho phép cả khách và người dùng đăng nhập (ví dụ: upload & analyze ảnh).
+ * - Nếu có token hợp lệ thì gán req.user, nếu không có hoặc lỗi token thì vẫn cho phép đi tiếp dưới tư cách khách.
  */
 export function optionalAuthenticate(req: Request, _res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
@@ -90,16 +110,21 @@ export function optionalAuthenticate(req: Request, _res: Response, next: NextFun
     return next();
   }
 
-  const token = authHeader.substring(7);
+  const token = authHeader.substring(7).trim();
+  if (!token) {
+    return next();
+  }
 
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
-    req.user = {
-      userId: decoded.userId,
-      role: decoded.role,
-    };
+    if (decoded && decoded.userId && decoded.role) {
+      req.user = {
+        userId: decoded.userId,
+        role: decoded.role,
+      };
+    }
     next();
-  } catch (error) {
+  } catch {
     return next();
   }
 }

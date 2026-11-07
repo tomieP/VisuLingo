@@ -3,6 +3,7 @@ export interface User {
   email: string;
   firstName?: string;
   lastName?: string;
+  username?: string;
   role: 'user' | 'admin';
 }
 
@@ -16,6 +17,7 @@ export interface RegisterRequest {
   password: string;
   firstName?: string;
   lastName?: string;
+  username?: string;
 }
 
 export interface AuthResponse {

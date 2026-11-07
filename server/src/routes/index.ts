@@ -5,9 +5,11 @@ import adminRoutes from './adminRoutes';
 
 const router = Router();
 
-// API routes
+// API routes (support both plural and singular for seamless frontend match)
 router.use('/detections', detectionRoutes);
+router.use('/detection', detectionRoutes);
 router.use('/vocab', vocabRoutes);
+router.use('/vocabulary', vocabRoutes);
 router.use('/admin', adminRoutes);
 
 export default router;

@@ -48,3 +48,16 @@ export async function deleteSavedWord(req: Request, res: Response, next: NextFun
     next(error);
   }
 }
+
+export async function checkSavedStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = req.user!.userId;
+    const vocabularyId = req.query.vocabularyId as string | undefined;
+    const word = req.query.word as string | undefined;
+
+    const isSaved = await savedWordService.isWordSaved(userId, vocabularyId, word);
+    res.status(200).json({ isSaved });
+  } catch (error) {
+    next(error);
+  }
+}

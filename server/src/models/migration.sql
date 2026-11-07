@@ -3,6 +3,8 @@
 
 BEGIN;
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- 1. users table
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -88,11 +90,17 @@ CREATE TABLE IF NOT EXISTS collections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
   name VARCHAR(255) NOT NULL,
+  theme VARCHAR(100),
   description TEXT,
+  cover_image_id UUID REFERENCES images(id) ON DELETE SET NULL,
   is_public BOOLEAN DEFAULT false,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE collections ADD COLUMN IF NOT EXISTS theme VARCHAR(100);
+ALTER TABLE collections ADD COLUMN IF NOT EXISTS cover_image_id UUID REFERENCES images(id) ON DELETE SET NULL;
+ALTER TABLE images ADD COLUMN IF NOT EXISTS thumbnail_path VARCHAR(500);
 
 CREATE INDEX  IF NOT EXISTS idx_collections_user_id ON collections(user_id);
 CREATE INDEX  IF NOT EXISTS idx_collections_is_public ON collections(is_public);

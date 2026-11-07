@@ -17,11 +17,11 @@ export function CreateAlbumModal({ isOpen, onClose, onCreated }: CreateAlbumModa
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    const newAlbum = createAlbum(title, emoji, description);
+    const newAlbum = await createAlbum(title, emoji, description);
     setTitle('');
     setDescription('');
     onCreated(newAlbum.id);

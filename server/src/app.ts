@@ -4,9 +4,11 @@ import helmet from 'helmet';
 import routes from './routes';
 import { apiLimiter } from './middlewares/rateLimiter';
 import { errorHandler } from './middlewares/errorHandler';
-import { authenticateJwt } from './middlewares/authMiddleware';
 import authRoutes from './routes/authRoutes';
 import savedWordRoutes from './routes/savedWordRoutes';
+import collectionRoutes from './routes/collectionRoutes';
+import imageRoutes from './routes/imageRoutes';
+import adminRoutes from './routes/adminRoutes';
 
 const app = express();
 
@@ -29,8 +31,17 @@ app.use('/api', routes);
 // Auth routes (authLimiter applied inside authRoutes)
 app.use('/api/auth', authRoutes);
 
-// Saved words routes (require JWT auth)
-app.use('/api/saved-words', authenticateJwt, savedWordRoutes);
+// Saved words routes (all protected by authenticateJwt)
+app.use('/api/saved-words', savedWordRoutes);
+
+// Collections routes (all protected by authenticateJwt)
+app.use('/api/collections', collectionRoutes);
+
+// Images routes (all protected by authenticateJwt)
+app.use('/api/images', imageRoutes);
+
+// Admin routes (all protected by authenticateJwt + requireRole('admin'))
+app.use('/api/admin', adminRoutes);
 
 app.use(errorHandler);
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   SavedWord,
   getSavedWords,
+  syncSavedWordsFromApi,
   removeWord,
   toggleWordMastered,
 } from '@/utils/storage';
@@ -20,9 +21,11 @@ import {
   X,
   Layers,
   ChevronRight,
+  Pencil,
 } from 'lucide-react';
 import { speakWord } from '@/utils/speech';
-import { getAlbums, getPhotos, Album, SnapPhoto } from '@/utils/albums';
+import { getAlbums, syncCollectionsFromApi, getPhotos, Album, SnapPhoto } from '@/utils/albums';
+import { getCurrentUser, getUserUsername, setUserUsername } from '@/services/authService';
 import { CreateAlbumModal } from './CreateAlbumModal';
 import { AlbumDetailModal } from './AlbumDetailModal';
 import { AddPhotoToAlbumModal } from './AddPhotoToAlbumModal';
@@ -49,11 +52,20 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
   const [showCreateAlbum, setShowCreateAlbum] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
   const [albumForAddingPhoto, setAlbumForAddingPhoto] = useState<Album | null>(null);
+  const [userTag, setUserTag] = useState(getUserUsername());
+  const [isEditingTag, setIsEditingTag] = useState(false);
+  const [tagInput, setTagInput] = useState('');
 
   const loadData = () => {
     setSavedWords(getSavedWords());
     setAlbums(getAlbums());
     setPhotos(getPhotos());
+    void syncSavedWordsFromApi().then((words) => {
+      if (words && words.length >= 0) setSavedWords(words);
+    });
+    void syncCollectionsFromApi().then((fetchedAlbums) => {
+      if (fetchedAlbums && fetchedAlbums.length >= 0) setAlbums(fetchedAlbums);
+    });
   };
 
   useEffect(() => {
@@ -66,10 +78,13 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
 
     window.addEventListener('visulingo_saved_words_changed', handleWords);
     window.addEventListener('visulingo_albums_changed', handleAlbums);
+    const handleUsername = () => setUserTag(getUserUsername());
+    window.addEventListener('visulingo_username_changed', handleUsername);
 
     return () => {
       window.removeEventListener('visulingo_saved_words_changed', handleWords);
       window.removeEventListener('visulingo_albums_changed', handleAlbums);
+      window.removeEventListener('visulingo_username_changed', handleUsername);
     };
   }, []);
 
@@ -120,79 +135,158 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
     setCurrentDeckIndex((prev) => (prev + 1) % deckWords.length);
   };
 
+  const currentUser = getCurrentUser();
+  const rawName =
+    (currentUser?.firstName && currentUser.firstName.trim()) ||
+    (currentUser?.email && currentUser.email.split('@')[0]) ||
+    (localStorage.getItem('visulingo_display_name') && localStorage.getItem('visulingo_display_name')!.trim()) ||
+    'Snapper';
+  const userDisplayName = `Sổ tay của ${rawName}`;
+
 
   return (
     <div className="max-w-md mx-auto space-y-4 pb-28 text-white">
-      {/* 1. Intelligent Memory & Snapbook Header */}
-      <div className="p-4 sm:p-5 rounded-[32px] bg-gradient-to-b from-[#161D2B] via-[#111722] to-[#0B0F17] border border-white/10 shadow-2xl relative overflow-hidden space-y-3.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative">
+      {/* 1. Creative Pocket Profile & Stats Header (Clean, Mobile-First & Friendly) */}
+      <div className="p-4 sm:p-5 rounded-[28px] bg-gradient-to-br from-[#182030] via-[#121824] to-[#0A0E17] border border-white/10 shadow-xl relative overflow-hidden space-y-3.5">
+        {/* Ambient Subtle Glow */}
+        <div className="absolute top-0 right-0 w-36 h-36 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Top Row: User Avatar, Name, and Flame Streak Capsule */}
+        <div className="flex items-center justify-between gap-3 relative z-10">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="relative shrink-0">
               <img
                 src={
                   localStorage.getItem('visulingo_avatar') ||
                   'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
                 }
                 alt="Avatar"
-                className="w-12 h-12 rounded-full object-cover ring-2 ring-amber-400 shadow-md"
+                className="w-12 h-12 rounded-2xl object-cover ring-2 ring-amber-400/50 shadow-md"
               />
-              <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-black/80 border border-amber-400 text-[9px] font-black text-amber-300">
-                5🔥
+              <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-slate-950/90 border border-amber-400/70 text-[9px] font-black text-amber-300 shadow flex items-center gap-0.5">
+                <Flame className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                5
               </span>
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h3 className="font-black text-base tracking-tight text-white">Snapbook Tri Thức</h3>
-                <span className="px-2 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 text-[10px] font-black">
-                  SRS Active
-                </span>
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h3 className="font-extrabold text-base tracking-tight text-white flex items-center gap-1 truncate">
+                  <span className="truncate">{userDisplayName}</span>
+                </h3>
+
+                {/* Interactive @Username Tag Badge */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTagInput(userTag);
+                    setIsEditingTag(true);
+                  }}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 hover:bg-amber-400/20 border border-white/10 hover:border-amber-400/40 text-[11px] font-mono font-bold text-amber-300 transition-all cursor-pointer group shadow-xs"
+                  title="Chạm để đổi tên @tag của bạn"
+                >
+                  <span>@{userTag}</span>
+                  <Pencil className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100 text-slate-400 group-hover:text-amber-300" />
+                </button>
               </div>
-              <p className="text-xs text-slate-400">
-                {albums.length} Album • {photos.length} Khoảnh khắc • {savedWords.length} Từ vựng
-              </p>
+
+              <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400 font-medium">
+                <span>{albums.length} Album</span>
+                <span>•</span>
+                <span>{photos.length} Snaps</span>
+                <span>•</span>
+                <span className="text-amber-300 font-semibold">{savedWords.length} Từ</span>
+              </div>
             </div>
           </div>
 
-          {/* Quick Word Counters */}
-          <div className="flex items-center gap-2">
-            <div className="px-3 py-1.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-right">
-              <span className="text-[10px] text-emerald-400/80 block">Đã thuộc</span>
-              <span className="text-xs font-black text-emerald-400">{masteredCount} từ</span>
-            </div>
-            <div className="px-3 py-1.5 rounded-2xl bg-amber-400/10 border border-amber-400/20 text-right">
-              <span className="text-[10px] text-amber-300/80 block">Cần ôn</span>
-              <span className="text-xs font-black text-amber-300">{reviewCount} từ</span>
-            </div>
+          {/* Sleek Flame Streak Pill */}
+          <div className="px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-400/15 to-orange-500/15 border border-amber-400/35 text-amber-300 font-black text-xs flex items-center gap-1.5 shrink-0 shadow-sm">
+            <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+            <span>5 ngày</span>
           </div>
         </div>
+
+        {/* Bottom Row: Vocab Progress Bar & Micro Chips */}
+        {savedWords.length > 0 ? (
+          <div className="pt-2.5 border-t border-white/5 space-y-1.5 relative z-10">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Đã thuộc: {masteredCount}
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-400/10 px-2 py-0.5 rounded-md border border-amber-400/20">
+                  <Sparkles className="w-3 h-3" />
+                  Cần ôn: {reviewCount}
+                </span>
+              </div>
+              <span className="text-[11px] font-mono font-bold text-slate-400">
+                {Math.round((masteredCount / (savedWords.length || 1)) * 100)}%
+              </span>
+            </div>
+
+            <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-amber-400 to-emerald-400 rounded-full transition-all duration-500"
+                style={{
+                  width: `${Math.min(100, Math.round((masteredCount / (savedWords.length || 1)) * 100))}%`,
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="pt-2 border-t border-white/5 flex items-center gap-1.5 text-xs text-slate-400 relative z-10">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="text-[11px]">Chưa có từ nào được lưu. Hãy chụp ảnh đồ vật để bắt đầu tích lũy nhé!</span>
+          </div>
+        )}
       </div>
 
-      {/* 2. Seamless Sub-tab Switcher: Albums vs Words */}
-      <div className="p-1 rounded-2xl bg-[#161D2B]/90 border border-white/10 flex gap-1">
+      {/* 2. Modern Segmented Tab Control (Locket Glass Style) */}
+      <div className="p-1 rounded-2xl bg-[#121824]/90 border border-white/10 backdrop-blur-md flex gap-1 shadow-lg">
         <button
           type="button"
           onClick={() => setSubTab('albums')}
-          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
             subTab === 'albums'
-              ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
         >
           <Images className="w-4 h-4" />
-          <span>Bộ sưu tập Album ({albums.length})</span>
+          <span>Bộ sưu tập Album</span>
+          <span
+            className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+              subTab === 'albums'
+                ? 'bg-slate-950/20 text-slate-950'
+                : 'bg-white/10 text-slate-300'
+            }`}
+          >
+            {albums.length}
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => setSubTab('words')}
-          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
             subTab === 'words'
-              ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
         >
           <BookmarkCheck className="w-4 h-4" />
-          <span>Sổ từ & Flashcard ({savedWords.length})</span>
+          <span>Sổ từ & Ôn tập</span>
+          <span
+            className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+              subTab === 'words'
+                ? 'bg-slate-950/20 text-slate-950'
+                : 'bg-white/10 text-slate-300'
+            }`}
+          >
+            {savedWords.length}
+          </span>
         </button>
       </div>
 
@@ -201,39 +295,63 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
       ======================================================== */}
       {subTab === 'albums' && (
         <div className="space-y-3.5">
-          {/* Action Bar */}
+          {/* Action Bar (Balanced & Intuitive) */}
           <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              Album ảnh theo chủ đề
-            </span>
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-300">
+                Chủ đề Kỷ Niệm
+              </h4>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/5 text-slate-400 border border-white/5">
+                {albums.length}
+              </span>
+            </div>
 
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowCreateAlbum(true)}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/15 border border-white/15 text-xs font-bold text-white transition-all cursor-pointer shadow-sm active:scale-95"
+              >
+                <FolderPlus className="w-3.5 h-3.5 text-amber-400" />
+                <span>+ Tạo Album</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => {
                   setAlbumForAddingPhoto(albums[0] || null);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400 text-slate-950 hover:bg-amber-300 text-xs font-bold transition-all shadow-sm cursor-pointer"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black transition-all shadow-md shadow-amber-400/20 cursor-pointer active:scale-95"
                 title="Thêm ảnh khoảnh khắc vào Album"
               >
                 <Camera className="w-3.5 h-3.5" />
                 <span>+ Thêm ảnh</span>
               </button>
-
-              <button
-                type="button"
-                onClick={() => setShowCreateAlbum(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-bold text-amber-300 transition-colors cursor-pointer"
-              >
-                <FolderPlus className="w-3.5 h-3.5" />
-                <span>+ Tạo Album</span>
-              </button>
             </div>
           </div>
 
           {/* Albums Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          {albums.length === 0 ? (
+            <div className="p-8 text-center rounded-[28px] bg-[#161D2B]/50 border border-white/10 space-y-3">
+              <FolderPlus className="w-10 h-10 mx-auto text-amber-400 opacity-60" />
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-white">Chưa có bộ sưu tập nào</p>
+                <p className="text-xs text-slate-400">
+                  Tạo album đầu tiên để gom nhóm các ảnh khoảnh khắc và từ vựng theo chủ đề!
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateAlbum(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-amber-400 text-slate-950 text-xs font-black hover:bg-amber-300 transition-all cursor-pointer shadow-md shadow-amber-400/20 active:scale-95"
+              >
+                <FolderPlus className="w-4 h-4" />
+                <span>+ Tạo Album đầu tiên</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {albums.map((album) => {
               const albumPhotos = photos.filter((p) => p.albumId === album.id);
               const cover = albumPhotos[0]?.imageUrl;
@@ -306,6 +424,7 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
               );
             })}
           </div>
+          )}
         </div>
       )}
 
@@ -648,6 +767,69 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
         onClose={() => setAlbumForAddingPhoto(null)}
         onPhotoAdded={() => loadData()}
       />
+      {/* Modal: Edit @Username Tag */}
+      {isEditingTag && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="w-full max-w-xs bg-[#161D2B] border border-white/15 rounded-3xl p-5 shadow-2xl space-y-4 text-white">
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center font-bold text-xs">
+                  @
+                </div>
+                <h4 className="font-extrabold text-sm text-white">Đổi tên @tag của bạn</h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditingTag(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] text-slate-400 font-medium">Tên định danh (@username)</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 font-bold text-xs">@</span>
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
+                  placeholder="ten_cua_ban"
+                  autoFocus
+                  className="w-full pl-7 pr-3 py-2 rounded-xl bg-white/5 border border-white/15 text-xs text-white placeholder-slate-500 font-mono focus:outline-hidden focus:border-amber-400"
+                />
+              </div>
+              <p className="text-[10px] text-slate-500 leading-tight">
+                Chỉ dùng chữ cái thường, số, dấu gạch dưới (_) hoặc chấm (.).
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsEditingTag(false)}
+                className="flex-1 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-slate-300 cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (tagInput.trim()) {
+                    const saved = setUserUsername(tagInput);
+                    setUserTag(saved);
+                    setIsEditingTag(false);
+                  }
+                }}
+                className="flex-1 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black cursor-pointer shadow-md shadow-amber-400/20"
+              >
+                Lưu tên @tag
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

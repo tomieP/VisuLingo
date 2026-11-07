@@ -68,11 +68,19 @@ function AdminPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Initial load
+  // Initial load & Route Guard: Only Admin can access
   useEffect(() => {
+    if (!currentUser || currentUser.role !== 'admin') {
+      navigate('/', { replace: true });
+      return;
+    }
     loadAllData();
     setMoments(getMoments());
-  }, []);
+  }, [currentUser, navigate]);
+
+  if (!currentUser || currentUser.role !== 'admin') {
+    return null;
+  }
 
   const loadAllData = async () => {
     setIsLoading(true);

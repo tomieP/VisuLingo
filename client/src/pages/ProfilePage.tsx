@@ -107,25 +107,6 @@ function ProfilePage() {
   const userStreak = getUserStreak();
   const userLevel = Math.max(1, Math.floor(savedWords.length / 5) + 1);
 
-  // Dynamic 7-day week calendar based on real device time & actual activity
-  const now = new Date();
-  const currentDayOfWeek = now.getDay();
-  const mondayOffset = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() + mondayOffset);
-
-  const weekDays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((label, idx) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + idx);
-    const isToday = d.toDateString() === now.toDateString();
-    const hasActivity = isToday && (userStreak > 0 || myMoments.length > 0);
-    return {
-      day: label,
-      date: d.getDate().toString().padStart(2, '0'),
-      completed: hasActivity,
-      isToday,
-    };
-  });
   const [currentTag, setCurrentTag] = useState(userTag);
   const [displayName, setDisplayName] = useState(
     currentUser?.firstName
@@ -146,8 +127,31 @@ function ProfilePage() {
     'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
 
   const myMoments = moments.filter(
-    (m) => m.author.name.toLowerCase().includes('bạn') || m.author.name.includes('Phúc')
+    (m) =>
+      m.author.name === displayName ||
+      m.author.name.toLowerCase().includes('bạn') ||
+      (currentUser?.firstName && m.author.name.includes(currentUser.firstName))
   );
+
+  // Dynamic 7-day week calendar based on real device time & actual activity
+  const now = new Date();
+  const currentDayOfWeek = now.getDay();
+  const mondayOffset = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + mondayOffset);
+
+  const weekDays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((label, idx) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + idx);
+    const isToday = d.toDateString() === now.toDateString();
+    const hasActivity = isToday && (userStreak > 0 || myMoments.length > 0);
+    return {
+      day: label,
+      date: d.getDate().toString().padStart(2, '0'),
+      completed: hasActivity,
+      isToday,
+    };
+  });
 
   const handleShareProfile = () => {
     navigator.clipboard.writeText(window.location.href);

@@ -1,5 +1,7 @@
 import { X, Flame, Sparkles, Crown } from 'lucide-react';
 import { getFriends } from '@/utils/friends';
+import { getCurrentUser, getUserUsername } from '@/services/authService';
+import { getUserStreak } from '@/utils/storage';
 
 interface FriendLeaderboardModalProps {
   isOpen: boolean;
@@ -10,16 +12,25 @@ export function FriendLeaderboardModal({ isOpen, onClose }: FriendLeaderboardMod
   if (!isOpen) return null;
 
   const friends = getFriends();
+  const currentUser = getCurrentUser();
+  const userTag = getUserUsername();
+  const streak = getUserStreak();
+  const myName = currentUser?.firstName
+    ? `${currentUser.firstName} ${currentUser.lastName || ''}`.trim()
+    : (localStorage.getItem('visulingo_display_name') || 'Bạn (Me)');
+  const myAvatar =
+    localStorage.getItem('visulingo_avatar') ||
+    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
 
   // Combine user with friends and rank purely by streak days
   const allRanked = [
     {
       id: 'me',
-      name: 'Bạn (Me)',
-      username: '@visulingo_me',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-      badge: 'Streak 5 🔥',
-      streak: 5,
+      name: `${myName} (Bạn)`,
+      username: `@${userTag}`,
+      avatar: myAvatar,
+      badge: streak > 0 ? `Streak ${streak} 🔥` : 'Mới bắt đầu 🌱',
+      streak,
       isMe: true,
     },
     ...friends.map((f) => ({
@@ -60,7 +71,7 @@ export function FriendLeaderboardModal({ isOpen, onClose }: FriendLeaderboardMod
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -141,7 +152,7 @@ export function FriendLeaderboardModal({ isOpen, onClose }: FriendLeaderboardMod
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
               <p className="text-xs text-slate-200">
-                Bạn đang giữ chuỗi <strong>🔥 5 ngày</strong>. Học mỗi ngày để bám đuổi{' '}
+                Bạn đang giữ chuỗi <strong>🔥 {streak} ngày</strong>. Học mỗi ngày để bám đuổi{' '}
                 <strong className="text-amber-300">{personAhead.name.split(' ').pop()}</strong> (
                 {personAhead.streak} ngày)!
               </p>

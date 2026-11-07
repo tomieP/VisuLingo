@@ -67,8 +67,10 @@ export async function registerUser(data: RegisterRequest): Promise<AuthResponse>
 
 export function getCurrentUser(): User | null {
   try {
+    const token = localStorage.getItem(STORAGE_TOKEN_KEY);
     const raw = localStorage.getItem(STORAGE_USER_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!token || !raw) return null;
+    return JSON.parse(raw);
   } catch {
     return null;
   }

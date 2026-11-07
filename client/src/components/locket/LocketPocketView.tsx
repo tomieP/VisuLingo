@@ -5,6 +5,7 @@ import {
   syncSavedWordsFromApi,
   removeWord,
   toggleWordMastered,
+  getUserStreak,
 } from '@/utils/storage';
 import {
   Volume2,
@@ -136,6 +137,7 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
   };
 
   const currentUser = getCurrentUser();
+  const userStreak = getUserStreak();
   const rawName =
     (currentUser?.firstName && currentUser.firstName.trim()) ||
     (currentUser?.email && currentUser.email.split('@')[0]) ||
@@ -165,7 +167,7 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
               />
               <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-slate-950/90 border border-amber-400/70 text-[9px] font-black text-amber-300 shadow flex items-center gap-0.5">
                 <Flame className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                5
+                {userStreak}
               </span>
             </div>
 
@@ -203,7 +205,7 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
           {/* Sleek Flame Streak Pill */}
           <div className="px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-400/15 to-orange-500/15 border border-amber-400/35 text-amber-300 font-black text-xs flex items-center gap-1.5 shrink-0 shadow-sm">
             <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-            <span>5 ngày</span>
+            <span>{userStreak} ngày</span>
           </div>
         </div>
 

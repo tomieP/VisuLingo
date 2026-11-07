@@ -158,3 +158,23 @@ export function clearSavedWords(): void {
     console.error('Failed to clear words:', error);
   }
 }
+
+const STREAK_KEY = 'visulingo_user_streak';
+
+export function getUserStreak(): number {
+  try {
+    const raw = localStorage.getItem(STREAK_KEY);
+    if (raw !== null) {
+      const parsed = parseInt(raw, 10);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function setUserStreak(streak: number): void {
+  localStorage.setItem(STREAK_KEY, streak.toString());
+  window.dispatchEvent(new Event('visulingo_streak_changed'));
+}

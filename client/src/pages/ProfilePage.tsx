@@ -19,7 +19,7 @@ import {
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { LocketBottomBar } from '@/components/locket/LocketBottomBar';
 import { getCurrentUser, getUserUsername, setUserUsername } from '@/services/authService';
-import { getSavedWords } from '@/utils/storage';
+import { getSavedWords, getUserStreak } from '@/utils/storage';
 import { getMoments } from '@/utils/moments';
 import { speakWord } from '@/utils/speech';
 
@@ -97,16 +97,6 @@ const PROFILE_BADGES: BadgeItem[] = [
   },
 ];
 
-const WEEK_DAYS = [
-  { day: 'T2', date: '02', completed: true, snaps: 3 },
-  { day: 'T3', date: '03', completed: true, snaps: 2 },
-  { day: 'T4', date: '04', completed: true, snaps: 4 },
-  { day: 'T5', date: '05', completed: true, snaps: 1 },
-  { day: 'T6', date: '06', completed: true, snaps: 5 },
-  { day: 'T7', date: '07', completed: false, snaps: 0 },
-  { day: 'CN', date: '08', completed: false, snaps: 0 },
-];
-
 function ProfilePage() {
   const currentUser = getCurrentUser();
   const userTag = getUserUsername();
@@ -114,6 +104,28 @@ function ProfilePage() {
   const moments = getMoments();
   const [activeTab, setActiveTab] = useState<'badges' | 'snaps' | 'streak'>('badges');
   const [copiedToast, setCopiedToast] = useState(false);
+  const userStreak = getUserStreak();
+  const userLevel = Math.max(1, Math.floor(savedWords.length / 5) + 1);
+
+  // Dynamic 7-day week calendar based on real device time & actual activity
+  const now = new Date();
+  const currentDayOfWeek = now.getDay();
+  const mondayOffset = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + mondayOffset);
+
+  const weekDays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((label, idx) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + idx);
+    const isToday = d.toDateString() === now.toDateString();
+    const hasActivity = isToday && (userStreak > 0 || myMoments.length > 0);
+    return {
+      day: label,
+      date: d.getDate().toString().padStart(2, '0'),
+      completed: hasActivity,
+      isToday,
+    };
+  });
   const [currentTag, setCurrentTag] = useState(userTag);
   const [displayName, setDisplayName] = useState(
     currentUser?.firstName
@@ -208,7 +220,7 @@ function ProfilePage() {
               </div>
               <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-slate-950/90 border border-amber-400 text-[10px] font-black text-amber-300 flex items-center gap-0.5 shadow-md">
                 <Flame className="w-3 h-3 fill-amber-400 text-amber-400" />
-                5d
+                {userStreak}d
               </span>
             </div>
 
@@ -220,7 +232,7 @@ function ProfilePage() {
                 </h1>
                 <span className="px-2 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 text-[10px] font-black flex items-center gap-1 shadow-xs">
                   <Zap className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                  Level 3
+                  Level {userLevel}
                 </span>
               </div>
 
@@ -256,7 +268,7 @@ function ProfilePage() {
             <div className="flex-1 px-1">
               <div className="text-base sm:text-lg font-black text-amber-400 flex items-center justify-center gap-1">
                 <Flame className="w-4 h-4 fill-amber-400 text-amber-400" />
-                5d
+                {userStreak}d
               </div>
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Streak</div>
             </div>
@@ -493,7 +505,7 @@ function ProfilePage() {
                     Chuỗi Giữ Lửa Tuần Này
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    Đã hoàn thành 5/7 ngày liên tục 🔥
+                    {userStreak > 0 ? `Đã giữ lửa ${userStreak} ngày liên tục 🔥` : "Hãy chụp Snap đầu tiên hôm nay để bắt đầu giữ lửa! 🌱"}
                   </p>
                 </div>
                 <span className="px-2.5 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 text-[10px] font-black">
@@ -503,7 +515,7 @@ function ProfilePage() {
 
               {/* 7 Days Row */}
               <div className="grid grid-cols-7 gap-1.5 text-center">
-                {WEEK_DAYS.map((w, i) => (
+                {weekDays.map((w, i) => (
                   <div
                     key={i}
                     className={`p-2 rounded-xl border flex flex-col items-center gap-1 ${

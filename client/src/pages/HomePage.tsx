@@ -12,7 +12,7 @@ import { NotificationsModal } from '@/components/locket/NotificationsModal';
 import { FriendLeaderboardModal } from '@/components/locket/FriendLeaderboardModal';
 import { DirectChatModal } from '@/components/locket/DirectChatModal';
 import { getMoments, MomentPost } from '@/utils/moments';
-import { getSavedWords } from '@/utils/storage';
+import { getSavedWords, getUserStreak } from '@/utils/storage';
 import { getFriends, FriendProfile } from '@/utils/friends';
 import { getUnreadNotificationsCount } from '@/utils/notifications';
 import { getTotalUnreadChatCount } from '@/utils/chat';
@@ -31,6 +31,7 @@ function HomePage() {
   const [moments, setMoments] = useState<MomentPost[]>([]);
   const [friends, setFriends] = useState<FriendProfile[]>([]);
   const [savedCount, setSavedCount] = useState<number>(0);
+  const [userStreak, setUserStreak] = useState<number>(getUserStreak());
   const [unreadNotifs, setUnreadNotifs] = useState<number>(0);
   const [unreadChat, setUnreadChat] = useState<number>(0);
 
@@ -47,6 +48,7 @@ function HomePage() {
     setMoments(getMoments());
     setFriends(getFriends());
     setSavedCount(getSavedWords().length);
+    setUserStreak(getUserStreak());
     setUnreadNotifs(getUnreadNotificationsCount());
     setUnreadChat(getTotalUnreadChatCount());
   };
@@ -56,6 +58,8 @@ function HomePage() {
 
     const handleMoments = () => setMoments(getMoments());
     const handleSaved = () => setSavedCount(getSavedWords().length);
+    const handleStreak = () => setUserStreak(getUserStreak());
+    window.addEventListener('visulingo_streak_changed', handleStreak);
     const handleFriends = () => setFriends(getFriends());
     const handleNotifs = () => setUnreadNotifs(getUnreadNotificationsCount());
     const handleChat = () => setUnreadChat(getTotalUnreadChatCount());
@@ -69,6 +73,7 @@ function HomePage() {
     return () => {
       window.removeEventListener('visulingo_moments_changed', handleMoments);
       window.removeEventListener('visulingo_saved_words_changed', handleSaved);
+      window.removeEventListener('visulingo_streak_changed', handleStreak);
       window.removeEventListener('visulingo_friends_changed', handleFriends);
       window.removeEventListener('visulingo_notifications_changed', handleNotifs);
       window.removeEventListener('visulingo_chat_changed', handleChat);
@@ -151,7 +156,7 @@ function HomePage() {
               title="Chuỗi streak của bạn & Bảng xếp hạng"
             >
               <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400 group-hover:scale-110 transition-transform" />
-              <span>5</span>
+              <span>{userStreak}</span>
             </button>
 
             {/* 2. Unified Social Inbox (Tin nhắn & Hoạt động) */}

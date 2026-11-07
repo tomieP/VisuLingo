@@ -1,9 +1,9 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env from server root.
-// Runtime uses process.cwd() when launched from server/.
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+// Load .env with override: true so that files override any system dummy variables
+dotenv.config({ path: path.resolve(process.cwd(), '.env'), override: true });
+dotenv.config({ path: path.resolve(process.cwd(), 'server/.env'), override: true });
 
 interface Env {
   PORT: number;

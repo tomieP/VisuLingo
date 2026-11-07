@@ -35,15 +35,15 @@ export class GeminiVisionAdapter {
     const apiKey = this.getApiKey().trim();
 
     if (!apiKey) {
-      logger.warn('[GeminiVisionAdapter] GEMINI_API_KEY not configured. Using smart fallback learning objects.');
-      return this.getFallbackResults(confidenceThreshold);
+      logger.warn('[GeminiVisionAdapter] GEMINI_API_KEY not configured.');
+      return [];
     }
 
     try {
       const results = await this.callGeminiVisionAPI(imageBuffer, mimeType, apiKey);
       if (!results || results.length === 0) {
-        logger.info('[GeminiVisionAdapter] Gemini detected 0 objects, using fallback.');
-        return this.getFallbackResults(confidenceThreshold);
+        logger.info('[GeminiVisionAdapter] Gemini detected 0 objects.');
+        return [];
       }
 
       // Filter by confidence threshold
@@ -60,7 +60,7 @@ export class GeminiVisionAdapter {
       return nmsResults.slice(0, 15);
     } catch (error) {
       logger.error('[GeminiVisionAdapter] Gemini API call failed:', error);
-      return this.getFallbackResults(confidenceThreshold);
+      return [];
     }
   }
 
@@ -77,7 +77,7 @@ export class GeminiVisionAdapter {
   }
 
   /**
-   * Calls Google Gemini 2.5 Flash generateContent REST API directly.
+   * Calls Google Gemini Multimodal Vision API with multi-model fallback.
    */
   private async callGeminiVisionAPI(
     imageBuffer: Buffer,
@@ -85,29 +85,32 @@ export class GeminiVisionAdapter {
     apiKey: string
   ): Promise<VisionAdapterResult[]> {
     const base64Data = imageBuffer.toString('base64');
-    // Using gemini-2.5-flash for the fastest multimodal response
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const candidateModels = [
+      'gemini-3.5-flash-lite',
+      'gemini-flash-lite-latest',
+      'gemini-2.5-flash',
+    ];
 
     const promptText = `You are an expert English vocabulary tutor and computer vision assistant for VisuLingo (an English learning app).
-Analyze this image and identify prominent everyday physical objects (between 3 and 10 items) that learners can see and learn (e.g. laptop, coffee mug, notebook, book, phone, glasses, water bottle, desk, keyboard, chair, plant, etc.).
+Analyze this image and identify 3 to 10 prominent physical objects, clothing items, everyday objects, food, nature, or clear features that learners can learn (e.g. jacket, tie, collar, shirt, hair, glasses, face, book, pen, laptop, coffee cup, chair, table, dog, cat, tree, car, etc.).
 
 For each object:
-- "label": English noun in lowercase singular (e.g., "laptop", "coffee mug", "notebook")
-- "meaningVi": Natural, accurate Vietnamese translation (e.g., "máy tính xách tay", "tách cà phê")
-- "ipa": Standard IPA phonetics (e.g., "/ˈlæp.tɒp/", "/ˈkɒf.i mʌɡ/")
+- "label": English noun in lowercase singular (e.g., "jacket", "tie", "collar", "hair", "coffee cup")
+- "meaningVi": Natural, accurate Vietnamese translation (e.g., "áo khoác", "cà vạt", "cổ áo", "mái tóc", "tách cà phê")
+- "ipa": Standard IPA phonetics (e.g., "/ˈdʒæk.ɪt/", "/taɪ/", "/ˈkɑː.lɚ/")
 - "exampleSentence": Short practical English sentence using the word
 - "confidence": Float between 0.70 and 0.99
-- "box_2d": Bounding box coordinates in [ymin, xmin, ymax, xmax] format (normalized 0 to 1000, or 0.0 to 1.0).
+- "box_2d": Bounding box coordinates in [ymin, xmin, ymax, xmax] format (normalized 0 to 1000).
 
 Return ONLY a valid JSON array matching this format without markdown code fences:
 [
   {
-    "label": "laptop",
-    "meaningVi": "máy tính xách tay",
-    "ipa": "/ˈlæp.tɒp/",
-    "exampleSentence": "She works on her laptop every morning.",
+    "label": "jacket",
+    "meaningVi": "áo khoác",
+    "ipa": "/ˈdʒæk.ɪt/",
+    "exampleSentence": "He wears a school jacket.",
     "confidence": 0.95,
-    "box_2d": [320, 150, 780, 650]
+    "box_2d": [470, 110, 890, 350]
   }
 ]`;
 
@@ -134,67 +137,80 @@ Return ONLY a valid JSON array matching this format without markdown code fences
       },
     };
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
+    let lastError: any = null;
 
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal,
-      });
+    for (const model of candidateModels) {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
 
-      clearTimeout(timeout);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Gemini API HTTP ${response.status}: ${errorText}`);
-      }
-
-      const data: any = await response.json();
-      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!rawText) return [];
-
-      let parsed: any[] = [];
       try {
-        parsed = JSON.parse(rawText);
-      } catch {
-        const cleaned = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-        parsed = JSON.parse(cleaned);
-      }
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal,
+        });
 
-      if (!Array.isArray(parsed)) return [];
+        clearTimeout(timeout);
 
-      return parsed.map((item) => {
-        let bbox: VisionBoundingBox = { x: 0.1, y: 0.1, w: 0.3, h: 0.3 };
-        if (Array.isArray(item.box_2d) && item.box_2d.length === 4) {
-          const [ymin, xmin, ymax, xmax] = item.box_2d;
-          const normYmin = ymin > 1 ? ymin / 1000 : ymin;
-          const normXmin = xmin > 1 ? xmin / 1000 : xmin;
-          const normYmax = ymax > 1 ? ymax / 1000 : ymax;
-          const normXmax = xmax > 1 ? xmax / 1000 : xmax;
-
-          const y = Math.max(0, Math.min(1, normYmin));
-          const x = Math.max(0, Math.min(1, normXmin));
-          const h = Math.max(0.05, Math.min(1 - y, normYmax - normYmin));
-          const w = Math.max(0.05, Math.min(1 - x, normXmax - normXmin));
-          bbox = clampBbox({ x, y, w, h });
+        if (!response.ok) {
+          const errorText = await response.text();
+          logger.warn(`[GeminiVisionAdapter] Model ${model} returned HTTP ${response.status}: ${errorText.substring(0, 150)}... Trying next candidate...`);
+          lastError = new Error(`Gemini API HTTP ${response.status}: ${errorText}`);
+          continue;
         }
 
-        return {
-          label: normalizeLabel(item.label || 'object'),
-          confidence: typeof item.confidence === 'number' ? item.confidence : 0.9,
-          boundingBox: bbox,
-          meaningVi: item.meaningVi || 'đồ vật',
-          ipa: item.ipa || '',
-          exampleSentence: item.exampleSentence || '',
-        };
-      });
-    } catch (err) {
-      clearTimeout(timeout);
-      throw err;
+        const data: any = await response.json();
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!rawText) continue;
+
+        let parsed: any[] = [];
+        try {
+          parsed = JSON.parse(rawText);
+        } catch {
+          const cleaned = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+          parsed = JSON.parse(cleaned);
+        }
+
+        if (!Array.isArray(parsed) || parsed.length === 0) continue;
+
+        return parsed.map((item) => {
+          let bbox: VisionBoundingBox = { x: 0.1, y: 0.1, w: 0.3, h: 0.3 };
+          if (Array.isArray(item.box_2d) && item.box_2d.length === 4) {
+            const [ymin, xmin, ymax, xmax] = item.box_2d;
+            const normYmin = ymin > 1 ? ymin / 1000 : ymin;
+            const normXmin = xmin > 1 ? xmin / 1000 : xmin;
+            const normYmax = ymax > 1 ? ymax / 1000 : ymax;
+            const normXmax = xmax > 1 ? xmax / 1000 : xmax;
+
+            const y = Math.max(0, Math.min(1, normYmin));
+            const x = Math.max(0, Math.min(1, normXmin));
+            const h = Math.max(0.05, Math.min(1 - y, normYmax - normYmin));
+            const w = Math.max(0.05, Math.min(1 - x, normXmax - normXmin));
+            bbox = clampBbox({ x, y, w, h });
+          }
+
+          return {
+            label: normalizeLabel(item.label || 'object'),
+            confidence: typeof item.confidence === 'number' ? item.confidence : 0.9,
+            boundingBox: bbox,
+            meaningVi: item.meaningVi || 'đồ vật',
+            ipa: item.ipa || '',
+            exampleSentence: item.exampleSentence || '',
+          };
+        });
+      } catch (err: any) {
+        clearTimeout(timeout);
+        logger.warn(`[GeminiVisionAdapter] Model ${model} failed with ${err.message}. Trying next candidate...`);
+        lastError = err;
+      }
     }
+
+    if (lastError) {
+      throw lastError;
+    }
+    return [];
   }
 
   private async saveDetectedWordsToDictionary(objects: VisionAdapterResult[]): Promise<void> {
@@ -214,45 +230,6 @@ Return ONLY a valid JSON array matching this format without markdown code fences
         // Ignored if DB offline
       }
     }
-  }
-
-  private getFallbackResults(threshold: number): VisionAdapterResult[] {
-    const fallbacks: VisionAdapterResult[] = [
-      {
-        label: 'laptop',
-        confidence: 0.95,
-        boundingBox: { x: 0.15, y: 0.25, w: 0.35, h: 0.35 },
-        meaningVi: 'máy tính xách tay',
-        ipa: '/ˈlæp.tɒp/',
-        exampleSentence: 'She works on her laptop every morning.',
-      },
-      {
-        label: 'coffee cup',
-        confidence: 0.91,
-        boundingBox: { x: 0.62, y: 0.35, w: 0.18, h: 0.25 },
-        meaningVi: 'tách cà phê',
-        ipa: '/ˈkɒf.i kʌp/',
-        exampleSentence: 'A hot coffee cup is on the wooden table.',
-      },
-      {
-        label: 'notebook',
-        confidence: 0.86,
-        boundingBox: { x: 0.25, y: 0.65, w: 0.28, h: 0.22 },
-        meaningVi: 'quyển sổ ghi chép',
-        ipa: '/ˈnəʊt.bʊk/',
-        exampleSentence: 'Write down new words in your notebook.',
-      },
-      {
-        label: 'smartphone',
-        confidence: 0.82,
-        boundingBox: { x: 0.72, y: 0.68, w: 0.15, h: 0.22 },
-        meaningVi: 'điện thoại thông minh',
-        ipa: '/ˈsmɑːt.fəʊn/',
-        exampleSentence: 'He is checking vocabulary on his smartphone.',
-      },
-    ];
-
-    return fallbacks.filter((r) => r.confidence >= threshold);
   }
 
   private applyNMS(results: VisionAdapterResult[], iouThreshold = 0.5): VisionAdapterResult[] {

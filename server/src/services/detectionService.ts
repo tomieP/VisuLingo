@@ -155,6 +155,10 @@ export async function analyzeImage(
       label,
       confidence: item.confidence,
       bbox: item.boundingBox,
+      boundingBox: item.boundingBox,
+      meaningVi: item.meaningVi,
+      ipa: item.ipa,
+      exampleSentence: item.exampleSentence,
     });
   }
 

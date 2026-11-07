@@ -6,6 +6,7 @@ import { LocketSticker } from './LocketSticker';
 import { addMoment, VocabTag } from '@/utils/moments';
 import { getAlbums, savePhotoToAlbum, Album } from '@/utils/albums';
 import { CreateAlbumModal } from './CreateAlbumModal';
+import { getCurrentUser } from '@/services/authService';
 
 interface LocketCameraViewProps {
   onMomentShared?: () => void;
@@ -187,9 +188,10 @@ const getMeaningForWord = (word: string) => {
       y: Math.round((obj.boundingBox.y + obj.boundingBox.h / 2) * 100),
     }));
 
+    const currentUser = getCurrentUser();
     addMoment({
       author: {
-        name: 'Bạn (Me)',
+        name: currentUser?.firstName ? `${currentUser.firstName} ${currentUser.lastName || ''}`.trim() : (localStorage.getItem('visulingo_display_name') || 'Bạn (Me)'),
         avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
         badge: 'Hôm nay 🔥',
       },

@@ -11,6 +11,7 @@ interface Env {
   JWT_SECRET: string;
   JWT_EXPIRES_IN: string;
   VISION_API_KEY: string;
+  GEMINI_API_KEY: string;
   DICTIONARY_API_KEY: string;
   CONFIDENCE_THRESHOLD: number;
   MAX_UPLOAD_MB: number;
@@ -26,6 +27,7 @@ export const env: Env = {
   JWT_SECRET: process.env.JWT_SECRET || 'your_jwt_secret_key',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
   VISION_API_KEY: process.env.VISION_API_KEY || '',
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY || process.env.VISION_API_KEY || '',
   DICTIONARY_API_KEY: process.env.DICTIONARY_API_KEY || '',
   CONFIDENCE_THRESHOLD: Number(process.env.CONFIDENCE_THRESHOLD) || 0.5,
   MAX_UPLOAD_MB: Number(process.env.MAX_UPLOAD_MB) || 10,

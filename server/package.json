@@ -9,9 +9,10 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "migrate": "node src/models/runMigration.js",
-    "seed" : "tsx src/scripts/seed.ts"
+    "seed": "tsx src/scripts/seed.ts"
   },
   "dependencies": {
+    "@google/genai": "^3.0.0",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.2.1",
     "cloudinary": "^2.11.0",

@@ -21,7 +21,7 @@ export interface VisionAdapterResult {
 }
 
 /**
- * GeminiVisionAdapter integrates Google Gemini Multimodal Vision API (gemini-1.5-flash)
+ * GeminiVisionAdapter integrates Google Gemini 2.5 Flash Multimodal Vision API
  * for high-speed, zero-shot object detection with simultaneous vocabulary, IPA phonetics,
  * and contextual Vietnamese translation generation.
  */
@@ -77,7 +77,7 @@ export class GeminiVisionAdapter {
   }
 
   /**
-   * Calls Google Gemini generateContent REST API directly for maximum speed and zero SDK-version issues.
+   * Calls Google Gemini 2.5 Flash generateContent REST API directly.
    */
   private async callGeminiVisionAPI(
     imageBuffer: Buffer,
@@ -85,10 +85,11 @@ export class GeminiVisionAdapter {
     apiKey: string
   ): Promise<VisionAdapterResult[]> {
     const base64Data = imageBuffer.toString('base64');
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // Using gemini-2.5-flash for the fastest multimodal response
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     const promptText = `You are an expert English vocabulary tutor and computer vision assistant for VisuLingo (an English learning app).
-Analyze this image and identify prominent everyday physical objects (between 3 and 10 items) that learners can see and learn (e.g. laptop, coffee mug, notebook, book, phone, glasses, water bottle, desk, keyboard, chair, etc.).
+Analyze this image and identify prominent everyday physical objects (between 3 and 10 items) that learners can see and learn (e.g. laptop, coffee mug, notebook, book, phone, glasses, water bottle, desk, keyboard, chair, plant, etc.).
 
 For each object:
 - "label": English noun in lowercase singular (e.g., "laptop", "coffee mug", "notebook")
@@ -96,7 +97,7 @@ For each object:
 - "ipa": Standard IPA phonetics (e.g., "/ˈlæp.tɒp/", "/ˈkɒf.i mʌɡ/")
 - "exampleSentence": Short practical English sentence using the word
 - "confidence": Float between 0.70 and 0.99
-- "box_2d": Bounding box coordinates normalized from 0 to 1000 in [ymin, xmin, ymax, xmax] format.
+- "box_2d": Bounding box coordinates in [ymin, xmin, ymax, xmax] format (normalized 0 to 1000, or 0.0 to 1.0).
 
 Return ONLY a valid JSON array matching this format without markdown code fences:
 [
@@ -169,10 +170,15 @@ Return ONLY a valid JSON array matching this format without markdown code fences
         let bbox: VisionBoundingBox = { x: 0.1, y: 0.1, w: 0.3, h: 0.3 };
         if (Array.isArray(item.box_2d) && item.box_2d.length === 4) {
           const [ymin, xmin, ymax, xmax] = item.box_2d;
-          const y = Math.max(0, Math.min(1, ymin / 1000));
-          const x = Math.max(0, Math.min(1, xmin / 1000));
-          const h = Math.max(0.05, Math.min(1 - y, (ymax - ymin) / 1000));
-          const w = Math.max(0.05, Math.min(1 - x, (xmax - xmin) / 1000));
+          const normYmin = ymin > 1 ? ymin / 1000 : ymin;
+          const normXmin = xmin > 1 ? xmin / 1000 : xmin;
+          const normYmax = ymax > 1 ? ymax / 1000 : ymax;
+          const normXmax = xmax > 1 ? xmax / 1000 : xmax;
+
+          const y = Math.max(0, Math.min(1, normYmin));
+          const x = Math.max(0, Math.min(1, normXmin));
+          const h = Math.max(0.05, Math.min(1 - y, normYmax - normYmin));
+          const w = Math.max(0.05, Math.min(1 - x, normXmax - normXmin));
           bbox = clampBbox({ x, y, w, h });
         }
 

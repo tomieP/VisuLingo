@@ -51,3 +51,8 @@ server/.tsx/
 
 # Uploads
 uploads/
+# Agent skills & local configs
+.agent/
+skills/
+*.skill.md
+SKILL.md

@@ -1,5 +1,6 @@
+import { enrichVocabTag } from '@/utils/dictionary';
 import { useState, useRef, useEffect, DragEvent, ChangeEvent } from 'react';
-import { Camera, Upload, Sparkles, Send, RefreshCw, FolderPlus, Bookmark, VideoOff } from 'lucide-react';
+import { Camera, Eye, EyeOff, Upload, Sparkles, Send, RefreshCw, FolderPlus, Bookmark, VideoOff } from 'lucide-react';
 import { useDetection } from '@/hooks/useDetection';
 import { DetectionResponse } from '@/types/detection';
 import { LocketSticker } from './LocketSticker';
@@ -16,6 +17,7 @@ export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null);
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
+  const [showStickers, setShowStickers] = useState<boolean>(true);
   const [caption, setCaption] = useState<string>('');
   const [isSharing, setIsSharing] = useState<boolean>(false);
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -182,8 +184,10 @@ const getMeaningForWord = (word: string) => {
     const vocabTags: VocabTag[] = detectionResult.objects.map((obj) => ({
       id: obj.id,
       word: obj.label,
-      meaningVi: getMeaningForWord(obj.label),
-      ipa: getIpaForWord(obj.label),
+      meaningVi: obj.meaningVi || getMeaningForWord(obj.label),
+      ipa: obj.ipa || getIpaForWord(obj.label),
+      example: obj.exampleSentence || '',
+      confidence: obj.confidence,
       x: Math.round((obj.boundingBox.x + obj.boundingBox.w / 2) * 100),
       y: Math.round((obj.boundingBox.y + obj.boundingBox.h / 2) * 100),
     }));
@@ -192,7 +196,7 @@ const getMeaningForWord = (word: string) => {
     addMoment({
       author: {
         name: currentUser?.firstName ? `${currentUser.firstName} ${currentUser.lastName || ''}`.trim() : (localStorage.getItem('visulingo_display_name') || 'Bạn (Me)'),
-        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+        avatar: localStorage.getItem('visulingo_avatar') || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
         badge: 'Hôm nay 🔥',
       },
       caption: caption.trim() || 'Snap học từ mới của tôi ✨',
@@ -244,26 +248,55 @@ const getMeaningForWord = (word: string) => {
                   <Sparkles className="w-6 h-6 text-amber-400" />
                 </div>
                 <p className="text-xs font-bold text-amber-300 tracking-wide uppercase">
-                  AI đang dán nhãn đồ vật...
+                  AI đang nhận diện từ vựng...
                 </p>
               </div>
             )}
 
             {/* Floating Interactive Locket Stickers */}
             {detectionResult &&
-              detectionResult.objects.map((obj) => (
-                <LocketSticker
-                  key={obj.id}
-                  word={obj.label}
-                  meaningVi={getMeaningForWord(obj.label)}
-                  ipa={getIpaForWord(obj.label)}
-                  x={Math.round((obj.boundingBox.x + obj.boundingBox.w / 2) * 100)}
-                  y={Math.round((obj.boundingBox.y + obj.boundingBox.h / 2) * 100)}
-                  confidence={obj.confidence}
-                  isSelected={selectedObjectId === obj.id}
-                  onSelect={() => setSelectedObjectId(obj.id)}
-                />
-              ))}
+              detectionResult.objects.map((obj) => {
+                const enriched = enrichVocabTag({
+                  word: obj.label,
+                  meaningVi: obj.meaningVi,
+                  ipa: obj.ipa,
+                  example: obj.exampleSentence,
+                });
+                return (
+                  <LocketSticker
+                    key={obj.id}
+                    word={obj.label}
+                    meaningVi={enriched.meaningVi}
+                    ipa={enriched.ipa}
+                    example={enriched.example}
+                    x={Math.round((obj.boundingBox.x + obj.boundingBox.w / 2) * 100)}
+                    y={Math.round((obj.boundingBox.y + obj.boundingBox.h / 2) * 100)}
+                    confidence={obj.confidence}
+                    isSelected={selectedObjectId === obj.id}
+                    onSelect={() => setSelectedObjectId(obj.id)}
+                  />
+                );
+              })}
+
+            
+            {/* Toggle Show/Hide Stickers Button (Eye icon) */}
+            {detectionResult && detectionResult.objects.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowStickers(!showStickers)}
+                className={`absolute top-3 left-3 px-2.5 py-1.5 rounded-full backdrop-blur-md border transition-all active:scale-90 shadow-lg flex items-center gap-1.5 z-30 ${
+                  showStickers
+                    ? 'bg-black/75 border-amber-400/50 text-amber-300 hover:bg-black/90'
+                    : 'bg-black/70 border-white/20 text-slate-400 hover:text-white'
+                }`}
+                title={showStickers ? 'Bấm để ẩn nhãn từ vựng' : 'Bấm để hiện nhãn từ vựng'}
+              >
+                {showStickers ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                <span className="text-[10px] font-bold select-none">
+                  {showStickers ? 'Ẩn nhãn' : 'Hiện nhãn'}
+                </span>
+              </button>
+            )}
 
             {/* Retake button in top corner */}
             <button
@@ -398,7 +431,7 @@ const getMeaningForWord = (word: string) => {
             </label>
             <input
               type="text"
-              placeholder="Ví dụ: Bàn học sáng nay, học thêm từ laptop & coffee cup..."
+              placeholder="Ghi chú từ mới hoặc cảm nghĩ về khoảnh khắc này..."
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               className="w-full bg-white/5 border border-white/10 focus:border-amber-400 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-hidden transition-colors"

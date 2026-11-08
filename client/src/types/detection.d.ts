@@ -10,6 +10,9 @@ export interface DetectedObject {
   label: string;
   confidence: number;
   boundingBox: BoundingBox;
+  meaningVi?: string;
+  ipa?: string;
+  exampleSentence?: string;
 }
 
 export interface DetectionResponse {

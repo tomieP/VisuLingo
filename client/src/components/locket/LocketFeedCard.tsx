@@ -1,5 +1,6 @@
+import { enrichVocabTag } from '@/utils/dictionary';
 import { useState, useEffect } from 'react';
-import { Volume2, Heart, Flame, Sparkles, BookmarkPlus, Check, MessageCircle, Send, Share2 } from 'lucide-react';
+import { Volume2, Eye, EyeOff, Heart, Flame, Sparkles, BookmarkPlus, Check, MessageCircle, Send, Share2 } from 'lucide-react';
 import { MomentPost, reactToMoment, VocabTag } from '@/utils/moments';
 import { LocketSticker } from './LocketSticker';
 import { SnapCommentsModal } from './SnapCommentsModal';
@@ -20,6 +21,7 @@ export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: 
   const [imgSrc, setImgSrc] = useState(moment.imageUrl || FALLBACK_IMAGE);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [showStickers, setShowStickers] = useState(true);
 
   useEffect(() => {
     setImgSrc(moment.imageUrl || FALLBACK_IMAGE);
@@ -49,7 +51,13 @@ export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: 
           className={`flex items-center gap-2.5 ${onAuthorClick ? 'cursor-pointer group' : ''}`}
         >
           <img
-            src={moment.author.avatar}
+            src={
+            (moment.author.name === 'Bạn (Me)' ||
+             moment.author.name === (localStorage.getItem('visulingo_display_name') || 'Bạn (Me)') ||
+             moment.author.name.toLowerCase().includes('bạn'))
+              ? (localStorage.getItem('visulingo_avatar') || moment.author.avatar)
+              : moment.author.avatar
+          }
             alt={moment.author.name}
             className="w-9 h-9 rounded-full object-cover ring-2 ring-amber-400/50 group-hover:scale-105 transition-transform"
           />
@@ -94,25 +102,50 @@ export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: 
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 pointer-events-none" />
 
         {/* Floating Interactive Stickers on Photo */}
-        {moment.vocabTags.map((tag) => (
-          <LocketSticker
-            key={tag.id}
-            word={tag.word}
-            meaningVi={tag.meaningVi}
-            ipa={tag.ipa}
-            example={tag.example}
-            x={tag.x}
-            y={tag.y}
-            isSelected={activeWordId === tag.id}
-            onSelect={() => setActiveWordId(tag.id)}
-          />
-        ))}
+        {showStickers &&
+          moment.vocabTags.map((rawTag) => {
+          const tag = enrichVocabTag(rawTag);
+          return (
+            <LocketSticker
+              key={tag.id}
+              word={tag.word}
+              meaningVi={tag.meaningVi}
+              ipa={tag.ipa}
+              example={tag.example}
+              x={tag.x}
+              y={tag.y}
+              isSelected={activeWordId === tag.id}
+              onSelect={() => setActiveWordId(tag.id)}
+            />
+          );
+        })}
 
         {/* Badge in corner showing number of vocab words detected */}
         <div className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/20 text-[10px] font-bold text-amber-300 flex items-center gap-1 shadow-lg">
           <Sparkles className="w-3 h-3 text-amber-400" />
           <span>{moment.vocabTags.length} từ vựng</span>
         </div>
+        {/* Toggle Show/Hide Stickers Button (Eye icon) */}
+        {moment.vocabTags.length > 0 && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowStickers(!showStickers);
+            }}
+            className={`absolute bottom-2.5 right-2.5 px-2.5 py-1 rounded-full backdrop-blur-md border transition-all active:scale-90 shadow-lg flex items-center gap-1.5 z-30 ${
+              showStickers
+                ? 'bg-black/75 border-amber-400/50 text-amber-300 hover:bg-black/90'
+                : 'bg-black/70 border-white/20 text-slate-400 hover:text-white'
+            }`}
+            title={showStickers ? 'Bấm để ẩn nhãn từ vựng' : 'Bấm để hiện nhãn từ vựng'}
+          >
+            {showStickers ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+            <span className="text-[10px] font-bold select-none">
+              {showStickers ? 'Ẩn nhãn' : 'Hiện nhãn'}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Caption */}
@@ -124,7 +157,8 @@ export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: 
 
       {/* Vocabulary quick-pill tags below image */}
       <div className="flex flex-wrap gap-1.5 pt-0.5">
-        {moment.vocabTags.map((tag) => {
+        {moment.vocabTags.map((rawTag) => {
+          const tag = enrichVocabTag(rawTag);
           const isSaved = isWordSaved(tag.word);
           return (
             <div

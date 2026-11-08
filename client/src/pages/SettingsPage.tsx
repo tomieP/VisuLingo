@@ -75,6 +75,8 @@ function SettingsPage() {
     e.preventDefault();
     updateCurrentUser({ firstName });
     localStorage.setItem('visulingo_avatar', selectedAvatar);
+    window.dispatchEvent(new Event('visulingo_avatar_changed'));
+    window.dispatchEvent(new Event('visulingo_moments_changed'));
     localStorage.setItem('visulingo_daily_goal', dailyGoal);
     localStorage.setItem('visulingo_voice_accent', accent);
 

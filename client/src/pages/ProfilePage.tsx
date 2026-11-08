@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -122,9 +122,37 @@ function ProfilePage() {
   const [editTag, setEditTag] = useState('');
   const [editBio, setEditBio] = useState('');
 
-  const userAvatar =
+  const [userAvatar, setUserAvatar] = useState<string>(
     localStorage.getItem('visulingo_avatar') ||
-    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
+    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
+  );
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleAvatarChange = () => {
+      setUserAvatar(
+        localStorage.getItem('visulingo_avatar') ||
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
+      );
+    };
+    window.addEventListener('visulingo_avatar_changed', handleAvatarChange);
+    return () => window.removeEventListener('visulingo_avatar_changed', handleAvatarChange);
+  }, []);
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const url = event.target?.result as string;
+        setUserAvatar(url);
+        localStorage.setItem('visulingo_avatar', url);
+        window.dispatchEvent(new Event('visulingo_avatar_changed'));
+        window.dispatchEvent(new Event('visulingo_moments_changed'));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const myMoments = moments.filter(
     (m) =>
@@ -214,13 +242,27 @@ function ProfilePage() {
           {/* Profile Header: Avatar & Core Info */}
           <div className="flex items-start sm:items-center gap-3.5 relative z-10">
             {/* Avatar with Halo Streak Ring - strictly bounded dimensions */}
-            <div className="relative shrink-0">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-0.5 bg-gradient-to-tr from-amber-400 via-orange-400 to-yellow-300 shadow-lg shadow-amber-400/20 ring-2 ring-amber-400/30 overflow-hidden flex items-center justify-center">
+            <div
+              className="relative shrink-0 group cursor-pointer"
+              onClick={() => avatarInputRef.current?.click()}
+              title="Nhấp để đổi ảnh đại diện"
+            >
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-0.5 bg-gradient-to-tr from-amber-400 via-orange-400 to-yellow-300 shadow-lg shadow-amber-400/20 ring-2 ring-amber-400/30 overflow-hidden flex items-center justify-center relative">
                 <img
                   src={userAvatar}
                   alt="Profile"
-                  className="w-full h-full rounded-[14px] object-cover"
+                  className="w-full h-full rounded-[14px] object-cover group-hover:opacity-75 transition-opacity"
                 />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-[14px]">
+                  <Camera className="w-5 h-5 text-amber-300 drop-shadow" />
+                </div>
               </div>
               <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-slate-950/90 border border-amber-400 text-[10px] font-black text-amber-300 flex items-center gap-0.5 shadow-md">
                 <Flame className="w-3 h-3 fill-amber-400 text-amber-400" />

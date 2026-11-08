@@ -1,3 +1,11 @@
+
+export function getUserAvatar(): string {
+  return (
+    localStorage.getItem('visulingo_avatar') ||
+    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
+  );
+}
+import { enrichVocabTag } from './dictionary';
 export interface VocabTag {
   id: string;
   word: string;
@@ -68,6 +76,22 @@ export function getMoments(): MomentPost[] {
       }
       if (!item.imageUrl || item.imageUrl.startsWith('blob:')) {
         item.imageUrl = FALLBACK_PHOTO;
+        modified = true;
+      }
+      const currentMyAvatar = getUserAvatar();
+      const currentDisplayName = localStorage.getItem('visulingo_display_name') || 'Bạn (Me)';
+      const isMine =
+        item.author.name === 'Bạn (Me)' ||
+        item.author.name === currentDisplayName ||
+        item.author.name.toLowerCase().includes('bạn');
+
+      if (isMine && item.author.avatar !== currentMyAvatar) {
+        item.author.avatar = currentMyAvatar;
+        modified = true;
+      }
+
+      if (item.vocabTags) {
+        item.vocabTags = item.vocabTags.map((tag) => enrichVocabTag(tag));
         modified = true;
       }
       return item;

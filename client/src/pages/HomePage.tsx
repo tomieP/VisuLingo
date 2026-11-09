@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Flame, Settings as SettingsIcon, X, MessageSquare } from 'lucide-react';
+import { Flame, Camera, Settings as SettingsIcon, X, MessageSquare } from 'lucide-react';
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { LocketBottomBar, LocketTab } from '@/components/locket/LocketBottomBar';
 import { LocketFeedCard } from '@/components/locket/LocketFeedCard';
@@ -262,17 +262,21 @@ function HomePage() {
 
             {/* 3. Snaps List */}
             {displayPosts.length === 0 ? (
-              <div className="text-center py-10 bg-[#161D2B]/50 border border-white/10 rounded-[28px] p-6 space-y-2 text-slate-400">
-                <p className="text-xs font-semibold">Chưa có bài đăng nào trong album này</p>
-                {selectedFriend && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAlbumId('all')}
-                    className="text-xs font-bold text-amber-400 hover:underline"
-                  >
-                    Xem tất cả ảnh của {selectedFriend.name}
-                  </button>
-                )}
+              <div className="text-center py-10 bg-[#161D2B]/50 border border-white/10 rounded-[28px] p-6 space-y-3 text-slate-400">
+                <div className="w-12 h-12 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 flex items-center justify-center mx-auto shadow-md">
+                  <Camera className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-white">Chưa có bài đăng nào trên Feed</p>
+                  <p className="text-[11px] text-slate-400">Hãy chụp Snap đầu tiên để lưu lại từ vựng thực tế nhé!</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('snap')}
+                  className="px-4 py-2 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs transition-all shadow-md shadow-amber-400/20 active:scale-95"
+                >
+                  Chụp Snap ngay
+                </button>
               </div>
             ) : (
               <div className="space-y-4">

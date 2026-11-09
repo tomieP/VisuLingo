@@ -1,7 +1,7 @@
 import { enrichVocabTag } from '@/utils/dictionary';
 import { useState, useEffect } from 'react';
-import { Volume2, Eye, EyeOff, Heart, Flame, Sparkles, BookmarkPlus, Check, MessageCircle, Send, Share2 } from 'lucide-react';
-import { MomentPost, reactToMoment, VocabTag } from '@/utils/moments';
+import { Volume2, Trash2, Eye, EyeOff, Heart, Flame, Sparkles, BookmarkPlus, Check, MessageCircle, Send, Share2 } from 'lucide-react';
+import { MomentPost, deleteMoment, reactToMoment, VocabTag } from '@/utils/moments';
 import { LocketSticker } from './LocketSticker';
 import { SnapCommentsModal } from './SnapCommentsModal';
 import { ShareSnapModal } from './ShareSnapModal';
@@ -14,17 +14,16 @@ interface LocketFeedCardProps {
   onOpenChatWithFriend?: (friendId: string) => void;
 }
 
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=900&q=80';
 
 export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: LocketFeedCardProps) {
   const [activeWordId, setActiveWordId] = useState<string | null>(null);
-  const [imgSrc, setImgSrc] = useState(moment.imageUrl || FALLBACK_IMAGE);
+  const [imgSrc, setImgSrc] = useState(moment.imageUrl || '');
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [showStickers, setShowStickers] = useState(true);
 
   useEffect(() => {
-    setImgSrc(moment.imageUrl || FALLBACK_IMAGE);
+    setImgSrc(moment.imageUrl || '');
   }, [moment.imageUrl]);
 
   const handleReact = (type: 'fire' | 'heart' | 'sparkles') => {
@@ -76,17 +75,37 @@ export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: 
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            navigator.clipboard.writeText(window.location.href);
-            alert('Đã sao chép liên kết khoảnh khắc!');
-          }}
-          className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-          title="Chia sẻ khoảnh khắc"
-        >
-          <Share2 className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          {/* Delete button if this post belongs to current user */}
+          {(moment.author.name === 'Bạn (Me)' ||
+            moment.author.name === (localStorage.getItem('visulingo_display_name') || 'Bạn (Me)') ||
+            moment.author.name.toLowerCase().includes('bạn')) && (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('Bạn có chắc muốn xóa bức ảnh này khỏi Feed?')) {
+                  deleteMoment(moment.id);
+                }
+              }}
+              className="p-1.5 rounded-full hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors"
+              title="Xóa Snap này"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              alert('Đã sao chép liên kết khoảnh khắc!');
+            }}
+            className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+            title="Chia sẻ khoảnh khắc"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Main Snap Photo with Floating Stickers */}
@@ -94,7 +113,7 @@ export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: 
         <img
           src={imgSrc}
           alt={moment.caption || 'Snap moment'}
-          onError={() => setImgSrc(FALLBACK_IMAGE)}
+          
           className="w-full h-full object-cover select-none"
         />
 

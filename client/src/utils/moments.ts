@@ -46,7 +46,6 @@ export interface MomentPost {
   comments?: MomentComment[];
 }
 
-const INITIAL_MOMENTS: MomentPost[] = [];
 
 export function deleteMoment(momentId: string): void {
   const moments = getMoments().filter((m) => m.id !== momentId);
@@ -55,27 +54,31 @@ export function deleteMoment(momentId: string): void {
 }
 
 const MOMENTS_KEY = 'visulingo_locket_moments';
-const FALLBACK_PHOTO = 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=900&q=80';
 
 export function getMoments(): MomentPost[] {
   try {
     const raw = localStorage.getItem(MOMENTS_KEY);
     if (!raw) {
-      localStorage.setItem(MOMENTS_KEY, JSON.stringify(INITIAL_MOMENTS));
-      return INITIAL_MOMENTS;
+      return [];
     }
     const parsed: MomentPost[] = JSON.parse(raw);
     let modified = false;
 
-    // Sanitize any expired blob URLs from previous tests and ensure comments array exists
-    const sanitized = parsed.map((m) => {
+    // Purge all fake/sample photos (Unsplash desk) or invalid/empty images
+    const filtered = parsed.filter((m) => {
+      if (!m.imageUrl) return false;
+      if (m.imageUrl.includes('1518455027359-f3f8164ba6bd')) return false;
+      return true;
+    });
+
+    if (filtered.length !== parsed.length) {
+      modified = true;
+    }
+
+    const sanitized = filtered.map((m) => {
       let item = { ...m };
       if (!item.comments) {
         item.comments = [];
-        modified = true;
-      }
-      if (!item.imageUrl || item.imageUrl.startsWith('blob:')) {
-        item.imageUrl = FALLBACK_PHOTO;
         modified = true;
       }
       const currentMyAvatar = getUserAvatar();
@@ -92,7 +95,6 @@ export function getMoments(): MomentPost[] {
 
       if (item.vocabTags) {
         item.vocabTags = item.vocabTags.map((tag) => enrichVocabTag(tag));
-        modified = true;
       }
       return item;
     });
@@ -102,7 +104,7 @@ export function getMoments(): MomentPost[] {
     }
     return sanitized;
   } catch {
-    return INITIAL_MOMENTS;
+    return [];
   }
 }
 

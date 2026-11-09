@@ -12,7 +12,10 @@ import {
   Sparkles,
   Camera,
   Upload,
+  Palette,
 } from 'lucide-react';
+import { TagSkinModal } from '@/components/locket/TagSkinModal';
+import { getActiveTagTheme } from '@/utils/tagThemes';
 import { getCurrentUser, updateCurrentUser, logoutUser } from '@/services/authService';
 import { clearSavedWords, getSavedWords } from '@/utils/storage';
 
@@ -40,6 +43,7 @@ function SettingsPage() {
   );
   const [savedCount, setSavedCount] = useState(0);
   const [savedToast, setSavedToast] = useState(false);
+  const [isTagSkinOpen, setIsTagSkinOpen] = useState(false);
   const avatarFileRef = useRef<HTMLInputElement>(null);
 
   const handleUploadCustomAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -288,6 +292,32 @@ function SettingsPage() {
             </div>
           </div>
 
+          {/* Tag Skin Customizer Section */}
+          <div className="bg-[#161D2B]/90 border border-white/10 rounded-[32px] p-5 shadow-xl space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400">
+                  <Palette className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-white">Ngoại Trang Nhãn Từ Vựng</h4>
+                  <p className="text-[11px] text-slate-400">Phong cách màu sắc & ánh sáng (Gói SnapBoost & Cột mốc)</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTagSkinOpen(true)}
+                className="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition-colors cursor-pointer shadow-md shadow-amber-400/20"
+              >
+                Cửa Hàng
+              </button>
+            </div>
+            <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-between text-xs">
+              <span className="text-slate-400">Đang trang bị:</span>
+              <span className="font-bold text-amber-300">{getActiveTagTheme().name}</span>
+            </div>
+          </div>
+
           {/* Save Button */}
           <button
             type="submit"
@@ -339,6 +369,11 @@ function SettingsPage() {
           )}
         </div>
       </main>
+
+      <TagSkinModal
+        isOpen={isTagSkinOpen}
+        onClose={() => setIsTagSkinOpen(false)}
+      />
     </div>
   );
 }

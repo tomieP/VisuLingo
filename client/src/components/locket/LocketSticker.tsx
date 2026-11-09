@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getActiveTagTheme, TagTheme } from '@/utils/tagThemes';
 import { Volume2, Sparkles, Plus, Check } from 'lucide-react';
 import { speakWord } from '@/utils/speech';
 import { saveWord, isWordSaved } from '@/utils/storage';
@@ -28,7 +29,18 @@ export function LocketSticker({
 }: LocketStickerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [theme, setTheme] = useState<TagTheme>(getActiveTagTheme());
   const isSaved = isWordSaved(word);
+
+  useEffect(() => {
+    const handleThemeChange = () => {
+      setTheme(getActiveTagTheme());
+    };
+    window.addEventListener('visulingo_tag_theme_changed', handleThemeChange);
+    return () => {
+      window.removeEventListener('visulingo_tag_theme_changed', handleThemeChange);
+    };
+  }, []);
 
   const handlePronounce = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -53,7 +65,7 @@ export function LocketSticker({
       className="absolute -translate-x-1/2 -translate-y-1/2 select-none z-20 group"
       style={{ left: `${x}%`, top: `${y}%` }}
     >
-      {/* Floating Interactive Pill */}
+      {/* Floating Interactive Pill with Dynamic Theme */}
       <div
         onClick={() => {
           setShowPopup(!showPopup);
@@ -61,30 +73,28 @@ export function LocketSticker({
         }}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full cursor-pointer transition-all duration-300 shadow-xl backdrop-blur-md ${
           isSelected
-            ? 'bg-amber-400 text-slate-950 font-bold scale-110 ring-4 ring-amber-300/40 shadow-amber-500/30'
-            : 'bg-black/75 hover:bg-black/90 text-white border border-white/25 hover:scale-105 shadow-black/50'
+            ? `${theme.classes.pill} scale-110 ${theme.classes.selectedRing}`
+            : `${theme.classes.pill} hover:scale-105`
         }`}
       >
         {/* Pulsing indicator dot */}
         <span
-          className={`w-2 h-2 rounded-full ${
+          className={`w-2 h-2 rounded-full transition-all ${
             isSelected
-              ? 'bg-slate-950 animate-ping'
+              ? `animate-ping ${theme.classes.dot}`
               : isPlaying
-              ? 'bg-amber-400 animate-pulse'
-              : 'bg-emerald-400'
+              ? 'animate-pulse bg-white'
+              : theme.classes.dot
           }`}
         />
 
-        <span className="text-xs font-bold tracking-tight capitalize">{word}</span>
+        <span className={`text-xs tracking-tight capitalize select-none ${theme.classes.text}`}>{word}</span>
 
         {/* Pronounce quick button */}
         <button
           type="button"
           onClick={handlePronounce}
-          className={`p-0.5 rounded-full hover:scale-110 transition-transform ${
-            isSelected ? 'text-slate-900 hover:text-black' : 'text-amber-300 hover:text-white'
-          }`}
+          className={`p-0.5 rounded-full hover:scale-110 transition-transform ${theme.classes.speaker}`}
           title="Nghe phát âm"
         >
           <Volume2 className={`w-3.5 h-3.5 ${isPlaying ? 'animate-bounce' : ''}`} />

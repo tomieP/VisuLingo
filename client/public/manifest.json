@@ -1,0 +1,18 @@
+{
+  "name": "VisuLingo Snaps",
+  "short_name": "VisuLingo",
+  "description": "Học Tiếng Anh Thị Giác & Giữ Lửa Chuỗi Streak Cùng Bạn Bè",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0F17",
+  "theme_color": "#0B0F17",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

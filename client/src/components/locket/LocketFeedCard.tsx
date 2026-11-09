@@ -1,7 +1,7 @@
 import { enrichVocabTag } from '@/utils/dictionary';
 import { useState, useEffect } from 'react';
 import { Volume2, Trash2, Eye, EyeOff, Heart, Flame, Sparkles, BookmarkPlus, Check, MessageCircle, Send, Share2 } from 'lucide-react';
-import { MomentPost, deleteMoment, reactToMoment, VocabTag } from '@/utils/moments';
+import { MomentPost, deleteMoment, reactToMoment, VocabTag, formatTimeAgo } from '@/utils/moments';
 import { LocketSticker } from './LocketSticker';
 import { SnapCommentsModal } from './SnapCommentsModal';
 import { ShareSnapModal } from './ShareSnapModal';
@@ -21,10 +21,22 @@ export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: 
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [showStickers, setShowStickers] = useState(true);
+  const [displayTimeAgo, setDisplayTimeAgo] = useState(() =>
+    formatTimeAgo(moment.createdAt || moment.id || moment.timeAgo)
+  );
 
   useEffect(() => {
     setImgSrc(moment.imageUrl || '');
   }, [moment.imageUrl]);
+
+  useEffect(() => {
+    const updateTime = () => {
+      setDisplayTimeAgo(formatTimeAgo(moment.createdAt || moment.id || moment.timeAgo));
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 30000);
+    return () => clearInterval(timer);
+  }, [moment.createdAt, moment.id, moment.timeAgo]);
 
   const handleReact = (type: 'fire' | 'heart' | 'sparkles') => {
     reactToMoment(moment.id, type);
@@ -71,7 +83,7 @@ export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: 
                 </span>
               )}
             </div>
-            <span className="text-[10px] text-slate-400 font-medium">{moment.timeAgo}</span>
+            <span className="text-[10px] text-slate-400 font-medium">{displayTimeAgo}</span>
           </div>
         </div>
 

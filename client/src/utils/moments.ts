@@ -26,6 +26,7 @@ export interface MomentComment {
     avatar: string;
   };
   text: string;
+  createdAt?: string;
   timeAgo: string;
 }
 
@@ -38,6 +39,7 @@ export interface MomentPost {
   };
   caption: string;
   imageUrl: string;
+  createdAt?: string;
   timeAgo: string;
   tagThemeId?: TagThemeId;
   vocabTags: VocabTag[];
@@ -48,6 +50,69 @@ export interface MomentPost {
   };
   userReacted?: 'fire' | 'heart' | 'sparkles' | null;
   comments?: MomentComment[];
+}
+
+/**
+ * Tính toán thời gian tương đối theo chuẩn tiếng Việt từ timestamp/ISO string
+ */
+export function formatTimeAgo(dateInput?: string | number | Date | null): string {
+  if (!dateInput) return 'Vừa xong';
+
+  let timestamp = 0;
+  if (typeof dateInput === 'number') {
+    timestamp = dateInput;
+  } else if (typeof dateInput === 'string') {
+    if (dateInput.startsWith('moment-') || dateInput.startsWith('cmt-') || dateInput.startsWith('photo-')) {
+      const parsedNum = parseInt(dateInput.replace(/^[a-z]+-/, ''), 10);
+      if (!isNaN(parsedNum) && parsedNum > 1000000000000) {
+        timestamp = parsedNum;
+      }
+    }
+    if (!timestamp) {
+      const parsedDate = new Date(dateInput);
+      if (!isNaN(parsedDate.getTime())) {
+        timestamp = parsedDate.getTime();
+      }
+    }
+  } else if (dateInput instanceof Date) {
+    timestamp = dateInput.getTime();
+  }
+
+  if (!timestamp || isNaN(timestamp)) return 'Vừa xong';
+
+  const now = Date.now();
+  const diffMs = now - timestamp;
+
+  // Lệch thời gian nhỏ hoặc vài giây trước
+  if (diffMs < 45 * 1000) {
+    return 'Vừa xong';
+  }
+
+  const diffMinutes = Math.floor(diffMs / (60 * 1000));
+  if (diffMinutes < 60) {
+    return `${diffMinutes} phút trước`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `${diffHours} giờ trước`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) {
+    return 'Hôm qua';
+  }
+  if (diffDays < 7) {
+    return `${diffDays} ngày trước`;
+  }
+
+  const diffWeeks = Math.floor(diffDays / 7);
+  if (diffWeeks < 4) {
+    return `${diffWeeks} tuần trước`;
+  }
+
+  const dateObj = new Date(timestamp);
+  return `${dateObj.getDate()} thg ${dateObj.getMonth() + 1}`;
 }
 
 export function deleteMoment(momentId: string): void {
@@ -105,10 +170,51 @@ export function getMoments(): MomentPost[] {
 
     const sanitized = filtered.map((m) => {
       let item = { ...m };
+
+      // Khôi phục hoặc tạo timestamp chính xác nếu chưa có
+      if (!item.createdAt) {
+        if (item.id && item.id.startsWith('moment-')) {
+          const num = parseInt(item.id.replace('moment-', ''), 10);
+          if (!isNaN(num) && num > 1000000000000) {
+            item.createdAt = new Date(num).toISOString();
+          } else {
+            item.createdAt = new Date().toISOString();
+          }
+        } else {
+          item.createdAt = new Date().toISOString();
+        }
+        modified = true;
+      }
+
+      // Cập nhật động timeAgo chính xác theo thời gian thực
+      const calculatedTime = formatTimeAgo(item.createdAt || item.id);
+      if (item.timeAgo !== calculatedTime) {
+        item.timeAgo = calculatedTime;
+        modified = true;
+      }
+
       if (!item.comments) {
         item.comments = [];
         modified = true;
+      } else {
+        item.comments = item.comments.map((c) => {
+          let cmt = { ...c };
+          if (!cmt.createdAt && cmt.id?.startsWith('cmt-')) {
+            const num = parseInt(cmt.id.replace('cmt-', ''), 10);
+            if (!isNaN(num) && num > 1000000000000) {
+              cmt.createdAt = new Date(num).toISOString();
+              modified = true;
+            }
+          }
+          const cmtTime = formatTimeAgo(cmt.createdAt || cmt.id);
+          if (cmt.timeAgo !== cmtTime) {
+            cmt.timeAgo = cmtTime;
+            modified = true;
+          }
+          return cmt;
+        });
       }
+
       const currentMyAvatar = getUserAvatar();
       const currentDisplayName = localStorage.getItem('visulingo_display_name') || 'Bạn (Me)';
       const isMine =
@@ -152,6 +258,7 @@ export function addMoment(moment: Omit<MomentPost, 'id' | 'timeAgo' | 'reactions
   const moments = getMoments();
   const currentActive = getActiveTagThemeId();
   const chosenThemeId = moment.tagThemeId || currentActive;
+  const nowIso = new Date().toISOString();
 
   const tagsWithTheme = (moment.vocabTags || []).map((t) => ({
     ...t,
@@ -161,6 +268,7 @@ export function addMoment(moment: Omit<MomentPost, 'id' | 'timeAgo' | 'reactions
   const newMoment: MomentPost = {
     ...moment,
     id: `moment-${Date.now()}`,
+    createdAt: nowIso,
     timeAgo: 'Vừa xong',
     tagThemeId: chosenThemeId,
     vocabTags: tagsWithTheme,
@@ -202,6 +310,7 @@ export function addCommentToMoment(momentId: string, text: string): MomentCommen
   const currentDisplayName = localStorage.getItem('visulingo_display_name') || 'Bạn (Me)';
   const currentAvatar = getUserAvatar();
 
+  const nowIso = new Date().toISOString();
   const newComment: MomentComment = {
     id: `cmt-${Date.now()}`,
     author: {
@@ -209,6 +318,7 @@ export function addCommentToMoment(momentId: string, text: string): MomentCommen
       avatar: currentAvatar,
     },
     text: text.trim(),
+    createdAt: nowIso,
     timeAgo: 'Vừa xong',
   };
 

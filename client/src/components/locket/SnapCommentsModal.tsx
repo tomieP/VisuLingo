@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Send, MessageCircle, Sparkles } from 'lucide-react';
-import { MomentPost, addCommentToMoment } from '@/utils/moments';
+import { MomentPost, addCommentToMoment, formatTimeAgo } from '@/utils/moments';
 
 interface SnapCommentsModalProps {
   moment: MomentPost | null;
@@ -87,7 +87,7 @@ export function SnapCommentsModal({ moment, isOpen, onClose }: SnapCommentsModal
                 <div className="flex-1 bg-white/5 hover:bg-white/10 transition-colors rounded-2xl p-2.5 border border-white/5 space-y-0.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-amber-300">{cmt.author.name}</span>
-                    <span className="text-[9px] text-slate-500">{cmt.timeAgo}</span>
+                    <span className="text-[9px] text-slate-500">{formatTimeAgo(cmt.createdAt || cmt.id || cmt.timeAgo)}</span>
                   </div>
                   <p className="text-xs text-slate-200 leading-relaxed font-normal">{cmt.text}</p>
                 </div>

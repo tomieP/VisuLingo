@@ -1,11 +1,14 @@
 import rateLimit from 'express-rate-limit';
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 /**
- * Rate limiter: max 10 requests per minute per IP / User (protects /api/detections).
+ * Rate limiter: protects /api/detections (Vision AI).
+ * 60 req/min in prod, 300 req/min in dev.
  */
 export const detectionLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 10,
+  max: isDev ? 300 : 60,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -18,11 +21,12 @@ export const detectionLimiter = rateLimit({
 });
 
 /**
- * General API rate limiter: 100 requests per 15 minutes.
+ * General API rate limiter:
+ * Allows 20,000 req / 15 mins in dev, 2,000 in prod.
  */
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: isDev ? 20000 : 2000,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -31,19 +35,21 @@ export const apiLimiter = rateLimit({
     retryable: true,
   },
   keyGenerator: (req) => (req as any).user?.userId || req.ip || 'unknown',
+  skip: (req) => req.path === '/health' || req.path.startsWith('/auth'),
 });
 
 /**
- * Auth endpoints rate limiter: 20 requests per 15 minutes.
+ * Auth endpoints rate limiter (register / login):
+ * 1,000 req / 15 mins in dev, 100 in prod.
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: isDev ? 1000 : 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     code: 'RATE_LIMITED',
-    message: 'Quá nhiều yêu cầu xác thực. Vui lòng thử lại sau 15 phút.',
+    message: 'Quá nhiều yêu cầu xác thực. Vui lòng thử lại sau ít phút.',
     retryable: false,
   },
   keyGenerator: (req) => req.ip || 'unknown',

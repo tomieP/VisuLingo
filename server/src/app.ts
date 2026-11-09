@@ -22,14 +22,14 @@ app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok', service: 'visulingo-server' });
 });
 
-// Apply rate limiting to all API routes
+// Auth routes (protected by dedicated authLimiter inside authRoutes)
+app.use('/api/auth', authRoutes);
+
+// Apply general rate limiting to remaining API routes
 app.use('/api', apiLimiter);
 
 // Existing routes (detections, vocab)
 app.use('/api', routes);
-
-// Auth routes (authLimiter applied inside authRoutes)
-app.use('/api/auth', authRoutes);
 
 // Saved words routes (all protected by authenticateJwt)
 app.use('/api/saved-words', savedWordRoutes);

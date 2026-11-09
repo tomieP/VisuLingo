@@ -14,8 +14,6 @@ import {
   Volume2,
   Trophy,
   Zap,
-  Target,
-  Calendar,
 } from 'lucide-react';
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { LocketBottomBar } from '@/components/locket/LocketBottomBar';
@@ -35,7 +33,7 @@ function ProfilePage() {
   const userTag = getUserUsername();
   const savedWords = getSavedWords();
   const [moments, setMoments] = useState<MomentPost[]>(getMoments());
-  const [activeTab, setActiveTab] = useState<'badges' | 'snaps' | 'streak'>('badges');
+  const [activeTab, setActiveTab] = useState<'snaps' | 'badges'>('snaps');
   const [isTagSkinOpen, setIsTagSkinOpen] = useState(false);
   const [isVip, setIsVip] = useState(isUserSnapBoostVip());
   const [copiedToast, setCopiedToast] = useState(false);
@@ -239,6 +237,20 @@ function ProfilePage() {
                   <Zap className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
                   Level {userLevel}
                 </span>
+
+                <button
+                  type="button"
+                  onClick={() => setIsTagSkinOpen(true)}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 transition-all cursor-pointer ${
+                    isVip
+                      ? 'bg-amber-400/20 border border-amber-400/40 text-amber-300 shadow-xs'
+                      : 'bg-purple-500/20 border border-purple-400/30 text-purple-300 hover:bg-purple-500/30'
+                  }`}
+                  title="Mở SnapBoost Studio & Đổi màu nhãn"
+                >
+                  <Zap className="w-2.5 h-2.5 fill-current" />
+                  <span>SnapBoost {isVip ? 'VIP ✨' : ''}</span>
+                </button>
               </div>
 
               {/* Customizable @Tag pill */}
@@ -268,36 +280,28 @@ function ProfilePage() {
             </p>
           </div>
 
-          {/* Unified Seamless Stats Row (Tối ưu tự nhiên, KHÔNG chia khung hộp cứng nhắc) */}
+          {/* Unified Clean 3-Stats Row */}
           <div className="py-2.5 px-2 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-around divide-x divide-white/5 text-center relative z-10">
             <div className="flex-1 px-1">
               <div className="text-base sm:text-lg font-black text-amber-400 flex items-center justify-center gap-1">
                 <Flame className="w-4 h-4 fill-amber-400 text-amber-400" />
                 {userStreak}d
               </div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Streak</div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Chuỗi Streak</div>
             </div>
 
             <div className="flex-1 px-1">
               <div className="text-base sm:text-lg font-black text-white">
                 {myMoments.length}
               </div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Snaps</div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Ảnh Snaps</div>
             </div>
 
             <div className="flex-1 px-1">
               <div className="text-base sm:text-lg font-black text-amber-300">
                 {savedWords.length}
               </div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Sổ từ</div>
-            </div>
-
-            <div className="flex-1 px-1">
-              <div className="text-base sm:text-lg font-black text-emerald-400">
-                {badges.filter((b) => b.isUnlocked).length}
-                <span className="text-xs text-slate-500 font-normal">/{badges.length}</span>
-              </div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Huy hiệu</div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Từ vựng đã lưu</div>
             </div>
           </div>
 
@@ -329,52 +333,10 @@ function ProfilePage() {
           </div>
         </div>
 
-        {/* SnapBoost VIP Banner Card */}
-        <div
-          onClick={() => setIsTagSkinOpen(true)}
-          className="p-4 rounded-3xl bg-gradient-to-r from-amber-500/15 via-purple-500/10 to-transparent border border-amber-400/30 hover:border-amber-400/50 transition-all cursor-pointer shadow-lg flex items-center justify-between gap-3 group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center font-black shadow-md shadow-amber-500/30 group-hover:scale-105 transition-transform">
-              <Zap className="w-5 h-5 fill-slate-950" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-black text-sm text-white">Gói SnapBoost VIP</span>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40">
-                  {isVip ? 'Đang kích hoạt ✨' : 'Mở ngay'}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Tùy biến ngoại trang màu nhãn từ vựng & hiệu ứng phát quang
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="px-3 py-1.5 rounded-xl bg-amber-400 group-hover:bg-amber-300 text-slate-950 font-black text-xs transition-colors shrink-0 shadow-md cursor-pointer"
-          >
-            Khám phá
-          </button>
-        </div>
-
         {/* ========================================================
-            SEGMENTED SUB-TABS (MOBILE GLASS STYLE)
+            CLEAN 2-TAB SEGMENTED BAR (SNAPS & HUY HIỆU)
         ======================================================== */}
         <div className="p-1 rounded-2xl bg-[#121824]/90 border border-white/10 backdrop-blur-md flex gap-1 shadow-lg">
-          <button
-            type="button"
-            onClick={() => setActiveTab('badges')}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              activeTab === 'badges'
-                ? 'bg-amber-400 text-slate-950 font-black shadow-md shadow-amber-400/20'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Trophy className="w-3.5 h-3.5" />
-            <span>Huy hiệu</span>
-          </button>
-
           <button
             type="button"
             onClick={() => setActiveTab('snaps')}
@@ -385,28 +347,68 @@ function ProfilePage() {
             }`}
           >
             <Camera className="w-3.5 h-3.5" />
-            <span>Snaps của tôi</span>
+            <span>Ảnh Snaps của tôi ({myMoments.length})</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setActiveTab('streak')}
+            onClick={() => setActiveTab('badges')}
             className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              activeTab === 'streak'
+              activeTab === 'badges'
                 ? 'bg-amber-400 text-slate-950 font-black shadow-md shadow-amber-400/20'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            <Calendar className="w-3.5 h-3.5" />
-            <span>Lịch giữ lửa</span>
+            <Trophy className="w-3.5 h-3.5" />
+            <span>Huy hiệu & Chuỗi học ({badges.filter((b) => b.isUnlocked).length}/{badges.length})</span>
           </button>
         </div>
 
         {/* ========================================================
-            TAB 1: HUY HIỆU DANH DỰ (TOUCH-FRIENDLY CARDS)
+            TAB: HUY HIỆU & CHUỖI HỌC (GỒM LỊCH 7 NGÀY + DANH HIỆU)
         ======================================================== */}
         {activeTab === 'badges' && (
-          <div className="space-y-2.5">
+          <div className="space-y-3.5">
+            {/* Lịch giữ lửa 7 ngày */}
+            <div className="p-3.5 rounded-2xl bg-[#161D2B] border border-white/10 space-y-2.5 shadow-md">
+              <div className="flex items-center justify-between">
+                <span className="font-extrabold text-xs text-white flex items-center gap-1.5">
+                  <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  Chuỗi giữ lửa tuần này
+                </span>
+                <span className="text-[10px] text-amber-300 font-bold">
+                  {userStreak > 0 ? `Đã giữ ${userStreak} ngày liên tục 🔥` : 'Chưa kích hoạt'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-7 gap-1 text-center">
+                {weekDays.map((w, i) => (
+                  <div
+                    key={i}
+                    className={`py-1.5 px-1 rounded-xl border flex flex-col items-center gap-0.5 ${
+                      w.completed
+                        ? 'bg-amber-400/15 border-amber-400/40 text-amber-300'
+                        : 'bg-white/5 border-white/5 text-slate-500'
+                    }`}
+                  >
+                    <span className="text-[9px] font-bold block">{w.day}</span>
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center">
+                      {w.completed ? (
+                        <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                      ) : (
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+                      )}
+                    </div>
+                    <span className="text-[8px] font-mono">{w.date}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-tight block px-0.5">
+                Danh hiệu & Điều kiện mở khóa
+              </span>
             {badges.map((badge) => (
               <div
                 key={badge.id}
@@ -458,6 +460,7 @@ function ProfilePage() {
                 </div>
               </div>
             ))}
+            </div>
           </div>
         )}
 
@@ -537,71 +540,7 @@ function ProfilePage() {
           </div>
         )}
 
-        {/* ========================================================
-            TAB 3: LỊCH GIỮ LỬA TUẦN NÀY (CLEAN 7-DAY STREAK ROW)
-        ======================================================== */}
-        {activeTab === 'streak' && (
-          <div className="space-y-3.5">
-            {/* Weekly Row */}
-            <div className="p-4 rounded-2xl bg-[#161D2B] border border-white/10 space-y-3 shadow-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-extrabold text-xs text-white flex items-center gap-1.5">
-                    <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    Chuỗi Giữ Lửa Tuần Này
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    {userStreak > 0 ? `Đã giữ lửa ${userStreak} ngày liên tục 🔥` : "Hãy chụp Snap đầu tiên hôm nay để bắt đầu giữ lửa! 🌱"}
-                  </p>
-                </div>
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 text-[10px] font-black">
-                  Đang giữ lửa
-                </span>
-              </div>
 
-              {/* 7 Days Row */}
-              <div className="grid grid-cols-7 gap-1.5 text-center">
-                {weekDays.map((w, i) => (
-                  <div
-                    key={i}
-                    className={`p-2 rounded-xl border flex flex-col items-center gap-1 ${
-                      w.completed
-                        ? 'bg-amber-400/15 border-amber-400/40 text-amber-300'
-                        : 'bg-white/5 border-white/5 text-slate-500'
-                    }`}
-                  >
-                    <span className="text-[9px] font-bold block">{w.day}</span>
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center">
-                      {w.completed ? (
-                        <Flame className="w-4 h-4 fill-amber-400 text-amber-400 animate-pulse" />
-                      ) : (
-                        <span className="w-2 h-2 rounded-full bg-slate-600" />
-                      )}
-                    </div>
-                    <span className="text-[8px] font-mono">{w.date}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Daily Goal Card */}
-            <div className="p-4 rounded-2xl bg-[#161D2B] border border-white/10 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-white flex items-center gap-1.5">
-                  <Target className="w-3.5 h-3.5 text-amber-400" />
-                  Mục tiêu hôm nay
-                </span>
-                <span className="text-amber-400 font-bold">8 / 10 từ</span>
-              </div>
-              <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
-                <div style={{ width: '80%' }} className="h-full bg-amber-400 rounded-full" />
-              </div>
-              <p className="text-[11px] text-slate-400">
-                Chỉ còn 2 từ nữa để hoàn thành mục tiêu ngày và giữ lửa streak!
-              </p>
-            </div>
-          </div>
-        )}
       </main>
 
       {/* Floating 5-Pill Bottom Navigation Bar */}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Flame, Camera, Settings as SettingsIcon, X, MessageSquare } from 'lucide-react';
+import { Flame, Camera, Settings as SettingsIcon, X, MessageSquare, Target } from 'lucide-react';
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { LocketBottomBar, LocketTab } from '@/components/locket/LocketBottomBar';
 import { LocketFeedCard } from '@/components/locket/LocketFeedCard';
@@ -11,6 +11,7 @@ import { FriendProfileModal } from '@/components/locket/FriendProfileModal';
 import { NotificationsModal } from '@/components/locket/NotificationsModal';
 import { FriendLeaderboardModal } from '@/components/locket/FriendLeaderboardModal';
 import { DirectChatModal } from '@/components/locket/DirectChatModal';
+import { DailyChallengesModal } from '@/components/locket/DailyChallengesModal';
 import { getMoments, MomentPost } from '@/utils/moments';
 import { getSavedWords, getUserStreak } from '@/utils/storage';
 import { getFriends, FriendProfile } from '@/utils/friends';
@@ -41,6 +42,7 @@ function HomePage() {
   const [selectedFriendProfile, setSelectedFriendProfile] = useState<FriendProfile | null>(null);
   const [isNotifsOpen, setIsNotifsOpen] = useState<boolean>(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState<boolean>(false);
+  const [isChallengesOpen, setIsChallengesOpen] = useState<boolean>(false);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [chatFriendId, setChatFriendId] = useState<string | null>(null);
 
@@ -146,8 +148,19 @@ function HomePage() {
           {/* Logo & Vibe */}
           <VisuLingoLogo size="sm" />
 
-          {/* Header Action Row (Clean, minimal 3 items: Streak, Social Inbox, Settings) */}
+          {/* Header Action Row */}
           <div className="flex items-center gap-2">
+            {/* 0. Daily Challenges Mission */}
+            <button
+              type="button"
+              onClick={() => setIsChallengesOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/20 text-xs font-bold text-amber-300 transition-colors cursor-pointer group"
+              title="Nhiệm vụ hằng ngày & Tích lũy XP"
+            >
+              <Target className="w-3.5 h-3.5 text-amber-400 group-hover:rotate-45 transition-transform" />
+              <span className="hidden sm:inline">Nhiệm vụ</span>
+            </button>
+
             {/* 1. Streak flame badge */}
             <button
               type="button"
@@ -341,6 +354,12 @@ function HomePage() {
       <FriendLeaderboardModal
         isOpen={isLeaderboardOpen}
         onClose={() => setIsLeaderboardOpen(false)}
+      />
+
+      {/* Daily Challenges Modal */}
+      <DailyChallengesModal
+        isOpen={isChallengesOpen}
+        onClose={() => setIsChallengesOpen(false)}
       />
 
       {/* Direct Chat Modal */}

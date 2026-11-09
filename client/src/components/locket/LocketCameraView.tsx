@@ -1,3 +1,4 @@
+import { incrementChallengeProgress } from '@/utils/challenges';
 import { enrichVocabTag } from '@/utils/dictionary';
 import { useState, useRef, useEffect, DragEvent, ChangeEvent } from 'react';
 import { Camera, Eye, EyeOff, Upload, Sparkles, Send, RefreshCw, FolderPlus, Bookmark, VideoOff } from 'lucide-react';
@@ -206,6 +207,7 @@ const getMeaningForWord = (word: string) => {
 
     // Save to the selected Album collection
     savePhotoToAlbum(selectedAlbumId, imageUrl, vocabTags, caption.trim());
+    incrementChallengeProgress('snap_photos', 1);
 
     setIsSharing(false);
     onMomentShared?.();

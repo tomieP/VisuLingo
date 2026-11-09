@@ -1,3 +1,5 @@
+import { incrementChallengeProgress } from './challenges';
+
 /**
  * Speech synthesis utility to pronounce English words with native US/UK voices
  */
@@ -25,6 +27,14 @@ export function speakWord(text: string, onEnd?: () => void): boolean {
   if (onEnd) {
     utterance.onend = onEnd;
     utterance.onerror = onEnd;
+  }
+
+  try {
+    const currentListen = parseInt(localStorage.getItem('visulingo_listen_count') || '0', 10) + 1;
+    localStorage.setItem('visulingo_listen_count', currentListen.toString());
+    incrementChallengeProgress('listen_pronunciation', 1);
+  } catch {
+    // Ignore storage issues
   }
 
   window.speechSynthesis.speak(utterance);

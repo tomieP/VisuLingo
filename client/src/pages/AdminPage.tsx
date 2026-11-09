@@ -21,7 +21,27 @@ import {
   Database,
   Cloud,
   Save,
+  Target,
+  Trophy,
+  Plus,
+  X,
 } from 'lucide-react';
+import {
+  DailyChallenge,
+  ChallengeType,
+  getChallenges,
+  saveChallenge,
+  updateChallenge,
+  deleteChallenge,
+} from '@/utils/challenges';
+import {
+  BadgeDefinition,
+  BadgeConditionType,
+  getBadges,
+  saveBadge,
+  updateBadge,
+  deleteBadge,
+} from '@/utils/badges';
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { getMoments, MomentPost, deleteMoment } from '@/utils/moments';
 import { speakWord } from '@/utils/speech';
@@ -41,7 +61,7 @@ import {
   AdminSetting,
 } from '@/services/adminService';
 
-type AdminTab = 'overview' | 'users' | 'snaps' | 'vocab' | 'system';
+type AdminTab = 'overview' | 'users' | 'snaps' | 'vocab' | 'challenges' | 'badges' | 'system';
 
 function AdminPage() {
   const navigate = useNavigate();
@@ -63,6 +83,30 @@ function AdminPage() {
   // Form edit state for system settings
   const [settingsForm, setSettingsForm] = useState<Record<string, string>>({});
 
+  // Gamification state: Daily Challenges & Badges
+  const [challenges, setChallenges] = useState<DailyChallenge[]>([]);
+  const [badges, setBadges] = useState<BadgeDefinition[]>([]);
+  const [showNewChallengeModal, setShowNewChallengeModal] = useState(false);
+  const [showNewBadgeModal, setShowNewBadgeModal] = useState(false);
+
+  const [newChallengeForm, setNewChallengeForm] = useState({
+    title: '',
+    description: '',
+    icon: '🎯',
+    type: 'snap_photos' as ChallengeType,
+    targetCount: 1,
+    rewardXp: 50,
+  });
+
+  const [newBadgeForm, setNewBadgeForm] = useState({
+    title: '',
+    description: '',
+    icon: '🏆',
+    category: 'Khám phá',
+    conditionType: 'snaps_count' as BadgeConditionType,
+    targetValue: 5,
+  });
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
@@ -76,6 +120,18 @@ function AdminPage() {
     }
     loadAllData();
     setMoments(getMoments());
+    setChallenges(getChallenges());
+    setBadges(getBadges());
+
+    const handleChChange = () => setChallenges(getChallenges());
+    const handleBadgeChange = () => setBadges(getBadges());
+    window.addEventListener('visulingo_challenges_changed', handleChChange);
+    window.addEventListener('visulingo_badges_changed', handleBadgeChange);
+
+    return () => {
+      window.removeEventListener('visulingo_challenges_changed', handleChChange);
+      window.removeEventListener('visulingo_badges_changed', handleBadgeChange);
+    };
   }, [currentUser, navigate]);
 
   if (!currentUser || currentUser.role !== 'admin') {
@@ -275,6 +331,93 @@ function AdminPage() {
     showToast('Đã xóa bài Snap khỏi hệ thống');
   };
 
+  // Gamification handlers
+  const handleToggleChallenge = (ch: DailyChallenge) => {
+    const updated = updateChallenge(ch.id, { isActive: !ch.isActive });
+    if (updated) {
+      setChallenges(getChallenges());
+      showToast(`Đã ${updated.isActive ? 'kích hoạt' : 'tạm dừng'} thử thách: ${updated.title}`);
+    }
+  };
+
+  const handleDeleteChallenge = (id: string, title: string) => {
+    if (!window.confirm(`Xóa thử thách "${title}"?`)) return;
+    deleteChallenge(id);
+    setChallenges(getChallenges());
+    showToast(`Đã xóa thử thách: ${title}`);
+  };
+
+  const handleCreateChallenge = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newChallengeForm.title.trim()) {
+      showToast('Vui lòng nhập tiêu đề thử thách');
+      return;
+    }
+    saveChallenge({
+      title: newChallengeForm.title.trim(),
+      description: newChallengeForm.description.trim() || 'Thực hiện nhiệm vụ để nhận XP thưởng',
+      icon: newChallengeForm.icon || '🎯',
+      type: newChallengeForm.type,
+      targetCount: Number(newChallengeForm.targetCount) || 1,
+      rewardXp: Number(newChallengeForm.rewardXp) || 50,
+      isActive: true,
+    });
+    setChallenges(getChallenges());
+    setShowNewChallengeModal(false);
+    setNewChallengeForm({
+      title: '',
+      description: '',
+      icon: '🎯',
+      type: 'snap_photos',
+      targetCount: 1,
+      rewardXp: 50,
+    });
+    showToast('Đã tạo thử thách hằng ngày mới thành công!');
+  };
+
+  const handleToggleBadge = (badge: BadgeDefinition) => {
+    const updated = updateBadge(badge.id, { isActive: !badge.isActive });
+    if (updated) {
+      setBadges(getBadges());
+      showToast(`Đã ${updated.isActive ? 'kích hoạt' : 'tạm ẩn'} danh hiệu: ${updated.title}`);
+    }
+  };
+
+  const handleDeleteBadge = (id: string, title: string) => {
+    if (!window.confirm(`Xóa danh hiệu "${title}"?`)) return;
+    deleteBadge(id);
+    setBadges(getBadges());
+    showToast(`Đã xóa danh hiệu: ${title}`);
+  };
+
+  const handleCreateBadge = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBadgeForm.title.trim()) {
+      showToast('Vui lòng nhập tên danh hiệu');
+      return;
+    }
+    saveBadge({
+      title: newBadgeForm.title.trim(),
+      description: newBadgeForm.description.trim() || 'Danh hiệu đạt được khi hoàn thành mốc mục tiêu',
+      icon: newBadgeForm.icon || '🏆',
+      category: newBadgeForm.category.trim() || 'Thành tích',
+      conditionType: newBadgeForm.conditionType,
+      targetValue: Number(newBadgeForm.targetValue) || 1,
+      isActive: true,
+    });
+    setBadges(getBadges());
+    setShowNewBadgeModal(false);
+    setNewBadgeForm({
+      title: '',
+      description: '',
+      icon: '🏆',
+      category: 'Khám phá',
+      conditionType: 'snaps_count',
+      targetValue: 5,
+    });
+    showToast('Đã tạo danh hiệu và điều kiện mới thành công!');
+  };
+
   const handleLogout = () => {
     logoutUser();
     navigate('/login');
@@ -437,6 +580,38 @@ function AdminPage() {
             <span>Thư viện Từ vựng</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono">
               {vocabList.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('challenges')}
+            className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'challenges'
+                ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
+                : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
+            }`}
+          >
+            <Target className="w-4 h-4" />
+            <span>Thử thách Hằng ngày</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono">
+              {challenges.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('badges')}
+            className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'badges'
+                ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
+                : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
+            }`}
+          >
+            <Trophy className="w-4 h-4" />
+            <span>Danh hiệu & Điều kiện</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono">
+              {badges.length}
             </span>
           </button>
 
@@ -975,6 +1150,231 @@ function AdminPage() {
         )}
 
         {/* ========================================================
+            TAB: THỬ THÁCH HẰNG NGÀY (DAILY CHALLENGES)
+        ======================================================== */}
+        {activeTab === 'challenges' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Header Banner */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-3xl bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent border border-amber-400/20">
+              <div>
+                <h3 className="text-xl font-black text-white flex items-center gap-2">
+                  <Target className="w-5 h-5 text-amber-400" />
+                  Quản trị Thử thách Hằng ngày
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Cấu hình các nhiệm vụ tích lũy điểm thưởng XP mỗi ngày cho Snappers khi tương tác (chụp ảnh, lưu từ, duy trì streak, phát âm)
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNewChallengeModal(true)}
+                className="px-4 py-2 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black transition-all flex items-center gap-2 shadow-lg shadow-amber-400/20 cursor-pointer shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Tạo Thử Thách Mới</span>
+              </button>
+            </div>
+
+            {/* Quick Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-[#161D2B]/90 border border-white/10">
+                <span className="text-[11px] font-bold text-slate-400 uppercase">Tổng số Thử thách</span>
+                <div className="text-2xl font-black text-white mt-1">{challenges.length}</div>
+              </div>
+              <div className="p-4 rounded-2xl bg-[#161D2B]/90 border border-white/10">
+                <span className="text-[11px] font-bold text-emerald-400 uppercase">Đang Kích Hoạt</span>
+                <div className="text-2xl font-black text-emerald-400 mt-1">
+                  {challenges.filter((c) => c.isActive).length}
+                </div>
+              </div>
+              <div className="p-4 rounded-2xl bg-[#161D2B]/90 border border-white/10">
+                <span className="text-[11px] font-bold text-amber-400 uppercase">Tổng XP Thưởng Mỗi Ngày</span>
+                <div className="text-2xl font-black text-amber-400 mt-1">
+                  +{challenges.filter((c) => c.isActive).reduce((sum, c) => sum + c.rewardXp, 0)} XP
+                </div>
+              </div>
+            </div>
+
+            {/* Challenges Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {challenges.map((c) => (
+                <div
+                  key={c.id}
+                  className={`p-5 rounded-3xl border transition-all space-y-3 ${
+                    c.isActive
+                      ? 'bg-[#161D2B]/90 border-white/10 hover:border-amber-400/30'
+                      : 'bg-white/2 border-white/5 opacity-60'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-2xl shrink-0">
+                        {c.icon}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm text-white">{c.title}</h4>
+                        <p className="text-xs text-slate-400 mt-0.5">{c.description}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteChallenge(c.id, c.title)}
+                      className="p-1.5 rounded-lg hover:bg-rose-500/20 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
+                      title="Xóa thử thách"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full bg-white/5 text-[11px] font-mono text-slate-300">
+                        {c.type === 'snap_photos' && '📸 Chụp ảnh'}
+                        {c.type === 'save_words' && '📚 Lưu từ'}
+                        {c.type === 'maintain_streak' && '🔥 Duy trì Streak'}
+                        {c.type === 'listen_pronunciation' && '🗣️ Luyện nghe'}
+                      </span>
+                      <span className="text-slate-400 font-bold">Mục tiêu: {c.targetCount}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full bg-amber-400/20 border border-amber-400/30 text-amber-300 font-black text-xs">
+                        +{c.rewardXp} XP
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleChallenge(c)}
+                        className={`px-2.5 py-1 rounded-xl text-xs font-bold cursor-pointer transition-colors ${
+                          c.isActive
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30'
+                            : 'bg-slate-700/50 text-slate-400 border border-slate-600 hover:bg-slate-700'
+                        }`}
+                      >
+                        {c.isActive ? 'Đang bật' : 'Tạm dừng'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================
+            TAB: DANH HIỆU & HUY HIỆU KÈM ĐIỀU KIỆN (BADGES & TITLES)
+        ======================================================== */}
+        {activeTab === 'badges' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Header Banner */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-3xl bg-gradient-to-r from-emerald-500/10 via-amber-500/5 to-transparent border border-emerald-500/20">
+              <div>
+                <h3 className="text-xl font-black text-white flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-emerald-400" />
+                  Quản trị Danh hiệu & Điều kiện Mở khóa
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Hệ thống tự động đánh giá hoạt động thực tế của người dùng để mở khóa huy hiệu và gắn danh hiệu trên hồ sơ
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNewBadgeModal(true)}
+                className="px-4 py-2 rounded-2xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 text-xs font-black transition-all flex items-center gap-2 shadow-lg shadow-emerald-400/20 cursor-pointer shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Tạo Danh Hiệu Mới</span>
+              </button>
+            </div>
+
+            {/* Quick Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-[#161D2B]/90 border border-white/10">
+                <span className="text-[11px] font-bold text-slate-400 uppercase">Tổng số Danh hiệu</span>
+                <div className="text-2xl font-black text-white mt-1">{badges.length}</div>
+              </div>
+              <div className="p-4 rounded-2xl bg-[#161D2B]/90 border border-white/10">
+                <span className="text-[11px] font-bold text-emerald-400 uppercase">Đang Kích Hoạt</span>
+                <div className="text-2xl font-black text-emerald-400 mt-1">
+                  {badges.filter((b) => b.isActive).length}
+                </div>
+              </div>
+              <div className="p-4 rounded-2xl bg-[#161D2B]/90 border border-white/10">
+                <span className="text-[11px] font-bold text-amber-400 uppercase">Loại Điều kiện Hỗ trợ</span>
+                <div className="text-2xl font-black text-amber-400 mt-1">5 Quy chuẩn Tự động</div>
+              </div>
+            </div>
+
+            {/* Badges Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {badges.map((b) => (
+                <div
+                  key={b.id}
+                  className={`p-5 rounded-3xl border transition-all flex flex-col justify-between gap-4 ${
+                    b.isActive
+                      ? 'bg-[#161D2B]/90 border-white/10 hover:border-emerald-400/30'
+                      : 'bg-white/2 border-white/5 opacity-60'
+                  }`}
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl shrink-0">
+                          {b.icon}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm text-white">{b.title}</h4>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-300">
+                            {b.category}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteBadge(b.id, b.title)}
+                        className="p-1.5 rounded-lg hover:bg-rose-500/20 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
+                        title="Xóa danh hiệu"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-slate-400">{b.description}</p>
+                  </div>
+
+                  <div className="pt-3 border-t border-white/5 space-y-2">
+                    <div className="p-2.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between text-xs">
+                      <span className="text-slate-400">Điều kiện mở khóa:</span>
+                      <span className="font-bold text-amber-300">
+                        {b.conditionType === 'snaps_count' && `Chụp ${b.targetValue} ảnh snap`}
+                        {b.conditionType === 'saved_words_count' && `Lưu ${b.targetValue} từ vựng`}
+                        {b.conditionType === 'streak_days' && `Giữ Streak ${b.targetValue} ngày`}
+                        {b.conditionType === 'friends_count' && `Kết nối ${b.targetValue} bạn học`}
+                        {b.conditionType === 'listen_count' && `Nghe phát âm ${b.targetValue} lần`}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-500 font-mono">ID: {b.id}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleBadge(b)}
+                        className={`px-3 py-1 rounded-xl text-xs font-bold cursor-pointer transition-colors ${
+                          b.isActive
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30'
+                            : 'bg-slate-700/50 text-slate-400 border border-slate-600 hover:bg-slate-700'
+                        }`}
+                      >
+                        {b.isActive ? 'Đang áp dụng' : 'Tạm ẩn'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================
             TAB 5: CẤU HÌNH HỆ THỐNG (SYSTEM SETTINGS)
         ======================================================== */}
         {activeTab === 'system' && (
@@ -1031,6 +1431,261 @@ function AdminPage() {
           </div>
         )}
       </div>
+
+      {/* Modal: Tạo Thử Thách Mới */}
+      {showNewChallengeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-[#121824] border border-white/10 rounded-3xl w-full max-w-md p-6 space-y-5 shadow-2xl relative">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black text-white flex items-center gap-2">
+                <Target className="w-5 h-5 text-amber-400" />
+                Tạo Thử Thách Hằng Ngày
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowNewChallengeModal(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateChallenge} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-400 font-bold mb-1">Tiêu đề nhiệm vụ *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ví dụ: Chụp 2 đồ vật gia đình"
+                  value={newChallengeForm.title}
+                  onChange={(e) => setNewChallengeForm({ ...newChallengeForm, title: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-hidden focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-bold mb-1">Mô tả ngắn</label>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: Dùng camera chụp đồ dùng trong phòng ngủ"
+                  value={newChallengeForm.description}
+                  onChange={(e) => setNewChallengeForm({ ...newChallengeForm, description: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-hidden focus:border-amber-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">Loại hành động</label>
+                  <select
+                    value={newChallengeForm.type}
+                    onChange={(e) => setNewChallengeForm({ ...newChallengeForm, type: e.target.value as ChallengeType })}
+                    className="w-full px-3 py-2 rounded-xl bg-[#1A2234] border border-white/10 text-white focus:outline-hidden focus:border-amber-400"
+                  >
+                    <option value="snap_photos">📸 Chụp ảnh snap</option>
+                    <option value="save_words">📚 Lưu từ vựng</option>
+                    <option value="listen_pronunciation">🗣️ Luyện nghe phát âm</option>
+                    <option value="maintain_streak">🔥 Duy trì streak</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">Số lần mục tiêu</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    required
+                    value={newChallengeForm.targetCount}
+                    onChange={(e) => setNewChallengeForm({ ...newChallengeForm, targetCount: parseInt(e.target.value, 10) || 1 })}
+                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-hidden focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">Điểm thưởng XP</label>
+                  <input
+                    type="number"
+                    min="10"
+                    step="10"
+                    required
+                    value={newChallengeForm.rewardXp}
+                    onChange={(e) => setNewChallengeForm({ ...newChallengeForm, rewardXp: parseInt(e.target.value, 10) || 10 })}
+                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-amber-300 font-bold focus:outline-hidden focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">Icon biểu tượng</label>
+                  <div className="flex gap-1.5 overflow-x-auto py-1">
+                    {['🎯', '📸', '📚', '🗣️', '🔥', '⭐', '🚀', '💡'].map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => setNewChallengeForm({ ...newChallengeForm, icon: emoji })}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all ${
+                          newChallengeForm.icon === emoji
+                            ? 'bg-amber-400/30 border border-amber-400'
+                            : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNewChallengeModal(false)}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold transition-colors cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black transition-colors shadow-md shadow-amber-400/20 cursor-pointer"
+                >
+                  Tạo Thử Thách
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Tạo Danh Hiệu & Điều Kiện Mới */}
+      {showNewBadgeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-[#121824] border border-white/10 rounded-3xl w-full max-w-md p-6 space-y-5 shadow-2xl relative">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black text-white flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-emerald-400" />
+                Tạo Danh Hiệu & Điều Kiện Mới
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowNewBadgeModal(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateBadge} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-400 font-bold mb-1">Tên danh hiệu *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ví dụ: Cao Thủ Khám Phá"
+                  value={newBadgeForm.title}
+                  onChange={(e) => setNewBadgeForm({ ...newBadgeForm, title: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-hidden focus:border-emerald-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-bold mb-1">Mô tả danh hiệu</label>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: Tích cực khám phá không gian xung quanh qua camera"
+                  value={newBadgeForm.description}
+                  onChange={(e) => setNewBadgeForm({ ...newBadgeForm, description: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-hidden focus:border-emerald-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">Chuyên mục</label>
+                  <input
+                    type="text"
+                    placeholder="Khám phá, Streak..."
+                    value={newBadgeForm.category}
+                    onChange={(e) => setNewBadgeForm({ ...newBadgeForm, category: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-hidden focus:border-emerald-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">Icon biểu tượng</label>
+                  <div className="flex gap-1.5 overflow-x-auto py-1">
+                    {['🏆', '👑', '🌟', '🎖️', '📸', '🔥', '🗣️', '🤝', '☕', '🚀'].map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => setNewBadgeForm({ ...newBadgeForm, icon: emoji })}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all ${
+                          newBadgeForm.icon === emoji
+                            ? 'bg-emerald-400/30 border border-emerald-400'
+                            : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-emerald-500/20 space-y-3">
+                <span className="block text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
+                  Cấu hình Điều Kiện Tự Động (Auto-Evaluate)
+                </span>
+
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">Chỉ số xét duyệt</label>
+                  <select
+                    value={newBadgeForm.conditionType}
+                    onChange={(e) => setNewBadgeForm({ ...newBadgeForm, conditionType: e.target.value as BadgeConditionType })}
+                    className="w-full px-3 py-2 rounded-xl bg-[#1A2234] border border-white/10 text-white focus:outline-hidden focus:border-emerald-400"
+                  >
+                    <option value="snaps_count">📸 Số ảnh snap thực tế đã chụp</option>
+                    <option value="saved_words_count">📚 Số từ vựng đã lưu vào sổ</option>
+                    <option value="streak_days">🔥 Số ngày liên tiếp giữ Streak</option>
+                    <option value="friends_count">🤝 Số bạn bè đã kết nối</option>
+                    <option value="listen_count">🗣️ Số lần luyện nghe phát âm</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">Ngưỡng tối thiểu cần đạt</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="1000"
+                    required
+                    value={newBadgeForm.targetValue}
+                    onChange={(e) => setNewBadgeForm({ ...newBadgeForm, targetValue: parseInt(e.target.value, 10) || 1 })}
+                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-emerald-300 font-bold focus:outline-hidden focus:border-emerald-400"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNewBadgeModal(false)}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold transition-colors cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black transition-colors shadow-md shadow-emerald-400/20 cursor-pointer"
+                >
+                  Kích Hoạt Danh Hiệu
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Floating Action Toast Notification */}
       {toastMessage && (

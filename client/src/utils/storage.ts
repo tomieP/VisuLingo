@@ -1,3 +1,4 @@
+import { incrementChallengeProgress } from './challenges';
 import api from '@/services/api';
 
 const STORAGE_KEY = 'visulingo_saved_words';
@@ -103,6 +104,7 @@ export async function saveWord(word: SavedWord): Promise<boolean> {
 
     if (existingIndex === -1) {
       words.unshift({ ...word, id: backendSavedId });
+      incrementChallengeProgress('save_words', 1);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(words));
       window.dispatchEvent(new CustomEvent('visulingo_saved_words_changed', { detail: words.length }));
       return true;

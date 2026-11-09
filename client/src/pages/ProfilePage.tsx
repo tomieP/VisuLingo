@@ -23,80 +23,10 @@ import { getCurrentUser, getUserUsername, setUserUsername } from '@/services/aut
 import { getSavedWords, getUserStreak } from '@/utils/storage';
 import { getMoments, MomentPost, deleteMoment, isFakeMoment } from '@/utils/moments';
 import { speakWord } from '@/utils/speech';
+import { getBadges, evaluateBadges, EvaluatedBadge } from '@/utils/badges';
+import { getFriends } from '@/utils/friends';
 
-interface BadgeItem {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  category: string;
-  isUnlocked: boolean;
-  progressText: string;
-  percent: number;
-}
 
-const PROFILE_BADGES: BadgeItem[] = [
-  {
-    id: 'b-camera',
-    title: 'Thợ Săn Thị Giác',
-    description: 'Chụp và nhận diện đồ vật thực tế qua AI Camera',
-    icon: '📸',
-    category: 'Khám phá',
-    isUnlocked: true,
-    progressText: '24/20 đồ vật',
-    percent: 100,
-  },
-  {
-    id: 'b-streak',
-    title: 'Chiến Thần Giữ Lửa',
-    description: 'Duy trì chuỗi học tập Streak liên tục mỗi ngày',
-    icon: '🔥',
-    category: 'Streak',
-    isUnlocked: false,
-    progressText: '5/7 ngày (Còn 2 ngày)',
-    percent: 71,
-  },
-  {
-    id: 'b-audio',
-    title: 'Phát Âm Bản Xứ',
-    description: 'Nghe phát âm chuẩn IPA và luyện phản xạ âm thanh',
-    icon: '🗣️',
-    category: 'Phát âm',
-    isUnlocked: true,
-    progressText: '62/50 lần nghe',
-    percent: 100,
-  },
-  {
-    id: 'b-buddies',
-    title: 'Đôi Bạn Cùng Tiến',
-    description: 'Kết nối và chia sẻ từ vựng Snap với bạn bè',
-    icon: '🤝',
-    category: 'Cộng đồng',
-    isUnlocked: true,
-    progressText: '4/4 bạn học',
-    percent: 100,
-  },
-  {
-    id: 'b-master',
-    title: 'Bậc Thầy Từ Vựng',
-    description: 'Tích lũy và ghi nhớ 50 từ vựng vào Snapbook cá nhân',
-    icon: '👑',
-    category: 'Từ vựng',
-    isUnlocked: false,
-    progressText: '35/50 từ',
-    percent: 70,
-  },
-  {
-    id: 'b-cafe',
-    title: 'Nhà Thám Hiểm Cafe',
-    description: 'Tạo album và sưu tầm từ vựng không gian cà phê',
-    icon: '☕',
-    category: 'Đời sống',
-    isUnlocked: true,
-    progressText: '8/5 ảnh snap',
-    percent: 100,
-  },
-];
 
 function ProfilePage() {
   const currentUser = getCurrentUser();
@@ -141,9 +71,12 @@ function ProfilePage() {
     };
     window.addEventListener('visulingo_avatar_changed', handleAvatarChange);
     window.addEventListener('visulingo_moments_changed', handleMomentsChange);
+    const handleBadgesChange = () => setMoments(getMoments());
+    window.addEventListener('visulingo_badges_changed', handleBadgesChange);
     return () => {
       window.removeEventListener('visulingo_avatar_changed', handleAvatarChange);
       window.removeEventListener('visulingo_moments_changed', handleMomentsChange);
+      window.removeEventListener('visulingo_badges_changed', handleBadgesChange);
     };
   }, []);
 
@@ -169,6 +102,16 @@ function ProfilePage() {
         m.author.name.toLowerCase().includes('bạn') ||
         (currentUser?.firstName && m.author.name.includes(currentUser.firstName)))
   );
+
+  const friends = getFriends();
+  const listenCount = parseInt(localStorage.getItem('visulingo_listen_count') || '0', 10);
+  const badges: EvaluatedBadge[] = evaluateBadges(getBadges(), {
+    snapsCount: myMoments.length,
+    savedWordsCount: savedWords.length,
+    streakDays: userStreak,
+    friendsCount: friends.length,
+    listenCount,
+  });
 
   // Dynamic 7-day week calendar based on real device time & actual activity
   const now = new Date();
@@ -344,8 +287,8 @@ function ProfilePage() {
 
             <div className="flex-1 px-1">
               <div className="text-base sm:text-lg font-black text-emerald-400">
-                {PROFILE_BADGES.filter((b) => b.isUnlocked).length}
-                <span className="text-xs text-slate-500 font-normal">/6</span>
+                {badges.filter((b) => b.isUnlocked).length}
+                <span className="text-xs text-slate-500 font-normal">/{badges.length}</span>
               </div>
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Huy hiệu</div>
             </div>
@@ -428,7 +371,7 @@ function ProfilePage() {
         ======================================================== */}
         {activeTab === 'badges' && (
           <div className="space-y-2.5">
-            {PROFILE_BADGES.map((badge) => (
+            {badges.map((badge) => (
               <div
                 key={badge.id}
                 className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 ${

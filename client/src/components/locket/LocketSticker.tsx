@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getActiveTagTheme, TagTheme } from '@/utils/tagThemes';
+import { getActiveTagTheme, getTagThemeById, TagTheme, TagThemeId } from '@/utils/tagThemes';
 import { Volume2, Sparkles, Plus, Check } from 'lucide-react';
 import { speakWord } from '@/utils/speech';
 import { saveWord, isWordSaved } from '@/utils/storage';
@@ -15,6 +15,8 @@ interface LocketStickerProps {
   confidence?: number;
   isSelected?: boolean;
   onSelect?: () => void;
+  themeId?: TagThemeId | string;
+  isFrozen?: boolean; // When true (already posted), skin is locked and cannot be changed
 }
 
 export function LocketSticker({
@@ -27,21 +29,39 @@ export function LocketSticker({
   confidence,
   isSelected,
   onSelect,
+  themeId,
+  isFrozen = false,
 }: LocketStickerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
-  const [theme, setTheme] = useState<TagTheme>(getActiveTagTheme());
+  const [theme, setTheme] = useState<TagTheme>(() => {
+    if (themeId) return getTagThemeById(themeId);
+    return getActiveTagTheme();
+  });
   const isSaved = isWordSaved(word);
 
   useEffect(() => {
+    // If a specific themeId is passed, always use it
+    if (themeId) {
+      setTheme(getTagThemeById(themeId));
+    }
+
+    // If this sticker is frozen on an already-posted photo, it NEVER changes when global theme switches!
+    if (isFrozen) {
+      return;
+    }
+
+    // Only unposted / camera-preview stickers react to global theme switches
     const handleThemeChange = () => {
-      setTheme(getActiveTagTheme());
+      if (!themeId) {
+        setTheme(getActiveTagTheme());
+      }
     };
     window.addEventListener('visulingo_tag_theme_changed', handleThemeChange);
     return () => {
       window.removeEventListener('visulingo_tag_theme_changed', handleThemeChange);
     };
-  }, []);
+  }, [themeId, isFrozen]);
 
   const handlePronounce = (e: React.MouseEvent) => {
     e.stopPropagation();

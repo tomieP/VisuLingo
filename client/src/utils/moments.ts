@@ -1,4 +1,5 @@
 import { enrichVocabTag } from './dictionary';
+import { TagThemeId, getActiveTagThemeId } from './tagThemes';
 
 export function getUserAvatar(): string {
   return (
@@ -15,6 +16,7 @@ export interface VocabTag {
   example?: string;
   x: number; // percentage (0..100)
   y: number; // percentage (0..100)
+  themeId?: TagThemeId;
 }
 
 export interface MomentComment {
@@ -37,6 +39,7 @@ export interface MomentPost {
   caption: string;
   imageUrl: string;
   timeAgo: string;
+  tagThemeId?: TagThemeId;
   vocabTags: VocabTag[];
   reactions: {
     fire: number;
@@ -118,8 +121,20 @@ export function getMoments(): MomentPost[] {
         modified = true;
       }
 
+      if (!item.tagThemeId) {
+        item.tagThemeId = (item.vocabTags?.[0]?.themeId as TagThemeId) || 'classic';
+        modified = true;
+      }
+
       if (item.vocabTags) {
-        item.vocabTags = item.vocabTags.map((tag) => enrichVocabTag(tag));
+        item.vocabTags = item.vocabTags.map((tag) => {
+          const enriched = enrichVocabTag(tag);
+          if (!enriched.themeId) {
+            enriched.themeId = item.tagThemeId || 'classic';
+            modified = true;
+          }
+          return enriched;
+        });
       }
       return item;
     });
@@ -135,10 +150,20 @@ export function getMoments(): MomentPost[] {
 
 export function addMoment(moment: Omit<MomentPost, 'id' | 'timeAgo' | 'reactions'>): MomentPost {
   const moments = getMoments();
+  const currentActive = getActiveTagThemeId();
+  const chosenThemeId = moment.tagThemeId || currentActive;
+
+  const tagsWithTheme = (moment.vocabTags || []).map((t) => ({
+    ...t,
+    themeId: t.themeId || chosenThemeId,
+  }));
+
   const newMoment: MomentPost = {
     ...moment,
     id: `moment-${Date.now()}`,
     timeAgo: 'Vừa xong',
+    tagThemeId: chosenThemeId,
+    vocabTags: tagsWithTheme,
     reactions: { fire: 1, heart: 1, sparkles: 0 },
     comments: [],
   };

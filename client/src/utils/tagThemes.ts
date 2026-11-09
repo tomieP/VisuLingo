@@ -257,6 +257,11 @@ export function getActiveTagTheme(): TagTheme {
   return TAG_THEMES.find((t) => t.id === currentId) || TAG_THEMES[0];
 }
 
+export function getTagThemeById(themeId?: string | null): TagTheme {
+  if (!themeId) return TAG_THEMES[0];
+  return TAG_THEMES.find((t) => t.id === themeId) || TAG_THEMES[0];
+}
+
 export function setActiveTagThemeId(themeId: TagThemeId): void {
   localStorage.setItem(ACTIVE_THEME_KEY, themeId);
   window.dispatchEvent(new Event('visulingo_tag_theme_changed'));

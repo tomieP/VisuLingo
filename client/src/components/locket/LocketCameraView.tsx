@@ -1,7 +1,7 @@
 import { incrementChallengeProgress } from '@/utils/challenges';
 import { enrichVocabTag } from '@/utils/dictionary';
 import { useState, useRef, useEffect, DragEvent, ChangeEvent } from 'react';
-import { Camera, Eye, EyeOff, Upload, Sparkles, Send, RefreshCw, FolderPlus, Bookmark, VideoOff } from 'lucide-react';
+import { Camera, Eye, EyeOff, Upload, Sparkles, Send, RefreshCw, FolderPlus, Bookmark, VideoOff, Palette } from 'lucide-react';
 import { useDetection } from '@/hooks/useDetection';
 import { DetectionResponse } from '@/types/detection';
 import { LocketSticker } from './LocketSticker';
@@ -9,6 +9,8 @@ import { addMoment, VocabTag } from '@/utils/moments';
 import { getAlbums, savePhotoToAlbum, Album } from '@/utils/albums';
 import { CreateAlbumModal } from './CreateAlbumModal';
 import { getCurrentUser } from '@/services/authService';
+import { TAG_THEMES, TagThemeId, getActiveTagThemeId, getTagThemeById } from '@/utils/tagThemes';
+import { TagSkinModal } from './TagSkinModal';
 
 interface LocketCameraViewProps {
   onMomentShared?: () => void;
@@ -24,6 +26,8 @@ export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [selectedAlbumId, setSelectedAlbumId] = useState<string>('album-workspace');
   const [showCreateAlbum, setShowCreateAlbum] = useState<boolean>(false);
+  const [selectedSnapThemeId, setSelectedSnapThemeId] = useState<TagThemeId>(getActiveTagThemeId());
+  const [isTagSkinOpen, setIsTagSkinOpen] = useState<boolean>(false);
 
   // Live Camera Stream State
   const [isLiveCamera, setIsLiveCamera] = useState<boolean>(false);
@@ -33,9 +37,13 @@ export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
   useEffect(() => {
     setAlbums(getAlbums());
     const handleAlbums = () => setAlbums(getAlbums());
+    const handleThemeChange = () => setSelectedSnapThemeId(getActiveTagThemeId());
+
     window.addEventListener('visulingo_albums_changed', handleAlbums);
+    window.addEventListener('visulingo_tag_theme_changed', handleThemeChange);
     return () => {
       window.removeEventListener('visulingo_albums_changed', handleAlbums);
+      window.removeEventListener('visulingo_tag_theme_changed', handleThemeChange);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
@@ -181,7 +189,7 @@ const getMeaningForWord = (word: string) => {
     if (!imageUrl || !detectionResult) return;
     setIsSharing(true);
 
-    // Map detected objects into Locket Vocab Tags with Vietnamese meanings
+    // Map detected objects into Locket Vocab Tags with Vietnamese meanings and chosen theme
     const vocabTags: VocabTag[] = detectionResult.objects.map((obj) => ({
       id: obj.id,
       word: obj.label,
@@ -189,6 +197,7 @@ const getMeaningForWord = (word: string) => {
       ipa: obj.ipa || getIpaForWord(obj.label),
       example: obj.exampleSentence || '',
       confidence: obj.confidence,
+      themeId: selectedSnapThemeId,
       x: Math.round((obj.boundingBox.x + obj.boundingBox.w / 2) * 100),
       y: Math.round((obj.boundingBox.y + obj.boundingBox.h / 2) * 100),
     }));
@@ -202,6 +211,7 @@ const getMeaningForWord = (word: string) => {
       },
       caption: caption.trim() || 'Snap học từ mới của tôi ✨',
       imageUrl,
+      tagThemeId: selectedSnapThemeId,
       vocabTags,
     });
 
@@ -274,6 +284,8 @@ const getMeaningForWord = (word: string) => {
                     x={Math.round((obj.boundingBox.x + obj.boundingBox.w / 2) * 100)}
                     y={Math.round((obj.boundingBox.y + obj.boundingBox.h / 2) * 100)}
                     confidence={obj.confidence}
+                    themeId={selectedSnapThemeId}
+                    isFrozen={false}
                     isSelected={selectedObjectId === obj.id}
                     onSelect={() => setSelectedObjectId(obj.id)}
                   />
@@ -296,6 +308,21 @@ const getMeaningForWord = (word: string) => {
                 {showStickers ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                 <span className="text-[10px] font-bold select-none">
                   {showStickers ? 'Ẩn nhãn' : 'Hiện nhãn'}
+                </span>
+              </button>
+            )}
+
+            {/* Tag Skin Customizer Button - ONLY available before posting */}
+            {detectionResult && detectionResult.objects.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsTagSkinOpen(true)}
+                className="absolute top-3 left-26 sm:left-28 px-2.5 py-1.5 rounded-full bg-black/75 hover:bg-black/90 backdrop-blur-md border border-white/25 text-amber-300 text-[10px] font-bold flex items-center gap-1.5 transition-all shadow-lg z-30 cursor-pointer active:scale-95"
+                title="Đổi khung nhãn cho ảnh này trước khi đăng"
+              >
+                <Palette className="w-3.5 h-3.5 text-amber-400" />
+                <span className="select-none">
+                  {getTagThemeById(selectedSnapThemeId).name.split('(')[0].trim()}
                 </span>
               </button>
             )}
@@ -426,6 +453,52 @@ const getMeaningForWord = (word: string) => {
             </div>
           </div>
 
+          {/* Quick Tag Frame Selector before posting */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-300 px-1">
+              <span className="flex items-center gap-1.5">
+                <Palette className="w-3.5 h-3.5 text-amber-400" />
+                <span>Khung nhãn ảnh này (giữ nguyên sau khi đăng):</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsTagSkinOpen(true)}
+                className="text-amber-300 hover:underline flex items-center gap-1 text-[11px] cursor-pointer"
+              >
+                <span>Xem tất cả ({TAG_THEMES.length}) →</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+              {TAG_THEMES.map((t) => {
+                const isSelected = selectedSnapThemeId === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setSelectedSnapThemeId(t.id)}
+                    className={`px-3 py-1.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                      isSelected
+                        ? 'bg-amber-400 text-slate-950 font-bold shadow-md shadow-amber-400/20 scale-102 ring-2 ring-amber-300'
+                        : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
+                    }`}
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: t.accentColor }}
+                    />
+                    <span>{t.name.split('(')[0].trim()}</span>
+                    {t.frameStyle && (
+                      <span className="text-[9px] px-1 rounded bg-purple-500/20 text-purple-300">
+                        🎨
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Caption Input */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-300 block px-1">
@@ -458,6 +531,12 @@ const getMeaningForWord = (word: string) => {
         isOpen={showCreateAlbum}
         onClose={() => setShowCreateAlbum(false)}
         onCreated={(newAlbumId) => setSelectedAlbumId(newAlbumId)}
+      />
+
+      {/* Tag Skin Customizer Modal (Only accessible prior to posting) */}
+      <TagSkinModal
+        isOpen={isTagSkinOpen}
+        onClose={() => setIsTagSkinOpen(false)}
       />
     </div>
   );

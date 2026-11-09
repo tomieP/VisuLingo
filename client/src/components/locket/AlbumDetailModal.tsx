@@ -122,6 +122,8 @@ export function AlbumDetailModal({ album, photos, isOpen, onClose, onUpdated }: 
                     example={tag.example}
                     x={tag.x}
                     y={tag.y}
+                    themeId={tag.themeId || 'classic'}
+                    isFrozen={true}
                   />
                 ))}
               </div>

@@ -1,7 +1,6 @@
 import { enrichVocabTag } from '@/utils/dictionary';
 import { useState, useEffect } from 'react';
-import { Volume2, Trash2, Eye, EyeOff, Heart, Flame, Sparkles, BookmarkPlus, Check, MessageCircle, Send, Share2, Palette } from 'lucide-react';
-import { TagSkinModal } from './TagSkinModal';
+import { Volume2, Trash2, Eye, EyeOff, Heart, Flame, Sparkles, BookmarkPlus, Check, MessageCircle, Send, Share2 } from 'lucide-react';
 import { MomentPost, deleteMoment, reactToMoment, VocabTag } from '@/utils/moments';
 import { LocketSticker } from './LocketSticker';
 import { SnapCommentsModal } from './SnapCommentsModal';
@@ -22,7 +21,6 @@ export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: 
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [showStickers, setShowStickers] = useState(true);
-  const [isTagSkinOpen, setIsTagSkinOpen] = useState(false);
 
   useEffect(() => {
     setImgSrc(moment.imageUrl || '');
@@ -135,6 +133,8 @@ export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: 
               example={tag.example}
               x={tag.x}
               y={tag.y}
+              themeId={tag.themeId || moment.tagThemeId || 'classic'}
+              isFrozen={true}
               isSelected={activeWordId === tag.id}
               onSelect={() => setActiveWordId(tag.id)}
             />
@@ -146,21 +146,6 @@ export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: 
           <Sparkles className="w-3 h-3 text-amber-400" />
           <span>{moment.vocabTags.length} từ vựng</span>
         </div>
-        {/* Tag Skin Customizer Button */}
-        {moment.vocabTags.length > 0 && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsTagSkinOpen(true);
-            }}
-            className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-black/75 hover:bg-black/90 backdrop-blur-md border border-white/20 text-slate-300 hover:text-amber-300 text-[10px] font-bold flex items-center gap-1.5 transition-all shadow-lg z-30 cursor-pointer active:scale-95"
-            title="Tùy chỉnh màu sắc & ánh sáng nhãn từ vựng (SnapBoost & Milestones)"
-          >
-            <Palette className="w-3.5 h-3.5 text-amber-400" />
-            <span className="select-none">Đổi màu nhãn</span>
-          </button>
-        )}
 
         {/* Toggle Show/Hide Stickers Button (Eye icon) */}
         {moment.vocabTags.length > 0 && (
@@ -302,12 +287,6 @@ export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: 
         moment={moment}
         isOpen={isCommentsOpen}
         onClose={() => setIsCommentsOpen(false)}
-      />
-
-      {/* Tag Skin Customizer Modal */}
-      <TagSkinModal
-        isOpen={isTagSkinOpen}
-        onClose={() => setIsTagSkinOpen(false)}
       />
 
       {/* Share Snap to Chat Modal */}

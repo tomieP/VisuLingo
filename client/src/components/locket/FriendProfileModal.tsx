@@ -194,6 +194,8 @@ export function FriendProfileModal({
                     example={tag.example}
                     x={tag.x}
                     y={tag.y}
+                    themeId={tag.themeId || 'classic'}
+                    isFrozen={true}
                   />
                 ))}
               </div>

@@ -105,6 +105,7 @@ export async function saveWord(word: SavedWord): Promise<boolean> {
     if (existingIndex === -1) {
       words.unshift({ ...word, id: backendSavedId });
       incrementChallengeProgress('save_words', 1);
+      recordDailyStreak();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(words));
       window.dispatchEvent(new CustomEvent('visulingo_saved_words_changed', { detail: words.length }));
       return true;
@@ -162,13 +163,45 @@ export function clearSavedWords(): void {
 }
 
 const STREAK_KEY = 'visulingo_user_streak';
+const STREAK_LAST_DATE_KEY = 'visulingo_user_streak_last_date';
+const STREAK_HISTORY_KEY = 'visulingo_streak_history';
+
+export function getLocalDateString(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function getYesterdayDateString(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return getLocalDateString(d);
+}
 
 export function getUserStreak(): number {
   try {
-    const raw = localStorage.getItem(STREAK_KEY);
-    if (raw !== null) {
-      const parsed = parseInt(raw, 10);
-      return isNaN(parsed) ? 0 : parsed;
+    const rawCount = localStorage.getItem(STREAK_KEY);
+    const lastDate = localStorage.getItem(STREAK_LAST_DATE_KEY);
+    let count = rawCount !== null ? parseInt(rawCount, 10) : 0;
+    if (isNaN(count) || count < 0) count = 0;
+
+    const today = getLocalDateString();
+    const yesterday = getYesterdayDateString();
+
+    if (!lastDate) {
+      return count;
+    }
+
+    // Nếu lần hoạt động gần nhất là hôm nay hoặc hôm qua, streak vẫn được duy trì an toàn
+    if (lastDate === today || lastDate === yesterday) {
+      return count;
+    }
+
+    // Nếu đã bỏ lỡ hơn 1 ngày (lần cuối trước hôm qua), chuỗi streak bị đứt và trở về 0
+    if (count !== 0) {
+      localStorage.setItem(STREAK_KEY, '0');
+      window.dispatchEvent(new Event('visulingo_streak_changed'));
     }
     return 0;
   } catch {
@@ -177,6 +210,59 @@ export function getUserStreak(): number {
 }
 
 export function setUserStreak(streak: number): void {
-  localStorage.setItem(STREAK_KEY, streak.toString());
+  const safeStreak = Math.max(0, streak);
+  localStorage.setItem(STREAK_KEY, safeStreak.toString());
+  if (safeStreak > 0) {
+    localStorage.setItem(STREAK_LAST_DATE_KEY, getLocalDateString());
+  }
   window.dispatchEvent(new Event('visulingo_streak_changed'));
+}
+
+/**
+ * Ghi nhận hoạt động học tập trong ngày (chụp snap / lưu từ / hoàn thành thử thách)
+ * Tự động tăng chuỗi nếu liên tiếp ngày hôm qua, hoặc bắt đầu 1 nếu sang chuỗi mới
+ */
+export function recordDailyStreak(): { streak: number; isNewStreakDay: boolean } {
+  try {
+    const today = getLocalDateString();
+    const yesterday = getYesterdayDateString();
+    const lastDate = localStorage.getItem(STREAK_LAST_DATE_KEY);
+    const rawCount = localStorage.getItem(STREAK_KEY);
+    let currentStreak = rawCount !== null ? parseInt(rawCount, 10) : 0;
+    if (isNaN(currentStreak) || currentStreak < 0) currentStreak = 0;
+
+    // Đã duy trì streak hôm nay rồi
+    if (lastDate === today && currentStreak > 0) {
+      return { streak: currentStreak, isNewStreakDay: false };
+    }
+
+    let newStreak = 1;
+    if (lastDate === yesterday && currentStreak > 0) {
+      // Giữ lửa liên tiếp sang ngày mới!
+      newStreak = currentStreak + 1;
+    } else {
+      // Bắt đầu chuỗi mới
+      newStreak = 1;
+    }
+
+    localStorage.setItem(STREAK_KEY, newStreak.toString());
+    localStorage.setItem(STREAK_LAST_DATE_KEY, today);
+
+    // Lưu vào lịch sử các ngày giữ streak
+    try {
+      const historyRaw = localStorage.getItem(STREAK_HISTORY_KEY);
+      const history: string[] = historyRaw ? JSON.parse(historyRaw) : [];
+      if (!history.includes(today)) {
+        history.push(today);
+        localStorage.setItem(STREAK_HISTORY_KEY, JSON.stringify(history));
+      }
+    } catch {}
+
+    window.dispatchEvent(new Event('visulingo_streak_changed'));
+    incrementChallengeProgress('maintain_streak', 1);
+
+    return { streak: newStreak, isNewStreakDay: true };
+  } catch {
+    return { streak: 1, isNewStreakDay: false };
+  }
 }

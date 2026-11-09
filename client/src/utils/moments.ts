@@ -1,5 +1,6 @@
 import { enrichVocabTag } from './dictionary';
 import { TagThemeId, getActiveTagThemeId } from './tagThemes';
+import { recordDailyStreak, getLocalDateString } from './storage';
 
 export function getUserAvatar(): string {
   return (
@@ -248,6 +249,17 @@ export function getMoments(): MomentPost[] {
     if (modified) {
       localStorage.setItem(MOMENTS_KEY, JSON.stringify(sanitized));
     }
+
+    // Nếu người dùng đã có bài đăng hôm nay, kích hoạt / duy trì ngọn lửa streak
+    const today = getLocalDateString();
+    const hasTodayMoment = sanitized.some((m) => {
+      const d = m.createdAt ? getLocalDateString(new Date(m.createdAt)) : '';
+      return d === today;
+    });
+    if (hasTodayMoment) {
+      recordDailyStreak();
+    }
+
     return sanitized;
   } catch {
     return [];
@@ -259,6 +271,9 @@ export function addMoment(moment: Omit<MomentPost, 'id' | 'timeAgo' | 'reactions
   const currentActive = getActiveTagThemeId();
   const chosenThemeId = moment.tagThemeId || currentActive;
   const nowIso = new Date().toISOString();
+
+  // Kích hoạt / Tăng chuỗi Streak khi đăng khoảnh khắc mới
+  recordDailyStreak();
 
   const tagsWithTheme = (moment.vocabTags || []).map((t) => ({
     ...t,

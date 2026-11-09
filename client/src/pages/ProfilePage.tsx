@@ -20,7 +20,7 @@ import {
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { LocketBottomBar } from '@/components/locket/LocketBottomBar';
 import { getCurrentUser, getUserUsername, setUserUsername } from '@/services/authService';
-import { getSavedWords, getUserStreak } from '@/utils/storage';
+import { getSavedWords, getUserStreak, getLocalDateString } from '@/utils/storage';
 import { getMoments, MomentPost, deleteMoment, isFakeMoment } from '@/utils/moments';
 import { speakWord } from '@/utils/speech';
 import { getBadges, evaluateBadges, EvaluatedBadge } from '@/utils/badges';
@@ -49,7 +49,7 @@ function ProfilePage() {
   const [userXp, setUserXp] = useState<number>(getUserXp());
   const [activeTheme, setActiveTheme] = useState(getActiveTagTheme());
   const [copiedToast, setCopiedToast] = useState(false);
-  const userStreak = getUserStreak();
+  const [userStreak, setUserStreakState] = useState(getUserStreak());
   const userLevel = Math.max(1, Math.floor(savedWords.length / 5) + 1);
 
   const [currentTag, setCurrentTag] = useState(userTag);
@@ -95,11 +95,13 @@ function ProfilePage() {
       setUserXp(getUserXp());
     };
     const handleThemeChange = () => setActiveTheme(getActiveTagTheme());
+    const handleStreakChange = () => setUserStreakState(getUserStreak());
 
     window.addEventListener('visulingo_challenges_progress_changed', handleChallengesChange);
     window.addEventListener('visulingo_challenges_changed', handleChallengesChange);
     window.addEventListener('visulingo_xp_changed', handleChallengesChange);
     window.addEventListener('visulingo_tag_theme_changed', handleThemeChange);
+    window.addEventListener('visulingo_streak_changed', handleStreakChange);
     return () => {
       window.removeEventListener('visulingo_avatar_changed', handleAvatarChange);
       window.removeEventListener('visulingo_moments_changed', handleMomentsChange);
@@ -109,6 +111,7 @@ function ProfilePage() {
       window.removeEventListener('visulingo_challenges_changed', handleChallengesChange);
       window.removeEventListener('visulingo_xp_changed', handleChallengesChange);
       window.removeEventListener('visulingo_tag_theme_changed', handleThemeChange);
+      window.removeEventListener('visulingo_streak_changed', handleStreakChange);
     };
   }, []);
 
@@ -152,11 +155,20 @@ function ProfilePage() {
   const monday = new Date(now);
   monday.setDate(now.getDate() + mondayOffset);
 
+  let streakHistory: string[] = [];
+  try {
+    const rawHistory = localStorage.getItem('visulingo_streak_history');
+    streakHistory = rawHistory ? JSON.parse(rawHistory) : [];
+  } catch {}
+
   const weekDays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((label, idx) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + idx);
+    const dateStr = getLocalDateString(d);
     const isToday = d.toDateString() === now.toDateString();
-    const hasActivity = isToday && (userStreak > 0 || myMoments.length > 0);
+    const hasActivity = isToday
+      ? userStreak > 0 || myMoments.some((m) => m.createdAt && getLocalDateString(new Date(m.createdAt)) === dateStr)
+      : streakHistory.includes(dateStr) || myMoments.some((m) => m.createdAt && getLocalDateString(new Date(m.createdAt)) === dateStr);
     return {
       day: label,
       date: d.getDate().toString().padStart(2, '0'),

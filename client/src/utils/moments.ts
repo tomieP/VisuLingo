@@ -1,3 +1,4 @@
+import { enrichVocabTag } from './dictionary';
 
 export function getUserAvatar(): string {
   return (
@@ -5,7 +6,7 @@ export function getUserAvatar(): string {
     'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
   );
 }
-import { enrichVocabTag } from './dictionary';
+
 export interface VocabTag {
   id: string;
   word: string;
@@ -46,7 +47,6 @@ export interface MomentPost {
   comments?: MomentComment[];
 }
 
-
 export function deleteMoment(momentId: string): void {
   const moments = getMoments().filter((m) => m.id !== momentId);
   localStorage.setItem(MOMENTS_KEY, JSON.stringify(moments));
@@ -54,6 +54,32 @@ export function deleteMoment(momentId: string): void {
 }
 
 const MOMENTS_KEY = 'visulingo_locket_moments';
+
+const FAKE_MOMENT_IDS = new Set(['moment-1', 'moment-2', 'moment-3']);
+const FAKE_AUTHOR_NAMES = new Set([
+  'Minh Quân',
+  'Khánh Linh',
+  'Thành Nam',
+  'Hương Ly',
+  'Tuấn Anh',
+  'Mai Chi',
+]);
+const FAKE_IMAGE_SUBSTRINGS = [
+  '1518455027359-f3f8164ba6bd', // desk
+  '1555041469-a586c61ea9bc', // sofa
+  '1533089860892-a7c6f0a88666', // croissant
+  '1497215728101-856f4ea42174', // office
+  '1555396273-367ea4eb4db5', // noodles
+  '1416879595882-3373a0480b5b', // garden
+];
+
+export function isFakeMoment(m: MomentPost): boolean {
+  if (!m || !m.imageUrl) return true;
+  if (FAKE_MOMENT_IDS.has(m.id)) return true;
+  if (m.author && FAKE_AUTHOR_NAMES.has(m.author.name)) return true;
+  if (FAKE_IMAGE_SUBSTRINGS.some((sub) => m.imageUrl.includes(sub))) return true;
+  return false;
+}
 
 export function getMoments(): MomentPost[] {
   try {
@@ -64,10 +90,9 @@ export function getMoments(): MomentPost[] {
     const parsed: MomentPost[] = JSON.parse(raw);
     let modified = false;
 
-    // Purge all fake/sample photos (Unsplash desk) or invalid/empty images
+    // Purge all fake bot accounts, sample Unsplash mock photos, and invalid images
     const filtered = parsed.filter((m) => {
-      if (!m.imageUrl) return false;
-      if (m.imageUrl.includes('1518455027359-f3f8164ba6bd')) return false;
+      if (isFakeMoment(m)) return false;
       return true;
     });
 
@@ -149,11 +174,14 @@ export function addCommentToMoment(momentId: string, text: string): MomentCommen
 
   if (!target.comments) target.comments = [];
 
+  const currentDisplayName = localStorage.getItem('visulingo_display_name') || 'Bạn (Me)';
+  const currentAvatar = getUserAvatar();
+
   const newComment: MomentComment = {
     id: `cmt-${Date.now()}`,
     author: {
-      name: 'Bạn (Me)',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+      name: currentDisplayName,
+      avatar: currentAvatar,
     },
     text: text.trim(),
     timeAgo: 'Vừa xong',

@@ -84,7 +84,7 @@ export function FriendsStoryBar({
         )}
 
         {/* Filtered Friends List */}
-        {filteredFriends.length === 0 ? (
+        {searchQuery && filteredFriends.length === 0 ? (
           <div className="py-2 px-2 text-xs text-slate-400 italic">
             Không tìm thấy bạn "{searchQuery}"
           </div>

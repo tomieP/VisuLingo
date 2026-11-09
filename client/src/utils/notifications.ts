@@ -23,18 +23,34 @@ export interface AppNotification {
   actionCompleted?: boolean;
 }
 
-
-
 const NOTIFICATIONS_KEY = 'visulingo_smart_notifications';
+
+const BANNED_NOTIF_IDS = new Set(['notif-1', 'notif-2', 'notif-3', 'notif-4']);
+const BANNED_ACTOR_NAMES = new Set([
+  'Minh Quân',
+  'Khánh Linh',
+  'Thành Nam',
+  'Hương Ly',
+  'Tuấn Anh',
+  'Mai Chi',
+]);
 
 export function getNotifications(): AppNotification[] {
   try {
     const raw = localStorage.getItem(NOTIFICATIONS_KEY);
     if (!raw) return [];
     const parsed: AppNotification[] = JSON.parse(raw);
-    return Array.isArray(parsed)
-      ? parsed.filter((n) => !['notif-1', 'notif-2', 'notif-3', 'notif-4'].includes(n.id))
-      : [];
+    if (!Array.isArray(parsed)) return [];
+
+    const filtered = parsed.filter(
+      (n) => !BANNED_NOTIF_IDS.has(n.id) && (!n.actor || !BANNED_ACTOR_NAMES.has(n.actor.name))
+    );
+
+    if (filtered.length !== parsed.length) {
+      localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(filtered));
+    }
+
+    return filtered;
   } catch {
     return [];
   }

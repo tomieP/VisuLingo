@@ -30,18 +30,43 @@ export interface FriendProfile {
   albums: FriendAlbum[];
 }
 
-
-
 const FRIENDS_KEY = 'visulingo_friends_data';
+
+const BANNED_FRIEND_IDS = new Set([
+  'friend-1',
+  'friend-2',
+  'friend-3',
+  'friend-4',
+  'sug-1',
+  'sug-2',
+  'sug-3',
+]);
+
+const BANNED_FRIEND_NAMES = new Set([
+  'Minh Quân',
+  'Khánh Linh',
+  'Thành Nam',
+  'Hương Ly',
+  'Tuấn Anh',
+  'Mai Chi',
+]);
 
 export function getFriends(): FriendProfile[] {
   try {
     const raw = localStorage.getItem(FRIENDS_KEY);
     if (!raw) return [];
     const parsed: FriendProfile[] = JSON.parse(raw);
-    return Array.isArray(parsed)
-      ? parsed.filter((f) => !['friend-1', 'friend-2', 'friend-3', 'friend-4'].includes(f.id))
-      : [];
+    if (!Array.isArray(parsed)) return [];
+
+    const filtered = parsed.filter(
+      (f) => !BANNED_FRIEND_IDS.has(f.id) && !BANNED_FRIEND_NAMES.has(f.name)
+    );
+
+    if (filtered.length !== parsed.length) {
+      localStorage.setItem(FRIENDS_KEY, JSON.stringify(filtered));
+    }
+
+    return filtered;
   } catch {
     return [];
   }
@@ -59,6 +84,9 @@ export function toggleFollowFriend(friendId: string): FriendProfile[] {
 }
 
 export function addNewFriend(newFriend: FriendProfile): FriendProfile[] {
+  if (BANNED_FRIEND_IDS.has(newFriend.id) || BANNED_FRIEND_NAMES.has(newFriend.name)) {
+    return getFriends();
+  }
   const friends = getFriends();
   if (friends.some((f) => f.id === newFriend.id)) return friends;
   friends.push(newFriend);

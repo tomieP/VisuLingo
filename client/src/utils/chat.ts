@@ -27,9 +27,17 @@ export interface Conversation {
   unreadCount: number;
 }
 
-
-
 const CHAT_KEY = 'visulingo_chat_conversations_v3';
+
+const BANNED_CHAT_IDS = new Set([
+  'friend-1',
+  'friend-2',
+  'friend-3',
+  'friend-4',
+  'sug-1',
+  'sug-2',
+  'sug-3',
+]);
 
 export function getConversations(): Record<string, Conversation> {
   try {
@@ -37,13 +45,22 @@ export function getConversations(): Record<string, Conversation> {
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     const clean: Record<string, Conversation> = {};
+    let modified = false;
+
     if (parsed && typeof parsed === 'object') {
       Object.entries(parsed).forEach(([k, v]) => {
-        if (!['friend-1', 'friend-2', 'friend-3', 'friend-4'].includes(k)) {
+        if (!BANNED_CHAT_IDS.has(k)) {
           clean[k] = v as Conversation;
+        } else {
+          modified = true;
         }
       });
     }
+
+    if (modified) {
+      localStorage.setItem(CHAT_KEY, JSON.stringify(clean));
+    }
+
     return clean;
   } catch {
     return {};
@@ -66,7 +83,7 @@ export function sendMessageToFriend(
       friendId,
       friendName: 'Bạn bè',
       friendAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-      streakDays: 5,
+      streakDays: 1,
       streakStatus: 'completed',
       unreadCount: 0,
       messages: [],
@@ -91,11 +108,6 @@ export function sendMessageToFriend(
   localStorage.setItem(CHAT_KEY, JSON.stringify(convos));
   window.dispatchEvent(new Event('visulingo_chat_changed'));
 
-  // Trigger simulated smart friend auto-reply after 1.2s
-  setTimeout(() => {
-    simulateFriendReply(friendId);
-  }, 1200);
-
   return newMsg;
 }
 
@@ -103,40 +115,13 @@ export function reactToMessage(friendId: string, messageId: string, reactionEmoj
   const convos = getConversations();
   const convo = convos[friendId];
   if (!convo) return;
+
   const msg = convo.messages.find((m) => m.id === messageId);
   if (msg) {
     msg.reaction = msg.reaction === reactionEmoji ? undefined : reactionEmoji;
     localStorage.setItem(CHAT_KEY, JSON.stringify(convos));
     window.dispatchEvent(new Event('visulingo_chat_changed'));
   }
-}
-
-const FRIEND_AUTO_REPLIES = [
-  'Đỉnh chóp luôn bạn ơi! Tui vừa bấm loa nghe phát âm rồi, từ này hay quá ✨',
-  'Tuyệt vời! Hôm nay tui với ông giữ được ngọn lửa Streak cháy rực rồi đó 🔥',
-  'Góc snap này đẹp ghê, để tui lưu từ vựng này vào Snapbook ôn lại ngay 📚',
-  'Nghe chuẩn bản xứ luôn! Chiều nay rảnh lại thi đua tiếp nhé 🚀',
-];
-
-function simulateFriendReply(friendId: string) {
-  const convos = getConversations();
-  if (!convos[friendId]) return;
-
-  const now = new Date();
-  const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const randomText =
-    FRIEND_AUTO_REPLIES[Math.floor(Math.random() * FRIEND_AUTO_REPLIES.length)];
-
-  const replyMsg: ChatMessage = {
-    id: `reply-${Date.now()}`,
-    senderId: friendId,
-    text: randomText,
-    time: timeStr,
-  };
-
-  convos[friendId].messages.push(replyMsg);
-  localStorage.setItem(CHAT_KEY, JSON.stringify(convos));
-  window.dispatchEvent(new Event('visulingo_chat_changed'));
 }
 
 export function markConversationAsRead(friendId: string): void {

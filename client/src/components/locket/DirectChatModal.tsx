@@ -59,7 +59,7 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
   const [playingAudioWord, setPlayingAudioWord] = useState<string | null>(null);
   const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null);
   const [mainTab, setMainTab] = useState<'messages' | 'activity'>('messages');
-  const [featuredFriendId, setFeaturedFriendId] = useState<string>('friend-2');
+  const [featuredFriendId, setFeaturedFriendId] = useState<string>('');
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -750,7 +750,7 @@ export function DirectChatModal({ isOpen, onClose, initialFriendId }: DirectChat
                   <div className="pt-2 pb-3 px-3 shrink-0">
                     <div className="flex items-center justify-center gap-3 sm:gap-4.5 overflow-x-auto scrollbar-none py-1">
                       {friends.map((friend) => {
-                        const isSelected = (featuredFriendId || 'friend-2') === friend.id;
+                        const isSelected = (featuredFriendId || (friends[0] && friends[0].id)) === friend.id;
                         const shortName = friend.name.split(' ').pop() || friend.name;
                         const convo = conversations[friend.id];
                         const streak = convo?.streakDays || friend.streak;

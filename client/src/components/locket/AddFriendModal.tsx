@@ -8,109 +8,10 @@ interface AddFriendModalProps {
   onFriendAdded?: () => void;
 }
 
-const SUGGESTED_PEOPLE: FriendProfile[] = [
-  {
-    id: 'sug-1',
-    name: 'Hương Ly',
-    username: '@ly.toeic900',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80',
-    bio: 'Mục tiêu 950 TOEIC 🎯 Học từ vựng văn phòng & kinh doanh.',
-    badge: 'TOEIC Pro 🌟',
-    streak: 11,
-    totalWords: 156,
-    snapsCount: 9,
-    isFollowing: false,
-    albums: [
-      {
-        id: 'hl-album-1',
-        title: 'Công sở & Hội họp',
-        emoji: '💼',
-        description: 'Văn phòng phẩm và thiết bị họp online',
-        photos: [
-          {
-            id: 'hl-p1',
-            imageUrl: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=800&q=80',
-            caption: 'Phòng họp sáng đầu tuần 💼',
-            timeAgo: '1 giờ trước',
-            vocabTags: [
-              { id: 'hl-t1', word: 'projector', meaningVi: 'máy chiếu', ipa: '/prəˈdʒek.tər/', x: 60, y: 30 },
-              { id: 'hl-t2', word: 'whiteboard', meaningVi: 'bảng trắng', ipa: '/ˈwaɪt.bɔːd/', x: 25, y: 40 },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'sug-2',
-    name: 'Tuấn Anh',
-    username: '@tuananh.ielts',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-    bio: 'Chuyên snap đồ ăn & quán xá 🍜 Học tiếng Anh giao tiếp mỗi ngày.',
-    badge: 'Streak 15 🔥',
-    streak: 15,
-    totalWords: 210,
-    snapsCount: 12,
-    isFollowing: false,
-    albums: [
-      {
-        id: 'ta-album-1',
-        title: 'Phố ẩm thực',
-        emoji: '🍜',
-        description: 'Từ vựng các món ăn đường phố và nhà hàng',
-        photos: [
-          {
-            id: 'ta-p1',
-            imageUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
-            caption: 'Món ngon phố cổ Hà Nội 🍜',
-            timeAgo: '3 giờ trước',
-            vocabTags: [
-              { id: 'ta-t1', word: 'chopsticks', meaningVi: 'đôi đũa', ipa: '/ˈtʃɒp.stɪks/', x: 40, y: 60 },
-              { id: 'ta-t2', word: 'soup bowl', meaningVi: 'tô súp', ipa: '/suːp bəʊl/', x: 65, y: 45 },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'sug-3',
-    name: 'Mai Chi',
-    username: '@chi.nature',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80',
-    bio: 'Yêu cây cỏ & thiên nhiên 🌿 Snap hoa lá và động vật.',
-    badge: 'Eco Snap 🌿',
-    streak: 6,
-    totalWords: 88,
-    snapsCount: 5,
-    isFollowing: false,
-    albums: [
-      {
-        id: 'mc-album-1',
-        title: 'Vườn cây nhiệt đới',
-        emoji: '🌿',
-        description: 'Hoa lá, chậu cây và động vật sân vườn',
-        photos: [
-          {
-            id: 'mc-p1',
-            imageUrl: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=800&q=80',
-            caption: 'Góc vườn nhỏ của mình 🌿',
-            timeAgo: 'Hôm qua',
-            vocabTags: [
-              { id: 'mc-t1', word: 'succulent', meaningVi: 'cây sen đá', ipa: '/ˈsʌk.jʊ.lənt/', x: 50, y: 50 },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-];
-
 export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModalProps) {
-  const [activeTab, setActiveTab] = useState<'qr' | 'search' | 'suggested'>('suggested');
+  const [activeTab, setActiveTab] = useState<'qr' | 'search' | 'suggested'>('search');
   const [searchQuery, setSearchQuery] = useState('');
   const [copied, setCopied] = useState(false);
-  const [addedIds, setAddedIds] = useState<string[]>([]);
 
   if (!isOpen) return null;
 
@@ -118,8 +19,36 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
 
   const handleAdd = (person: FriendProfile) => {
     addNewFriend(person);
-    setAddedIds((prev) => [...prev, person.id]);
     onFriendAdded?.();
+  };
+
+  const handleAddByUsername = () => {
+    const raw = searchQuery.trim();
+    if (!raw) return;
+    const cleanHandle = raw.replace(/^@+/, '');
+    const formattedUsername = `@${cleanHandle}`;
+
+    if (currentFriends.some((f) => f.username.toLowerCase() === formattedUsername.toLowerCase())) {
+      alert('Tài khoản này đã có trong danh sách bạn bè của bạn rồi!');
+      return;
+    }
+
+    const newPerson: FriendProfile = {
+      id: `friend-${Date.now()}`,
+      name: cleanHandle.charAt(0).toUpperCase() + cleanHandle.slice(1),
+      username: formattedUsername,
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+      bio: 'Người bạn đồng hành học từ vựng tiếng Anh trên VisuLingo 🌟',
+      badge: 'Bạn mới 🤝',
+      streak: 1,
+      totalWords: 0,
+      snapsCount: 0,
+      isFollowing: true,
+      albums: [],
+    };
+
+    handleAdd(newPerson);
+    setSearchQuery('');
   };
 
   const handleCopyLink = () => {
@@ -127,13 +56,6 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
-  // Search filter
-  const searchResults = SUGGESTED_PEOPLE.filter(
-    (p) =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
@@ -145,8 +67,8 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
               <UserPlus className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-extrabold text-base text-white">Thêm bạn bè mới</h3>
-              <p className="text-[11px] text-slate-400">Kết nối bạn bè để cùng học từ vựng mỗi ngày</p>
+              <h3 className="font-extrabold text-base text-white">Thêm bạn bè</h3>
+              <p className="text-[11px] text-slate-400">Kết nối bạn bè thật để cùng học từ vựng mỗi ngày</p>
             </div>
           </div>
 
@@ -163,17 +85,6 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
         <div className="flex rounded-full bg-black/40 p-1 border border-white/5 shrink-0">
           <button
             type="button"
-            onClick={() => setActiveTab('suggested')}
-            className={`flex-1 py-1.5 rounded-full text-xs font-bold transition-all ${
-              activeTab === 'suggested'
-                ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Gợi ý bạn học ✨
-          </button>
-          <button
-            type="button"
             onClick={() => setActiveTab('search')}
             className={`flex-1 py-1.5 rounded-full text-xs font-bold transition-all ${
               activeTab === 'search'
@@ -181,7 +92,7 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Tìm username
+            Tìm username 🔍
           </button>
           <button
             type="button"
@@ -194,144 +105,70 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
           >
             Mã QR 📱
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('suggested')}
+            className={`flex-1 py-1.5 rounded-full text-xs font-bold transition-all ${
+              activeTab === 'suggested'
+                ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Gợi ý ✨
+          </button>
         </div>
 
         {/* Tab Content */}
         <div className="flex-1 overflow-y-auto pr-1">
-          {/* TAB 1: GỢI Ý BẠN HỌC */}
-          {activeTab === 'suggested' && (
-            <div className="space-y-3">
-              <span className="text-xs font-bold text-slate-400 block px-1">
-                Các bạn có chung mục tiêu học tiếng Anh:
-              </span>
-              {SUGGESTED_PEOPLE.map((person) => {
-                const isAlreadyFriend =
-                  currentFriends.some((f) => f.id === person.id) || addedIds.includes(person.id);
-
-                return (
-                  <div
-                    key={person.id}
-                    className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-white/15 transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <img
-                          src={person.avatar}
-                          alt={person.name}
-                          className="w-10 h-10 rounded-full object-cover ring-2 ring-amber-400/50"
-                        />
-                        <span className="absolute -bottom-1 -right-1 px-1 py-0.2 rounded-full bg-[#161D2B] border border-amber-400 text-[8px] font-black text-amber-300">
-                          🔥{person.streak}
-                        </span>
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-xs text-white">{person.name}</span>
-                          <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-300">
-                            {person.badge}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-slate-400">{person.username}</p>
-                        <p className="text-[10px] text-slate-300 mt-0.5 line-clamp-1">{person.bio}</p>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={isAlreadyFriend}
-                      onClick={() => handleAdd(person)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ml-2 ${
-                        isAlreadyFriend
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-sm shadow-amber-400/20 active:scale-95'
-                      }`}
-                    >
-                      {isAlreadyFriend ? (
-                        <span className="flex items-center gap-1">
-                          <Check className="w-3.5 h-3.5" /> Đã kết bạn
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1">
-                          <UserPlus className="w-3.5 h-3.5" /> Kết bạn
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* TAB 2: TÌM USERNAME */}
+          {/* TAB 1: TÌM USERNAME */}
           {activeTab === 'search' && (
-            <div className="space-y-3">
-              <div className="relative flex items-center">
-                <Search className="w-4 h-4 absolute left-3 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Nhập @username hoặc tên bạn bè..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 focus:border-amber-400 rounded-full pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-hidden transition-all"
-                />
+            <div className="space-y-4 py-1">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-300 block">
+                  Nhập Username của bạn bè:
+                </label>
+                <div className="relative flex items-center">
+                  <Search className="w-4 h-4 absolute left-3 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="ví dụ: alex, nam_ielts, hoa99..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleAddByUsername();
+                      }
+                    }}
+                    className="w-full bg-white/5 border border-white/10 focus:border-amber-400 rounded-full pl-9 pr-24 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-hidden transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddByUsername}
+                    disabled={!searchQuery.trim()}
+                    className="absolute right-1.5 px-3 py-1.5 rounded-full bg-amber-400 disabled:opacity-40 hover:bg-amber-300 text-slate-950 font-extrabold text-[11px] transition-all cursor-pointer shadow-xs"
+                  >
+                    Kết bạn
+                  </button>
+                </div>
               </div>
 
-              {searchQuery ? (
-                searchResults.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400 text-xs italic">
-                    Không tìm thấy người dùng khớp với "{searchQuery}"
-                  </div>
-                ) : (
-                  searchResults.map((person) => {
-                    const isAlreadyFriend =
-                      currentFriends.some((f) => f.id === person.id) || addedIds.includes(person.id);
-
-                    return (
-                      <div
-                        key={person.id}
-                        className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5"
-                      >
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={person.avatar}
-                            alt=""
-                            className="w-9 h-9 rounded-full object-cover ring-1 ring-amber-400"
-                          />
-                          <div>
-                            <span className="font-bold text-xs text-white">{person.name}</span>
-                            <p className="text-[10px] text-slate-400">{person.username}</p>
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          disabled={isAlreadyFriend}
-                          onClick={() => handleAdd(person)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                            isAlreadyFriend
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                              : 'bg-amber-400 hover:bg-amber-300 text-slate-950'
-                          }`}
-                        >
-                          {isAlreadyFriend ? 'Đã kết bạn' : '+ Kết bạn'}
-                        </button>
-                      </div>
-                    );
-                  })
-                )
-              ) : (
-                <div className="text-center py-8 text-slate-500 text-xs">
-                  Gõ tên hoặc username (ví dụ: ly, tuananh, nature...) để tìm kiếm
+              <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-1.5">
+                <div className="flex items-center gap-2 text-amber-300 text-xs font-bold">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Mẹo kết nối</span>
                 </div>
-              )}
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Nhập chính xác username của bạn bè để gửi lời mời và cùng nhau chia sẻ những bức ảnh Snap chứa nhãn từ vựng mỗi ngày!
+                </p>
+              </div>
             </div>
           )}
 
-          {/* TAB 3: MÃ QR CỦA TÔI */}
+          {/* TAB 2: MÃ QR CỦA TÔI */}
           {activeTab === 'qr' && (
             <div className="text-center space-y-4 py-2">
-              <div className="w-48 h-48 mx-auto rounded-3xl bg-white p-4 shadow-xl shadow-amber-400/10 flex flex-col items-center justify-center border-4 border-amber-400/40 relative">
-                <QrCode className="w-36 h-36 text-slate-950" />
+              <div className="w-44 h-44 mx-auto rounded-3xl bg-white p-4 shadow-xl shadow-amber-400/10 flex flex-col items-center justify-center border-4 border-amber-400/40 relative">
+                <QrCode className="w-32 h-32 text-slate-950" />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-10 h-10 rounded-full bg-slate-950 p-1 shadow-md border-2 border-amber-400">
                     <Sparkles className="w-full h-full text-amber-400" />
@@ -341,7 +178,9 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
 
               <div>
                 <h4 className="font-bold text-sm text-white">Mã QR của Bạn</h4>
-                <p className="text-xs text-slate-400 mt-0.5 font-mono">@visulingo_me</p>
+                <p className="text-xs text-slate-400 mt-0.5 font-mono">
+                  {localStorage.getItem('visulingo_username') || '@visulingo_me'}
+                </p>
                 <p className="text-[11px] text-slate-500 mt-1">Đưa mã này để bạn bè quét và kết nối ngay</p>
               </div>
 
@@ -349,7 +188,7 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
                 <button
                   type="button"
                   onClick={handleCopyLink}
-                  className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-xs font-bold text-slate-200 border border-white/10 flex items-center gap-1.5 transition-all"
+                  className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-xs font-bold text-slate-200 border border-white/10 flex items-center gap-1.5 transition-all cursor-pointer"
                 >
                   {copied ? (
                     <>
@@ -364,9 +203,33 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
                 <button
                   type="button"
                   onClick={() => alert('Đã chia sẻ mã kết nối Snap của bạn!')}
-                  className="px-4 py-2 rounded-full bg-amber-400 hover:bg-amber-300 text-xs font-bold text-slate-950 flex items-center gap-1.5 shadow-md shadow-amber-400/20 transition-all"
+                  className="px-4 py-2 rounded-full bg-amber-400 hover:bg-amber-300 text-xs font-bold text-slate-950 flex items-center gap-1.5 shadow-md shadow-amber-400/20 transition-all cursor-pointer"
                 >
                   <Share2 className="w-3.5 h-3.5" /> Chia sẻ
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: GỢI Ý BẠN HỌC */}
+          {activeTab === 'suggested' && (
+            <div className="text-center py-10 space-y-3 px-4">
+              <div className="w-12 h-12 rounded-full bg-amber-400/10 border border-amber-400/20 flex items-center justify-center mx-auto text-amber-400">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-white">Chưa có đề xuất kết bạn</h4>
+                <p className="text-xs text-slate-400">
+                  Hãy dùng tab "Tìm username" hoặc quét mã QR để kết nối bạn bè thật!
+                </p>
+              </div>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('search')}
+                  className="px-4 py-2 rounded-full bg-amber-400 text-slate-950 font-bold text-xs hover:bg-amber-300 transition-all shadow-md shadow-amber-400/20 cursor-pointer"
+                >
+                  Tìm bạn theo username 🔍
                 </button>
               </div>
             </div>

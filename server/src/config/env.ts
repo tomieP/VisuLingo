@@ -39,3 +39,7 @@ export const env: Env = {
 
 export const isProduction = env.NODE_ENV === 'production';
 export const isDevelopment = env.NODE_ENV === 'development';
+
+if (isProduction && (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'your_jwt_secret_key')) {
+  console.warn('⚠️ [BẢO MẬT]: JWT_SECRET đang dùng khóa mặc định trong production! Vui lòng thiết lập biến môi trường JWT_SECRET ngẫu nhiên bảo mật khi deploy.');
+}

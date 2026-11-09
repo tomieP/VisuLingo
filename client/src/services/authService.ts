@@ -88,44 +88,6 @@ export async function loginUser(data: LoginRequest): Promise<AuthResponse> {
 
     return { token: res.data.token, user };
   } catch (err: any) {
-    // Admin offline fallback
-    if (normEmail === 'admin@visulingo.com' && data.password === 'password123') {
-      const mockToken = 'mock_admin_token_' + Date.now();
-      const adminUser: User = {
-        id: '00000000-0000-0000-0000-000000000001',
-        email: 'admin@visulingo.com',
-        firstName: 'Quản trị viên VisuLingo',
-        lastName: '',
-        username: 'admin',
-        role: 'admin',
-      };
-      localStorage.setItem(STORAGE_TOKEN_KEY, mockToken);
-      localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(adminUser));
-      localStorage.setItem(STORAGE_USERNAME_KEY, 'admin');
-      window.dispatchEvent(new Event('visulingo_auth_changed'));
-      return { token: mockToken, user: adminUser };
-    }
-
-    // Database offline fallback (e.g. ECONNREFUSED or server unavailable)
-    const errCode = err?.response?.data?.code || err?.code;
-    const isDbOffline = errCode === 'ECONNREFUSED' || !err?.response || err?.response?.status >= 500;
-    if (isDbOffline) {
-      const mockToken = 'mock_jwt_session_' + Date.now();
-      const fallbackUser: User = {
-        id: crypto.randomUUID(),
-        email: normEmail,
-        firstName: normEmail.split('@')[0],
-        lastName: '',
-        username: normEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, '') || 'snapper',
-        role: normEmail.includes('admin') ? 'admin' : 'user',
-      };
-      localStorage.setItem(STORAGE_TOKEN_KEY, mockToken);
-      localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(fallbackUser));
-      localStorage.setItem(STORAGE_USERNAME_KEY, fallbackUser.username || 'snapper');
-      window.dispatchEvent(new Event('visulingo_auth_changed'));
-      return { token: mockToken, user: fallbackUser };
-    }
-
     throw err;
   }
 }
@@ -175,35 +137,6 @@ export async function registerUser(data: RegisterRequest): Promise<AuthResponse>
     if (err?.response?.status === 409 || err?.response?.data?.code === 'EMAIL_EXISTS') {
       throw new Error('Email này đã được đăng ký tài khoản. Vui lòng đăng nhập hoặc dùng email khác.');
     }
-
-    // Database offline fallback (e.g. ECONNREFUSED or server 500)
-    const errCode = err?.response?.data?.code || err?.code;
-    const isDbOffline = errCode === 'ECONNREFUSED' || !err?.response || err?.response?.status >= 500;
-    if (isDbOffline) {
-      saveRegisteredAccount({
-        email: normEmail,
-        username: cleanUsername || 'snapper',
-        displayName,
-        createdAt: new Date().toISOString(),
-      });
-
-      const mockToken = 'mock_jwt_registered_' + Date.now();
-      const newUser: User = {
-        id: crypto.randomUUID(),
-        email: normEmail,
-        firstName: data.firstName || normEmail.split('@')[0],
-        lastName: data.lastName || '',
-        username: cleanUsername || 'snapper',
-        role: 'user',
-      };
-      localStorage.setItem(STORAGE_TOKEN_KEY, mockToken);
-      localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(newUser));
-      localStorage.setItem(STORAGE_USERNAME_KEY, cleanUsername || 'snapper');
-      localStorage.setItem('visulingo_display_name', displayName);
-      window.dispatchEvent(new Event('visulingo_auth_changed'));
-      return { token: mockToken, user: newUser };
-    }
-
     throw err;
   }
 }

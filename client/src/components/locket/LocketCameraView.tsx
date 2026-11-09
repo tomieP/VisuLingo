@@ -1,16 +1,17 @@
-import { incrementChallengeProgress } from '@/utils/challenges';
+import { incrementChallengeProgress, getUserXp } from '@/utils/challenges';
 import { enrichVocabTag } from '@/utils/dictionary';
 import { useState, useRef, useEffect, DragEvent, ChangeEvent } from 'react';
-import { Camera, Eye, EyeOff, Upload, Sparkles, Send, RefreshCw, FolderPlus, Bookmark, VideoOff, Palette } from 'lucide-react';
+import { Camera, Eye, EyeOff, Upload, Sparkles, Send, RefreshCw, FolderPlus, Bookmark, VideoOff, Palette, Lock } from 'lucide-react';
 import { useDetection } from '@/hooks/useDetection';
 import { DetectionResponse } from '@/types/detection';
 import { LocketSticker } from './LocketSticker';
-import { addMoment, VocabTag } from '@/utils/moments';
+import { addMoment, VocabTag, getMoments, isFakeMoment } from '@/utils/moments';
 import { getAlbums, savePhotoToAlbum, Album } from '@/utils/albums';
 import { CreateAlbumModal } from './CreateAlbumModal';
 import { getCurrentUser } from '@/services/authService';
-import { TAG_THEMES, TagThemeId, getActiveTagThemeId, getTagThemeById } from '@/utils/tagThemes';
+import { TAG_THEMES, TagThemeId, getActiveTagThemeId, getTagThemeById, isTagThemeUnlocked, isUserSnapBoostVip } from '@/utils/tagThemes';
 import { TagSkinModal } from './TagSkinModal';
+import { getUserStreak, getSavedWords } from '@/utils/storage';
 
 interface LocketCameraViewProps {
   onMomentShared?: () => void;
@@ -28,6 +29,16 @@ export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
   const [showCreateAlbum, setShowCreateAlbum] = useState<boolean>(false);
   const [selectedSnapThemeId, setSelectedSnapThemeId] = useState<TagThemeId>(getActiveTagThemeId());
   const [isTagSkinOpen, setIsTagSkinOpen] = useState<boolean>(false);
+
+  // Compute live user stats for theme access control
+  const userStats = {
+    snaps: getMoments().filter((m) => !isFakeMoment(m)).length,
+    streak: getUserStreak(),
+    words: getSavedWords().length,
+    listen: parseInt(localStorage.getItem('visulingo_listen_count') || '0', 10),
+    xp: getUserXp(),
+    isVip: isUserSnapBoostVip(),
+  };
 
   // Live Camera Stream State
   const [isLiveCamera, setIsLiveCamera] = useState<boolean>(false);
@@ -189,7 +200,10 @@ const getMeaningForWord = (word: string) => {
     if (!imageUrl || !detectionResult) return;
     setIsSharing(true);
 
-    // Map detected objects into Locket Vocab Tags with Vietnamese meanings and chosen theme
+    const chosenTheme = getTagThemeById(selectedSnapThemeId);
+    const finalThemeId: TagThemeId = isTagThemeUnlocked(chosenTheme, userStats) ? selectedSnapThemeId : 'classic';
+
+    // Map detected objects into Locket Vocab Tags with Vietnamese meanings and verified unlocked theme
     const vocabTags: VocabTag[] = detectionResult.objects.map((obj) => ({
       id: obj.id,
       word: obj.label,
@@ -197,7 +211,7 @@ const getMeaningForWord = (word: string) => {
       ipa: obj.ipa || getIpaForWord(obj.label),
       example: obj.exampleSentence || '',
       confidence: obj.confidence,
-      themeId: selectedSnapThemeId,
+      themeId: finalThemeId,
       x: Math.round((obj.boundingBox.x + obj.boundingBox.w / 2) * 100),
       y: Math.round((obj.boundingBox.y + obj.boundingBox.h / 2) * 100),
     }));
@@ -211,7 +225,7 @@ const getMeaningForWord = (word: string) => {
       },
       caption: caption.trim() || 'Snap học từ mới của tôi ✨',
       imageUrl,
-      tagThemeId: selectedSnapThemeId,
+      tagThemeId: finalThemeId,
       vocabTags,
     });
 
@@ -472,22 +486,33 @@ const getMeaningForWord = (word: string) => {
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
               {TAG_THEMES.map((t) => {
                 const isSelected = selectedSnapThemeId === t.id;
+                const isUnlocked = isTagThemeUnlocked(t, userStats);
                 return (
                   <button
                     key={t.id}
                     type="button"
-                    onClick={() => setSelectedSnapThemeId(t.id)}
+                    onClick={() => {
+                      if (!isUnlocked) {
+                        setIsTagSkinOpen(true);
+                      } else {
+                        setSelectedSnapThemeId(t.id);
+                      }
+                    }}
                     className={`px-3 py-1.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
                       isSelected
                         ? 'bg-amber-400 text-slate-950 font-bold shadow-md shadow-amber-400/20 scale-102 ring-2 ring-amber-300'
-                        : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
+                        : isUnlocked
+                        ? 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
+                        : 'bg-white/3 border border-white/5 text-slate-500 hover:border-amber-400/30 hover:text-slate-300'
                     }`}
+                    title={isUnlocked ? t.name : `${t.name} (Chưa mở khóa - bấm để xem chi tiết)`}
                   >
                     <span
                       className="w-2.5 h-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: t.accentColor }}
                     />
                     <span>{t.name.split('(')[0].trim()}</span>
+                    {!isUnlocked && <Lock className="w-2.5 h-2.5 text-amber-400/70" />}
                     {t.frameStyle && (
                       <span className="text-[9px] px-1 rounded bg-purple-500/20 text-purple-300">
                         🎨

@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { X, Sparkles, Check, Lock, Crown, Zap, Volume2 } from 'lucide-react';
+import { X, Sparkles, Check, Lock, Crown, Volume2 } from 'lucide-react';
 import {
   TAG_THEMES,
   TagThemeId,
   getActiveTagThemeId,
   setActiveTagThemeId,
   isUserSnapBoostVip,
-  toggleSnapBoostVip,
   isTagThemeUnlocked,
   purchaseThemeWithXp,
 } from '@/utils/tagThemes';
@@ -81,13 +80,12 @@ export function TagSkinModal({ isOpen, onClose }: TagSkinModalProps) {
 
   const previewTheme = TAG_THEMES.find((t) => t.id === previewThemeId) || TAG_THEMES[0];
 
-  const handleToggleVip = () => {
-    const next = toggleSnapBoostVip();
-    setIsVip(next);
-    showToast(next ? 'Đã kích hoạt Gói SnapBoost VIP ✨' : 'Đã tắt Gói SnapBoost VIP');
-  };
-
   const handleEquip = (themeId: TagThemeId) => {
+    const targetTheme = TAG_THEMES.find((t) => t.id === themeId);
+    if (!targetTheme || !isTagThemeUnlocked(targetTheme, stats)) {
+      showToast('Ngoại trang này chưa được mở khóa!');
+      return;
+    }
     setActiveTagThemeId(themeId);
     setActiveThemeIdState(themeId);
     showToast('Đã trang bị ngoại trang nhãn thành công!');
@@ -164,25 +162,10 @@ export function TagSkinModal({ isOpen, onClose }: TagSkinModalProps) {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
+              <div className="text-right">
                 <span className="text-[10px] text-slate-400 block font-bold">Số dư tích lũy</span>
                 <span className="text-xs font-black text-amber-300 font-mono">+{userXp} XP</span>
               </div>
-
-              {/* VIP Quick Switch Toggle */}
-              <button
-                type="button"
-                onClick={handleToggleVip}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer shadow-md flex items-center gap-1.5 ${
-                  isVip
-                    ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-amber-400/20'
-                    : 'bg-white/10 hover:bg-white/15 text-slate-300 border border-white/15'
-                }`}
-                title="Bấm để bật/tắt quyền SnapBoost VIP để trải nghiệm"
-              >
-                <Zap className="w-3.5 h-3.5" />
-                <span>{isVip ? 'VIP Bật' : 'Kích hoạt VIP'}</span>
-              </button>
             </div>
           </div>
 

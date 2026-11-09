@@ -145,20 +145,6 @@ function LoginPage() {
               <span>{isLoading ? 'Đang đăng nhập...' : 'Đăng nhập ngay'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
-
-            {/* Quick Admin Autofill */}
-            <div className="pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('admin@visulingo.com');
-                  setPassword('password123');
-                }}
-                className="w-full py-2 px-3 rounded-xl bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/20 text-xs font-bold text-amber-300 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <span>⚡ Điền nhanh tài khoản Admin</span>
-              </button>
-            </div>
           </form>
 
           {/* Bottom link to Register */}

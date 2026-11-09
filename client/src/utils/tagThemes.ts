@@ -241,7 +241,6 @@ export const TAG_THEMES: TagTheme[] = [
 ];
 
 const ACTIVE_THEME_KEY = 'visulingo_active_tag_theme';
-const SNAPBOOST_VIP_KEY = 'visulingo_snapboost_vip';
 const PURCHASED_THEMES_KEY = 'visulingo_purchased_tag_themes';
 
 export function getActiveTagThemeId(): TagThemeId {
@@ -269,21 +268,17 @@ export function setActiveTagThemeId(themeId: TagThemeId): void {
 
 export function isUserSnapBoostVip(): boolean {
   try {
-    return localStorage.getItem(SNAPBOOST_VIP_KEY) === 'true';
+    const rawUser = localStorage.getItem('visulingo_user');
+    if (rawUser) {
+      const u = JSON.parse(rawUser);
+      if (u.role === 'vip' || u.role === 'admin' || u.isVip === true) {
+        return true;
+      }
+    }
+    return false;
   } catch {
     return false;
   }
-}
-
-export function setSnapBoostVip(enabled: boolean): void {
-  localStorage.setItem(SNAPBOOST_VIP_KEY, enabled ? 'true' : 'false');
-  window.dispatchEvent(new Event('visulingo_snapboost_changed'));
-}
-
-export function toggleSnapBoostVip(): boolean {
-  const next = !isUserSnapBoostVip();
-  setSnapBoostVip(next);
-  return next;
 }
 
 export function getPurchasedThemeIds(): string[] {

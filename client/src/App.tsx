@@ -42,6 +42,24 @@ function PublicAuthRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState(getCurrentUser());
+
+  useEffect(() => {
+    const handleAuthChange = () => setUser(getCurrentUser());
+    window.addEventListener('visulingo_auth_changed', handleAuthChange);
+    return () => window.removeEventListener('visulingo_auth_changed', handleAuthChange);
+  }, []);
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  if (user.role !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
+
 function App() {
   return (
     <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#0B0F17] text-white font-medium">Loading...</div>}>
@@ -51,7 +69,7 @@ function App() {
         <Route path="/explore" element={<ProtectedRoute><ExplorePage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+        <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
 
         <Route path="/login" element={<PublicAuthRoute><LoginPage /></PublicAuthRoute>} />
         <Route path="/register" element={<PublicAuthRoute><RegisterPage /></PublicAuthRoute>} />

@@ -5,6 +5,41 @@ const STORAGE_USER_KEY = 'visulingo_user';
 const STORAGE_TOKEN_KEY = 'visulingo_token';
 const STORAGE_USERNAME_KEY = 'visulingo_username';
 const STORAGE_REGISTERED_ACCOUNTS_KEY = 'visulingo_registered_accounts';
+const STORAGE_LOCAL_CREDENTIALS_KEY = 'visulingo_local_credentials';
+
+interface LocalAccountRecord {
+  id: string;
+  email: string;
+  passwordHash: string;
+  displayName: string;
+  username: string;
+  role: 'user' | 'admin';
+  createdAt: string;
+}
+
+function getLocalCredentials(): LocalAccountRecord[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_LOCAL_CREDENTIALS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalCredential(record: LocalAccountRecord): void {
+  const list = getLocalCredentials();
+  const filtered = list.filter((a) => a.email.toLowerCase() !== record.email.toLowerCase());
+  filtered.push(record);
+  localStorage.setItem(STORAGE_LOCAL_CREDENTIALS_KEY, JSON.stringify(filtered));
+}
+
+function hashLocalPassword(pw: string): string {
+  try {
+    return btoa(unescape(encodeURIComponent(pw + '_vl_salt_2026')));
+  } catch {
+    return pw + '_vl_salt_2026';
+  }
+}
 
 export interface RegisteredAccount {
   email: string;
@@ -88,6 +123,44 @@ export async function loginUser(data: LoginRequest): Promise<AuthResponse> {
 
     return { token: res.data.token, user };
   } catch (err: any) {
+    // Nếu backend chưa triển khai hoặc 404 (do chỉ deploy frontend tĩnh Vercel)
+    const isServerUnavailable =
+      !err.response ||
+      err.response.status === 404 ||
+      err.response.status >= 500 ||
+      err.code === 'ERR_NETWORK' ||
+      typeof err.response?.data === 'string';
+
+    if (isServerUnavailable) {
+      const localUsers = getLocalCredentials();
+      const userMatch = localUsers.find((u) => u.email.toLowerCase() === normEmail);
+      if (userMatch) {
+        if (userMatch.passwordHash === hashLocalPassword(data.password)) {
+          const localToken = `visulingo_local_token_${Date.now()}_${userMatch.id}`;
+          const user: User = {
+            id: userMatch.id,
+            email: userMatch.email,
+            firstName: userMatch.displayName || userMatch.email.split('@')[0],
+            lastName: '',
+            username: userMatch.username,
+            role: userMatch.role,
+          };
+          localStorage.setItem(STORAGE_TOKEN_KEY, localToken);
+          localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
+          localStorage.setItem(STORAGE_USERNAME_KEY, userMatch.username);
+          window.dispatchEvent(new Event('visulingo_auth_changed'));
+          return { token: localToken, user };
+        } else {
+          throw new Error('Mật khẩu không chính xác.');
+        }
+      } else {
+        throw new Error('Tài khoản chưa được đăng ký trên thiết bị này. Vui lòng bấm Đăng ký trước.');
+      }
+    }
+
+    if (err?.response?.data?.message) {
+      throw new Error(err.response.data.message);
+    }
     throw err;
   }
 }
@@ -136,6 +209,41 @@ export async function registerUser(data: RegisterRequest): Promise<AuthResponse>
     // Nếu backend báo trùng lặp Email (409 Conflict)
     if (err?.response?.status === 409 || err?.response?.data?.code === 'EMAIL_EXISTS') {
       throw new Error('Email này đã được đăng ký tài khoản. Vui lòng đăng nhập hoặc dùng email khác.');
+    }
+
+    // Nếu server backend chưa bật (404 trên Vercel hoặc lỗi mạng) -> Tự động lưu tài khoản an toàn trên máy
+    const isServerUnavailable =
+      !err.response ||
+      err.response.status === 404 ||
+      err.response.status >= 500 ||
+      err.code === 'ERR_NETWORK' ||
+      typeof err.response?.data === 'string';
+
+    if (isServerUnavailable) {
+      const localId = `user_${Date.now()}`;
+      const localRecord: LocalAccountRecord = {
+        id: localId,
+        email: normEmail,
+        passwordHash: hashLocalPassword(data.password),
+        displayName,
+        username: cleanUsername || 'snapper',
+        role: 'user',
+        createdAt: new Date().toISOString(),
+      };
+      saveLocalCredential(localRecord);
+
+      saveRegisteredAccount({
+        email: normEmail,
+        username: cleanUsername || 'snapper',
+        displayName,
+        createdAt: new Date().toISOString(),
+      });
+
+      return await loginUser({ email: normEmail, password: data.password });
+    }
+
+    if (err?.response?.data?.message) {
+      throw new Error(err.response.data.message);
     }
     throw err;
   }

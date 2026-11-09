@@ -1,7 +1,7 @@
 import { incrementChallengeProgress, getUserXp } from '@/utils/challenges';
 import { enrichVocabTag } from '@/utils/dictionary';
 import { useState, useRef, useEffect, DragEvent, ChangeEvent } from 'react';
-import { Camera, Eye, EyeOff, Upload, Sparkles, Send, RefreshCw, FolderPlus, Bookmark, VideoOff, Palette, Lock } from 'lucide-react';
+import { Camera, Eye, EyeOff, Upload, Sparkles, Send, RefreshCw, FolderPlus, Bookmark, VideoOff, Palette, Lock, SwitchCamera, Smartphone } from 'lucide-react';
 import { useDetection } from '@/hooks/useDetection';
 import { DetectionResponse } from '@/types/detection';
 import { LocketSticker } from './LocketSticker';
@@ -42,8 +42,20 @@ export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
 
   // Live Camera Stream State
   const [isLiveCamera, setIsLiveCamera] = useState<boolean>(false);
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Re-attach stream to video element when it mounts or mode changes
+  useEffect(() => {
+    if (isLiveCamera && videoRef.current && streamRef.current) {
+      const video = videoRef.current;
+      video.srcObject = streamRef.current;
+      video.onloadedmetadata = () => {
+        video.play().catch((err) => console.warn('Video play warning:', err));
+      };
+    }
+  }, [isLiveCamera, facingMode]);
 
   useEffect(() => {
     setAlbums(getAlbums());
@@ -88,30 +100,61 @@ export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
     });
   };
 
-  const startLiveCamera = async () => {
+  const startLiveCamera = async (mode = facingMode) => {
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
-        alert('Trình duyệt của bạn không hỗ trợ mở camera trực tiếp.');
+        alert('Trình duyệt của bạn không hỗ trợ mở camera trực tiếp. Vui lòng bấm "Camera máy".');
         return;
       }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
+
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+
+      let stream: MediaStream;
+      try {
+        // Ưu tiên độ phân giải màn hình dọc trên điện thoại
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: mode,
+            width: { ideal: 1080 },
+            height: { ideal: 1920 },
+          },
+          audio: false,
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: mode },
+          audio: false,
+        });
+      }
+
       streamRef.current = stream;
+      setIsLiveCamera(true);
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(() => {});
       }
-      setIsLiveCamera(true);
     } catch (err) {
       console.error(err);
-      alert('Không thể mở camera. Vui lòng cấp quyền truy cập Camera hoặc chọn ảnh từ máy.');
+      alert('Không thể mở camera. Vui lòng cấp quyền truy cập Camera hoặc bấm "Camera máy".');
     }
+  };
+
+  const toggleCameraFacing = () => {
+    const nextMode = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(nextMode);
+    startLiveCamera(nextMode);
   };
 
   const stopLiveCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
     setIsLiveCamera(false);
   };
@@ -120,10 +163,16 @@ export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
     if (!videoRef.current) return;
     const video = videoRef.current;
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    canvas.width = video.videoWidth || 720;
+    canvas.height = video.videoHeight || 1280;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    // Flip horizontally if front camera (selfie mirror)
+    if (facingMode === 'user') {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     canvas.toBlob((blob) => {
@@ -131,7 +180,7 @@ export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
       const file = new File([blob], 'camera-snap.jpg', { type: 'image/jpeg' });
       stopLiveCamera();
       handleProcessFile(file);
-    }, 'image/jpeg', 0.9);
+    }, 'image/jpeg', 0.92);
   };
 
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
@@ -238,10 +287,12 @@ const getMeaningForWord = (word: string) => {
   };
 
   return (
-    <div className="max-w-md mx-auto space-y-4 pb-20">
-      {/* Viewfinder Window (Polaroid / Locket style) */}
+    <div className="max-w-md mx-auto space-y-3.5 pb-24 px-1 sm:px-0">
+      {/* Viewfinder Window (Polaroid / Locket mobile camera style) */}
       <div
-        className="relative bg-[#161D2B] border-2 border-white/15 rounded-[36px] overflow-hidden shadow-2xl aspect-4/3 sm:aspect-square flex flex-col items-center justify-center p-3 text-white"
+        className={`relative bg-[#161D2B] border-2 border-white/15 rounded-[32px] sm:rounded-[36px] overflow-hidden shadow-2xl aspect-[3/4] sm:aspect-square flex flex-col items-center justify-center text-white transition-all ${
+          imageUrl || isLiveCamera ? 'p-0' : 'p-4 sm:p-6'
+        }`}
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
       >
@@ -263,7 +314,7 @@ const getMeaningForWord = (word: string) => {
 
         {/* 1. Captured / Selected Photo State */}
         {imageUrl ? (
-          <div className="relative w-full h-full rounded-[28px] overflow-hidden bg-black flex items-center justify-center">
+          <div className="relative w-full h-full overflow-hidden bg-black flex items-center justify-center">
             <img src={imageUrl} alt="Khoảnh khắc" className="w-full h-full object-cover select-none" />
 
             {/* Scanning animation overlay when analyzing */}
@@ -348,7 +399,7 @@ const getMeaningForWord = (word: string) => {
                 setImageUrl(null);
                 setDetectionResult(null);
               }}
-              className="absolute top-3 right-3 p-2 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-black/90 transition-colors shadow-lg"
+              className="absolute top-3 right-3 p-2 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-black/90 transition-colors shadow-lg active:scale-95"
               title="Chụp lại"
             >
               <RefreshCw className="w-4 h-4" />
@@ -356,60 +407,81 @@ const getMeaningForWord = (word: string) => {
           </div>
         ) : isLiveCamera ? (
           /* 2. Live Camera Viewfinder State */
-          <div className="relative w-full h-full rounded-[28px] overflow-hidden bg-black flex items-center justify-center">
+          <div className="relative w-full h-full overflow-hidden bg-black flex items-center justify-center">
             <video
               ref={videoRef}
               autoPlay
               playsInline
+              webkit-playsinline="true"
               muted
-              className="w-full h-full object-cover"
+              className={`w-full h-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
             />
 
-            {/* Floating Live Shutter Controls */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />
+            {/* Floating Live Shutter Controls & Gradient */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/40 pointer-events-none" />
 
-            {/* Stop camera button */}
-            <button
-              type="button"
-              onClick={stopLiveCamera}
-              className="absolute top-3 right-3 p-2 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-black/90 transition-colors shadow-lg pointer-events-auto"
-              title="Tắt Camera"
-            >
-              <VideoOff className="w-4 h-4" />
-            </button>
+            {/* Top Bar: Live indicator + Stop button */}
+            <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-auto z-20">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-amber-300 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                <span>Live Camera</span>
+              </span>
+              <button
+                type="button"
+                onClick={stopLiveCamera}
+                className="p-2 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-black/90 transition-colors shadow-lg active:scale-90"
+                title="Tắt Camera"
+              >
+                <VideoOff className="w-4 h-4" />
+              </button>
+            </div>
 
-            {/* Big Circular Camera Shutter Button */}
-            <div className="absolute bottom-4 inset-x-0 flex items-center justify-center pointer-events-auto">
+            {/* Bottom Controls: Shutter Button + Flip Camera */}
+            <div className="absolute bottom-5 inset-x-5 flex items-center justify-between pointer-events-auto z-20">
+              {/* Spacer on left */}
+              <div className="w-12 h-12" />
+
+              {/* Big Circular Camera Shutter Button */}
               <button
                 type="button"
                 onClick={handleCaptureFromVideo}
-                className="w-16 h-16 rounded-full border-4 border-white/90 p-1 flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all group"
+                className="w-18 h-18 rounded-full border-4 border-white p-1 flex items-center justify-center shadow-2xl hover:scale-105 active:scale-90 transition-all group cursor-pointer"
                 title="Bấm để chụp Snap"
               >
-                <div className="w-full h-full rounded-full bg-white group-hover:bg-amber-400 transition-colors shadow-inner" />
+                <div className="w-full h-full rounded-full bg-white group-hover:bg-amber-400 group-active:bg-amber-500 transition-colors shadow-inner" />
+              </button>
+
+              {/* Flip camera front/back */}
+              <button
+                type="button"
+                onClick={toggleCameraFacing}
+                className="w-12 h-12 rounded-full bg-black/60 backdrop-blur-md border border-white/25 text-white hover:bg-black/80 flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+                title="Lật Camera (Trước/Sau)"
+              >
+                <SwitchCamera className="w-5 h-5 text-amber-400" />
               </button>
             </div>
           </div>
         ) : (
           /* 3. Empty Camera Start Screen */
-          <div className="text-center p-6 space-y-4">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-400 to-amber-500 text-slate-950 flex items-center justify-center mx-auto shadow-xl shadow-amber-400/20">
-              <Camera className="w-10 h-10" />
+          <div className="text-center p-4 sm:p-6 space-y-3.5 max-w-xs">
+            <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-amber-400 to-amber-500 text-slate-950 flex items-center justify-center mx-auto shadow-xl shadow-amber-400/20">
+              <Camera className="w-9 h-9 sm:w-10 sm:h-10" />
             </div>
 
             <div>
-              <h3 className="text-lg font-extrabold tracking-tight">Chụp Snap xung quanh bạn</h3>
-              <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+              <h3 className="text-base sm:text-lg font-extrabold tracking-tight">Chụp Snap xung quanh bạn</h3>
+              <p className="text-xs text-slate-400 mt-1">
                 Mở camera trực tiếp hoặc chọn ảnh đồ vật để AI tự động dán nhãn từ vựng!
               </p>
             </div>
 
             {/* Action buttons */}
-            <div className="flex items-center justify-center gap-2.5 pt-1 flex-wrap">
+            <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
               <button
                 type="button"
-                onClick={startLiveCamera}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-lg shadow-amber-400/20 transition-all hover:scale-105"
+                onClick={() => startLiveCamera()}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-bold text-xs shadow-lg shadow-amber-400/25 transition-all hover:scale-105 active:scale-95"
               >
                 <Camera className="w-4 h-4" />
                 <span>Bật Live Camera</span>
@@ -417,11 +489,21 @@ const getMeaningForWord = (word: string) => {
 
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/10 transition-colors"
+                onClick={() => cameraInputRef.current?.click()}
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/15 transition-colors active:scale-95"
+                title="Mở ứng dụng Camera gốc của máy"
               >
-                <Upload className="w-4 h-4 text-slate-300" />
-                <span>Tải ảnh lên</span>
+                <Smartphone className="w-4 h-4 text-amber-300" />
+                <span>Camera máy</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-full bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white font-semibold text-xs border border-white/10 transition-colors active:scale-95"
+              >
+                <Upload className="w-4 h-4 text-slate-400" />
+                <span>Thư viện</span>
               </button>
             </div>
           </div>

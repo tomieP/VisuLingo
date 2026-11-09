@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Flame, Camera, Settings as SettingsIcon, X, MessageSquare } from 'lucide-react';
+import { Flame, Camera, Settings as SettingsIcon, X, MessageSquare, Download } from 'lucide-react';
+import { InstallAppModal } from '@/components/common/InstallAppModal';
 import { TagSkinModal } from '@/components/locket/TagSkinModal';
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { LocketBottomBar, LocketTab } from '@/components/locket/LocketBottomBar';
@@ -47,6 +48,7 @@ function HomePage() {
   const [isTagSkinOpen, setIsTagSkinOpen] = useState<boolean>(false);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [chatFriendId, setChatFriendId] = useState<string | null>(null);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState<boolean>(false);
 
   const loadData = () => {
     setMoments(getMoments());
@@ -153,6 +155,17 @@ function HomePage() {
 
           {/* Header Action Row: Pure, spacious Locket style */}
           <div className="flex items-center gap-2">
+            {/* 0. Tải App button */}
+            <button
+              type="button"
+              onClick={() => setIsInstallModalOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/40 text-xs font-bold text-amber-300 transition-all cursor-pointer group shadow-sm shadow-amber-400/10"
+              title="Tải ứng dụng về màn hình chính"
+            >
+              <Download className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+              <span>Tải App</span>
+            </button>
+
             {/* 1. Streak flame badge */}
             <button
               type="button"
@@ -368,6 +381,12 @@ function HomePage() {
           setChatFriendId(null);
         }}
         initialFriendId={chatFriendId}
+      />
+
+      {/* PWA Install App Modal for iOS & Android */}
+      <InstallAppModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
       />
     </div>
   );

@@ -152,43 +152,41 @@ function HomePage() {
       {/* Top Header */}
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#0B0F17]/85 border-b border-white/5 py-2.5 px-4 sm:px-6">
         <div className="max-w-md mx-auto flex items-center justify-between">
-          {/* Logo & Vibe */}
-          <VisuLingoLogo size="sm" />
+          {/* Logo (Clean & compact, no bulky badge) */}
+          <VisuLingoLogo size="sm" showBadge={false} />
 
-          {/* Header Action Row */}
-          <div className="flex items-center gap-2">
-            {/* SnapBoost VIP Button */}
+          {/* Header Action Row: Clean, uniform visual rhythm */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* 1. SnapBoost VIP (Sleek glowing bolt, zero text clutter) */}
             <button
               type="button"
               onClick={() => setIsTagSkinOpen(true)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black transition-all cursor-pointer group shadow-sm ${
+              className={`p-2 rounded-full transition-all cursor-pointer relative group ${
                 isVip
-                  ? 'bg-gradient-to-r from-amber-400/25 to-yellow-400/20 border border-amber-400/40 text-amber-300 shadow-amber-400/20'
-                  : 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-200 hover:border-purple-400/50'
+                  ? 'bg-amber-400/20 border border-amber-400/40 text-amber-300 shadow-md shadow-amber-400/25 hover:scale-105'
+                  : 'bg-white/5 hover:bg-white/10 border border-white/10 text-amber-400 hover:scale-105'
               }`}
-              title="Gói SnapBoost & Cửa Hàng Ngoại Trang Nhãn"
+              title="SnapBoost VIP • Ngoại trang nhãn từ vựng"
             >
-              <Zap className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform fill-amber-400" />
-              <span>SnapBoost</span>
+              <Zap className="w-4 h-4 fill-amber-400 text-amber-400 group-hover:scale-110 transition-transform" />
             </button>
 
-            {/* 0. Daily Challenges Mission */}
+            {/* 2. Daily Challenges (Clean circular target icon, no text wrap) */}
             <button
               type="button"
               onClick={() => setIsChallengesOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/20 text-xs font-bold text-amber-300 transition-colors cursor-pointer group"
+              className="p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-amber-400 transition-all cursor-pointer group"
               title="Nhiệm vụ hằng ngày & Tích lũy XP"
             >
-              <Target className="w-3.5 h-3.5 text-amber-400 group-hover:rotate-45 transition-transform" />
-              <span className="hidden sm:inline">Nhiệm vụ</span>
+              <Target className="w-4 h-4 text-slate-300 group-hover:text-amber-400 group-hover:rotate-45 transition-transform" />
             </button>
 
-            {/* 1. Streak flame badge */}
+            {/* 3. Streak flame badge */}
             <button
               type="button"
               onClick={() => setIsLeaderboardOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/20 text-xs font-bold text-amber-300 transition-colors cursor-pointer group"
-              title="Chuỗi streak của bạn & Bảng xếp hạng"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/20 text-xs font-bold text-amber-300 transition-all cursor-pointer group"
+              title="Chuỗi streak & Bảng xếp hạng"
             >
               <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400 group-hover:scale-110 transition-transform" />
               <span>{userStreak}</span>

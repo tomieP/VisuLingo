@@ -14,6 +14,7 @@ import { getUserXp } from '@/utils/challenges';
 import { getUserStreak, getSavedWords } from '@/utils/storage';
 import { getMoments, isFakeMoment } from '@/utils/moments';
 import { speakWord } from '@/utils/speech';
+import { IllustratedTagFrame } from './IllustratedTagFrame';
 
 interface TagSkinModalProps {
   isOpen: boolean;
@@ -201,10 +202,11 @@ export function TagSkinModal({ isOpen, onClose }: TagSkinModalProps) {
               </span>
 
               {/* The Live Floating Pill */}
-              <div className="flex justify-center">
+              <div className="flex justify-center py-2">
                 <div
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full cursor-pointer transition-all duration-300 shadow-xl backdrop-blur-md ${previewTheme.classes.pill}`}
+                  className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-full cursor-pointer transition-all duration-300 shadow-xl backdrop-blur-md ${previewTheme.classes.pill}`}
                 >
+                  <IllustratedTagFrame frameStyle={previewTheme.frameStyle} />
                   <span className={`w-2.5 h-2.5 rounded-full ${previewTheme.classes.dot}`} />
                   <span className={`text-xs tracking-tight capitalize ${previewTheme.classes.text}`}>
                     Coffee Cup
@@ -319,15 +321,22 @@ export function TagSkinModal({ isOpen, onClose }: TagSkinModalProps) {
                         </span>
                       </div>
 
-                      {t.category === 'snapboost_vip' ? (
-                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                          VIP
-                        </span>
-                      ) : (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300">
-                          FREE
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {t.frameStyle && (
+                          <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-purple-500/25 text-pink-300 border border-purple-500/30">
+                            🎨 Vẽ tay
+                          </span>
+                        )}
+                        {t.category === 'snapboost_vip' ? (
+                          <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                            VIP
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300">
+                            FREE
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <p className="text-[11px] text-slate-400 leading-snug">

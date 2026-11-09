@@ -8,7 +8,12 @@ export type TagThemeId =
   | 'frost_white'
   | 'luxury_gold'
   | 'violet_nitro'
-  | 'ruby_sunset';
+  | 'ruby_sunset'
+  | 'kitty_ribbon'
+  | 'halloween_bat'
+  | 'manga_comic';
+
+export type TagFrameStyle = 'standard' | 'kitty_ribbon' | 'halloween_bat' | 'manga_comic';
 
 export interface TagThemeClasses {
   pill: string;
@@ -26,6 +31,7 @@ export interface TagTheme {
   accentColor: string; // for UI swatches
   glowShadow: string;
   conditionText: string;
+  frameStyle?: TagFrameStyle;
   milestoneType?: 'snaps' | 'streak' | 'words' | 'listen';
   milestoneTarget?: number;
   xpPrice?: number;
@@ -174,6 +180,62 @@ export const TAG_THEMES: TagTheme[] = [
       text: 'text-rose-100 font-extrabold tracking-wide',
       speaker: 'text-rose-300 hover:text-rose-100',
       selectedRing: 'ring-4 ring-rose-400/50',
+    },
+  },
+  {
+    id: 'kitty_ribbon',
+    name: 'Hello Kitty Nơ Ruy-Băng (Vẽ Tay)',
+    description: 'Khung vẽ tay: Tai mèo phác họa đáng yêu & nơ ruy-băng Coquette xinh xắn',
+    category: 'snapboost_vip',
+    frameStyle: 'kitty_ribbon',
+    accentColor: '#f472b6',
+    glowShadow: '0 0 22px rgba(244,114,182,0.65)',
+    conditionText: 'Đặc quyền Gói SnapBoost VIP hoặc đổi 350 XP',
+    xpPrice: 350,
+    classes: {
+      pill: 'bg-pink-950/85 hover:bg-pink-900/90 text-white border-2 border-pink-400/90 shadow-[0_0_20px_rgba(244,114,182,0.6)] backdrop-blur-xl',
+      dot: 'bg-pink-300 shadow-[0_0_10px_#f472b6]',
+      text: 'text-pink-100 font-extrabold tracking-wide',
+      speaker: 'text-pink-300 hover:text-white',
+      selectedRing: 'ring-4 ring-pink-400/50',
+    },
+  },
+  {
+    id: 'halloween_bat',
+    name: 'Halloween Cánh Dơi Gothic (Vẽ Tay)',
+    description: 'Khung vẽ tay: Cánh dơi Gothic dang rộng hai bên & mạng nhện huyền bí',
+    category: 'snapboost_vip',
+    frameStyle: 'halloween_bat',
+    accentColor: '#f97316',
+    glowShadow: '0 0 24px rgba(249,115,22,0.7)',
+    conditionText: 'Đặc quyền Gói SnapBoost VIP hoặc đổi 350 XP',
+    xpPrice: 350,
+    classes: {
+      pill: 'bg-zinc-950/90 hover:bg-black text-white border-2 border-orange-500 shadow-[0_0_22px_rgba(249,115,22,0.7)] backdrop-blur-xl',
+      dot: 'bg-orange-500 shadow-[0_0_10px_#f97316]',
+      text: 'text-orange-200 font-extrabold tracking-wider',
+      speaker: 'text-orange-300 hover:text-white',
+      selectedRing: 'ring-4 ring-orange-500/50',
+    },
+  },
+  {
+    id: 'manga_comic',
+    name: 'Manga Comic Pop-Art (Vẽ Tay)',
+    description: 'Khung vẽ tay: Bóng thoại truyện tranh Nhật Bản với đuôi thoại và nét cọ mực',
+    category: 'free_milestone',
+    milestoneType: 'snaps',
+    milestoneTarget: 8,
+    frameStyle: 'manga_comic',
+    accentColor: '#f59e0b',
+    glowShadow: '3px 3px 0px rgba(0,0,0,1)',
+    conditionText: 'Chụp 8 ảnh Snap thực tế hoặc đổi 200 XP',
+    xpPrice: 200,
+    classes: {
+      pill: 'bg-amber-100 hover:bg-amber-50 text-black border-2 border-black shadow-[3px_3px_0px_#000]',
+      dot: 'bg-black shadow-[0_0_4px_#000]',
+      text: 'text-black font-black tracking-tight uppercase',
+      speaker: 'text-black hover:text-amber-700',
+      selectedRing: 'ring-4 ring-black/40',
     },
   },
 ];

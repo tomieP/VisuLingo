@@ -3,6 +3,7 @@ import { getActiveTagTheme, TagTheme } from '@/utils/tagThemes';
 import { Volume2, Sparkles, Plus, Check } from 'lucide-react';
 import { speakWord } from '@/utils/speech';
 import { saveWord, isWordSaved } from '@/utils/storage';
+import { IllustratedTagFrame } from './IllustratedTagFrame';
 
 interface LocketStickerProps {
   word: string;
@@ -71,12 +72,15 @@ export function LocketSticker({
           setShowPopup(!showPopup);
           onSelect?.();
         }}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full cursor-pointer transition-all duration-300 shadow-xl backdrop-blur-md ${
+        className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full cursor-pointer transition-all duration-300 shadow-xl backdrop-blur-md ${
           isSelected
             ? `${theme.classes.pill} scale-110 ${theme.classes.selectedRing}`
             : `${theme.classes.pill} hover:scale-105`
         }`}
       >
+        {/* Bespoke Hand-drawn Illustrated Vector Frame Decoration */}
+        <IllustratedTagFrame frameStyle={theme.frameStyle} />
+
         {/* Pulsing indicator dot */}
         <span
           className={`w-2 h-2 rounded-full transition-all ${

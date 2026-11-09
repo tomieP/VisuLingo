@@ -26,7 +26,7 @@ export const detectionLimiter = rateLimit({
  */
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isDev ? 20000 : 2000,
+  max: isDev ? 100000 : 2000,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -35,16 +35,16 @@ export const apiLimiter = rateLimit({
     retryable: true,
   },
   keyGenerator: (req) => (req as any).user?.userId || req.ip || 'unknown',
-  skip: (req) => req.path === '/health' || req.path.startsWith('/auth'),
+  skip: (req) => isDev || req.path === '/health' || req.path.startsWith('/auth'),
 });
 
 /**
  * Auth endpoints rate limiter (register / login):
- * 1,000 req / 15 mins in dev, 100 in prod.
+ * Completely skipped in dev mode for smooth testing, 100 req / 15 mins in prod.
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isDev ? 1000 : 100,
+  max: isDev ? 100000 : 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -52,5 +52,6 @@ export const authLimiter = rateLimit({
     message: 'Quá nhiều yêu cầu xác thực. Vui lòng thử lại sau ít phút.',
     retryable: false,
   },
+  skip: () => isDev,
   keyGenerator: (req) => req.ip || 'unknown',
 });

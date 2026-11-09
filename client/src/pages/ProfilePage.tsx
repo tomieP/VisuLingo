@@ -14,6 +14,8 @@ import {
   Volume2,
   Trophy,
   Zap,
+  Target,
+  Sparkles,
 } from 'lucide-react';
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { LocketBottomBar } from '@/components/locket/LocketBottomBar';
@@ -22,6 +24,13 @@ import { getSavedWords, getUserStreak } from '@/utils/storage';
 import { getMoments, MomentPost, deleteMoment, isFakeMoment } from '@/utils/moments';
 import { speakWord } from '@/utils/speech';
 import { getBadges, evaluateBadges, EvaluatedBadge } from '@/utils/badges';
+import {
+  getEvaluatedChallenges,
+  claimChallengeReward,
+  getUserXp,
+  EvaluatedChallenge,
+} from '@/utils/challenges';
+import { getActiveTagTheme } from '@/utils/tagThemes';
 import { getFriends } from '@/utils/friends';
 import { TagSkinModal } from '@/components/locket/TagSkinModal';
 import { isUserSnapBoostVip } from '@/utils/tagThemes';
@@ -33,9 +42,12 @@ function ProfilePage() {
   const userTag = getUserUsername();
   const savedWords = getSavedWords();
   const [moments, setMoments] = useState<MomentPost[]>(getMoments());
-  const [activeTab, setActiveTab] = useState<'snaps' | 'badges'>('snaps');
+  const [activeTab, setActiveTab] = useState<'snaps' | 'missions' | 'badges'>('snaps');
   const [isTagSkinOpen, setIsTagSkinOpen] = useState(false);
   const [isVip, setIsVip] = useState(isUserSnapBoostVip());
+  const [challenges, setChallenges] = useState<EvaluatedChallenge[]>(getEvaluatedChallenges());
+  const [userXp, setUserXp] = useState<number>(getUserXp());
+  const [activeTheme, setActiveTheme] = useState(getActiveTagTheme());
   const [copiedToast, setCopiedToast] = useState(false);
   const userStreak = getUserStreak();
   const userLevel = Math.max(1, Math.floor(savedWords.length / 5) + 1);
@@ -77,11 +89,26 @@ function ProfilePage() {
     window.addEventListener('visulingo_badges_changed', handleBadgesChange);
     const handleVipChange = () => setIsVip(isUserSnapBoostVip());
     window.addEventListener('visulingo_snapboost_changed', handleVipChange);
+
+    const handleChallengesChange = () => {
+      setChallenges(getEvaluatedChallenges());
+      setUserXp(getUserXp());
+    };
+    const handleThemeChange = () => setActiveTheme(getActiveTagTheme());
+
+    window.addEventListener('visulingo_challenges_progress_changed', handleChallengesChange);
+    window.addEventListener('visulingo_challenges_changed', handleChallengesChange);
+    window.addEventListener('visulingo_xp_changed', handleChallengesChange);
+    window.addEventListener('visulingo_tag_theme_changed', handleThemeChange);
     return () => {
       window.removeEventListener('visulingo_avatar_changed', handleAvatarChange);
       window.removeEventListener('visulingo_moments_changed', handleMomentsChange);
       window.removeEventListener('visulingo_badges_changed', handleBadgesChange);
       window.removeEventListener('visulingo_snapboost_changed', handleVipChange);
+      window.removeEventListener('visulingo_challenges_progress_changed', handleChallengesChange);
+      window.removeEventListener('visulingo_challenges_changed', handleChallengesChange);
+      window.removeEventListener('visulingo_xp_changed', handleChallengesChange);
+      window.removeEventListener('visulingo_tag_theme_changed', handleThemeChange);
     };
   }, []);
 
@@ -333,8 +360,37 @@ function ProfilePage() {
           </div>
         </div>
 
+        {/* SnapBoost Studio Access Bar */}
+        <div
+          onClick={() => setIsTagSkinOpen(true)}
+          className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-purple-500/10 to-transparent border border-amber-400/25 hover:border-amber-400/40 transition-all cursor-pointer shadow-md flex items-center justify-between gap-3 group"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-400/20 border border-amber-400/30 text-amber-300 flex items-center justify-center font-black group-hover:scale-105 transition-transform">
+              <Zap className="w-4 h-4 fill-amber-400 text-amber-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-xs text-white">Ngoại Trang Nhãn SnapBoost</span>
+                <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                  {isVip ? 'VIP ✨' : 'Tùy biến'}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400">
+                Đang dùng: <span className="text-amber-300 font-bold">{activeTheme.name}</span>
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="px-3 py-1 rounded-xl bg-amber-400 group-hover:bg-amber-300 text-slate-950 font-black text-xs transition-colors shrink-0 cursor-pointer shadow-xs"
+          >
+            Đổi màu
+          </button>
+        </div>
+
         {/* ========================================================
-            CLEAN 2-TAB SEGMENTED BAR (SNAPS & HUY HIỆU)
+            PROFILE 3-TAB SEGMENTED BAR: SNAPS, MISSIONS, BADGES
         ======================================================== */}
         <div className="p-1 rounded-2xl bg-[#121824]/90 border border-white/10 backdrop-blur-md flex gap-1 shadow-lg">
           <button
@@ -347,7 +403,20 @@ function ProfilePage() {
             }`}
           >
             <Camera className="w-3.5 h-3.5" />
-            <span>Ảnh Snaps của tôi ({myMoments.length})</span>
+            <span>Snaps ({myMoments.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('missions')}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeTab === 'missions'
+                ? 'bg-amber-400 text-slate-950 font-black shadow-md shadow-amber-400/20'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Target className="w-3.5 h-3.5" />
+            <span>Nhiệm vụ ({challenges.filter((c) => c.isCompleted).length}/{challenges.length})</span>
           </button>
 
           <button
@@ -360,9 +429,107 @@ function ProfilePage() {
             }`}
           >
             <Trophy className="w-3.5 h-3.5" />
-            <span>Huy hiệu & Chuỗi học ({badges.filter((b) => b.isUnlocked).length}/{badges.length})</span>
+            <span>Huy hiệu ({badges.filter((b) => b.isUnlocked).length}/{badges.length})</span>
           </button>
         </div>
+
+        {/* ========================================================
+            TAB: NHIỆM VỤ HẰNG NGÀY & TÍCH LŨY XP
+        ======================================================== */}
+        {activeTab === 'missions' && (
+          <div className="space-y-3.5 animate-in fade-in duration-150">
+            {/* Total XP Banner */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-transparent border border-amber-400/30 flex items-center justify-between shadow-md">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300">
+                  <Sparkles className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Kho điểm kinh nghiệm (XP)
+                  </span>
+                  <span className="text-xl font-black text-amber-300 font-mono">
+                    +{userXp} XP
+                  </span>
+                </div>
+              </div>
+              <span className="text-[11px] font-bold text-slate-400">
+                Làm nhiệm vụ nhận XP đổi quà
+              </span>
+            </div>
+
+            {/* Daily Missions List */}
+            <div className="space-y-2.5">
+              {challenges.map((c) => {
+                const canClaim = c.isCompleted && !c.isClaimed;
+                return (
+                  <div
+                    key={c.id}
+                    className={`p-3.5 rounded-2xl border transition-all flex flex-col gap-2.5 ${
+                      c.isClaimed
+                        ? 'bg-[#121824]/50 border-white/5 opacity-70'
+                        : c.isCompleted
+                        ? 'bg-amber-500/10 border-amber-400/40 shadow-md shadow-amber-400/10'
+                        : 'bg-[#161D2B] border-white/10'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl shrink-0">
+                          {c.icon}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-xs text-white">{c.title}</h4>
+                          <p className="text-[11px] text-slate-400 line-clamp-1">{c.description}</p>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0">
+                        {c.isClaimed ? (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            ✓ Đã nhận
+                          </span>
+                        ) : canClaim ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              claimChallengeReward(c.id);
+                              setChallenges(getEvaluatedChallenges());
+                              setUserXp(getUserXp());
+                            }}
+                            className="px-3 py-1 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black transition-all cursor-pointer shadow-md shadow-amber-400/30 animate-pulse"
+                          >
+                            Nhận +{c.rewardXp} XP ✨
+                          </button>
+                        ) : (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                            +{c.rewardXp} XP
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="space-y-1 pt-1">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="text-slate-400">Tiến trình hôm nay</span>
+                        <span className="font-bold text-amber-300 font-mono">
+                          {c.currentCount}/{c.targetCount}
+                        </span>
+                      </div>
+                      <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-amber-400 to-yellow-300 h-full rounded-full transition-all duration-300"
+                          style={{ width: `${c.progressPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ========================================================
             TAB: HUY HIỆU & CHUỖI HỌC (GỒM LỊCH 7 NGÀY + DANH HIỆU)

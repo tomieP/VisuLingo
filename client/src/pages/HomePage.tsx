@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Flame, Camera, Settings as SettingsIcon, X, MessageSquare, Target, Zap } from 'lucide-react';
+import { Flame, Camera, Settings as SettingsIcon, X, MessageSquare } from 'lucide-react';
 import { TagSkinModal } from '@/components/locket/TagSkinModal';
-import { isUserSnapBoostVip } from '@/utils/tagThemes';
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { LocketBottomBar, LocketTab } from '@/components/locket/LocketBottomBar';
 import { LocketFeedCard } from '@/components/locket/LocketFeedCard';
@@ -46,7 +45,6 @@ function HomePage() {
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState<boolean>(false);
   const [isChallengesOpen, setIsChallengesOpen] = useState<boolean>(false);
   const [isTagSkinOpen, setIsTagSkinOpen] = useState<boolean>(false);
-  const [isVip, setIsVip] = useState<boolean>(isUserSnapBoostVip());
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [chatFriendId, setChatFriendId] = useState<string | null>(null);
 
@@ -69,8 +67,7 @@ function HomePage() {
     const handleFriends = () => setFriends(getFriends());
     const handleNotifs = () => setUnreadNotifs(getUnreadNotificationsCount());
     const handleChat = () => setUnreadChat(getTotalUnreadChatCount());
-    const handleVip = () => setIsVip(isUserSnapBoostVip());
-    window.addEventListener('visulingo_snapboost_changed', handleVip);
+
 
     window.addEventListener('visulingo_moments_changed', handleMoments);
     window.addEventListener('visulingo_saved_words_changed', handleSaved);
@@ -85,7 +82,6 @@ function HomePage() {
       window.removeEventListener('visulingo_friends_changed', handleFriends);
       window.removeEventListener('visulingo_notifications_changed', handleNotifs);
       window.removeEventListener('visulingo_chat_changed', handleChat);
-      window.removeEventListener('visulingo_snapboost_changed', handleVip);
     };
   }, []);
 
@@ -155,38 +151,14 @@ function HomePage() {
           {/* Logo (Clean & compact, no bulky badge) */}
           <VisuLingoLogo size="sm" showBadge={false} />
 
-          {/* Header Action Row: Clean, uniform visual rhythm */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* 1. SnapBoost VIP (Sleek glowing bolt, zero text clutter) */}
-            <button
-              type="button"
-              onClick={() => setIsTagSkinOpen(true)}
-              className={`p-2 rounded-full transition-all cursor-pointer relative group ${
-                isVip
-                  ? 'bg-amber-400/20 border border-amber-400/40 text-amber-300 shadow-md shadow-amber-400/25 hover:scale-105'
-                  : 'bg-white/5 hover:bg-white/10 border border-white/10 text-amber-400 hover:scale-105'
-              }`}
-              title="SnapBoost VIP • Ngoại trang nhãn từ vựng"
-            >
-              <Zap className="w-4 h-4 fill-amber-400 text-amber-400 group-hover:scale-110 transition-transform" />
-            </button>
-
-            {/* 2. Daily Challenges (Clean circular target icon, no text wrap) */}
-            <button
-              type="button"
-              onClick={() => setIsChallengesOpen(true)}
-              className="p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-amber-400 transition-all cursor-pointer group"
-              title="Nhiệm vụ hằng ngày & Tích lũy XP"
-            >
-              <Target className="w-4 h-4 text-slate-300 group-hover:text-amber-400 group-hover:rotate-45 transition-transform" />
-            </button>
-
-            {/* 3. Streak flame badge */}
+          {/* Header Action Row: Pure, spacious Locket style */}
+          <div className="flex items-center gap-2">
+            {/* 1. Streak flame badge */}
             <button
               type="button"
               onClick={() => setIsLeaderboardOpen(true)}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/20 text-xs font-bold text-amber-300 transition-all cursor-pointer group"
-              title="Chuỗi streak & Bảng xếp hạng"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/20 text-xs font-bold text-amber-300 transition-all cursor-pointer group"
+              title="Chuỗi streak của bạn & Bảng xếp hạng"
             >
               <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400 group-hover:scale-110 transition-transform" />
               <span>{userStreak}</span>

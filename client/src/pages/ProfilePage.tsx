@@ -25,6 +25,8 @@ import { getMoments, MomentPost, deleteMoment, isFakeMoment } from '@/utils/mome
 import { speakWord } from '@/utils/speech';
 import { getBadges, evaluateBadges, EvaluatedBadge } from '@/utils/badges';
 import { getFriends } from '@/utils/friends';
+import { TagSkinModal } from '@/components/locket/TagSkinModal';
+import { isUserSnapBoostVip } from '@/utils/tagThemes';
 
 
 
@@ -34,6 +36,8 @@ function ProfilePage() {
   const savedWords = getSavedWords();
   const [moments, setMoments] = useState<MomentPost[]>(getMoments());
   const [activeTab, setActiveTab] = useState<'badges' | 'snaps' | 'streak'>('badges');
+  const [isTagSkinOpen, setIsTagSkinOpen] = useState(false);
+  const [isVip, setIsVip] = useState(isUserSnapBoostVip());
   const [copiedToast, setCopiedToast] = useState(false);
   const userStreak = getUserStreak();
   const userLevel = Math.max(1, Math.floor(savedWords.length / 5) + 1);
@@ -73,10 +77,13 @@ function ProfilePage() {
     window.addEventListener('visulingo_moments_changed', handleMomentsChange);
     const handleBadgesChange = () => setMoments(getMoments());
     window.addEventListener('visulingo_badges_changed', handleBadgesChange);
+    const handleVipChange = () => setIsVip(isUserSnapBoostVip());
+    window.addEventListener('visulingo_snapboost_changed', handleVipChange);
     return () => {
       window.removeEventListener('visulingo_avatar_changed', handleAvatarChange);
       window.removeEventListener('visulingo_moments_changed', handleMomentsChange);
       window.removeEventListener('visulingo_badges_changed', handleBadgesChange);
+      window.removeEventListener('visulingo_snapboost_changed', handleVipChange);
     };
   }, []);
 
@@ -320,6 +327,35 @@ function ProfilePage() {
               <span>Chia sẻ</span>
             </button>
           </div>
+        </div>
+
+        {/* SnapBoost VIP Banner Card */}
+        <div
+          onClick={() => setIsTagSkinOpen(true)}
+          className="p-4 rounded-3xl bg-gradient-to-r from-amber-500/15 via-purple-500/10 to-transparent border border-amber-400/30 hover:border-amber-400/50 transition-all cursor-pointer shadow-lg flex items-center justify-between gap-3 group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center font-black shadow-md shadow-amber-500/30 group-hover:scale-105 transition-transform">
+              <Zap className="w-5 h-5 fill-slate-950" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-black text-sm text-white">Gói SnapBoost VIP</span>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40">
+                  {isVip ? 'Đang kích hoạt ✨' : 'Mở ngay'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Tùy biến ngoại trang màu nhãn từ vựng & hiệu ứng phát quang
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="px-3 py-1.5 rounded-xl bg-amber-400 group-hover:bg-amber-300 text-slate-950 font-black text-xs transition-colors shrink-0 shadow-md cursor-pointer"
+          >
+            Khám phá
+          </button>
         </div>
 
         {/* ========================================================
@@ -574,6 +610,12 @@ function ProfilePage() {
         onTabChange={() => {}}
         savedCount={savedWords.length}
       />
+      {/* Tag Skin Modal */}
+      <TagSkinModal
+        isOpen={isTagSkinOpen}
+        onClose={() => setIsTagSkinOpen(false)}
+      />
+
       {/* Modal: Edit Profile Dialog */}
       {isEditingProfile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">

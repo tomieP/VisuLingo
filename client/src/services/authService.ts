@@ -4,6 +4,44 @@ import { User, LoginRequest, RegisterRequest, AuthResponse } from '@/types/auth'
 const STORAGE_USER_KEY = 'visulingo_user';
 const STORAGE_TOKEN_KEY = 'visulingo_token';
 const STORAGE_USERNAME_KEY = 'visulingo_username';
+const STORAGE_REGISTERED_ACCOUNTS_KEY = 'visulingo_registered_accounts';
+
+export interface RegisteredAccount {
+  email: string;
+  username: string;
+  displayName: string;
+  createdAt: string;
+}
+
+export function getRegisteredAccounts(): RegisteredAccount[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_REGISTERED_ACCOUNTS_KEY);
+    if (!raw) {
+      const seed: RegisteredAccount[] = [
+        {
+          email: 'admin@visulingo.com',
+          username: 'admin',
+          displayName: 'Quản trị viên VisuLingo',
+          createdAt: new Date().toISOString(),
+        },
+      ];
+      localStorage.setItem(STORAGE_REGISTERED_ACCOUNTS_KEY, JSON.stringify(seed));
+      return seed;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export function saveRegisteredAccount(account: RegisteredAccount): void {
+  const accounts = getRegisteredAccounts();
+  const exists = accounts.some((a) => a.email.toLowerCase() === account.email.toLowerCase());
+  if (!exists) {
+    accounts.push(account);
+    localStorage.setItem(STORAGE_REGISTERED_ACCOUNTS_KEY, JSON.stringify(accounts));
+  }
+}
 
 export function getUserUsername(): string {
   const customTag = localStorage.getItem(STORAGE_USERNAME_KEY);
@@ -99,6 +137,20 @@ export async function registerUser(data: RegisterRequest): Promise<AuthResponse>
     ? data.username.trim().toLowerCase().replace(/^@+/, '').replace(/[^a-z0-9_.]/g, '')
     : normEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, '');
 
+  // 1. Kiểm tra trùng lặp tài khoản (Duplicate Email & Duplicate Username)
+  const existingAccounts = getRegisteredAccounts();
+  const duplicateEmail = existingAccounts.find((a) => a.email.toLowerCase() === normEmail);
+  if (duplicateEmail) {
+    throw new Error('Email này đã được đăng ký tài khoản. Vui lòng đăng nhập hoặc dùng email khác.');
+  }
+
+  if (cleanUsername) {
+    const duplicateUsername = existingAccounts.find((a) => a.username.toLowerCase() === cleanUsername);
+    if (duplicateUsername) {
+      throw new Error(`Tên người dùng @${cleanUsername} đã được sử dụng. Vui lòng chọn tên khác.`);
+    }
+  }
+
   if (cleanUsername) {
     localStorage.setItem(STORAGE_USERNAME_KEY, cleanUsername);
   }
@@ -110,12 +162,31 @@ export async function registerUser(data: RegisterRequest): Promise<AuthResponse>
       displayName,
     });
 
+    saveRegisteredAccount({
+      email: normEmail,
+      username: cleanUsername || 'snapper',
+      displayName,
+      createdAt: new Date().toISOString(),
+    });
+
     return await loginUser({ email: normEmail, password: data.password });
   } catch (err: any) {
+    // Nếu backend báo trùng lặp Email (409 Conflict)
+    if (err?.response?.status === 409 || err?.response?.data?.code === 'EMAIL_EXISTS') {
+      throw new Error('Email này đã được đăng ký tài khoản. Vui lòng đăng nhập hoặc dùng email khác.');
+    }
+
     // Database offline fallback (e.g. ECONNREFUSED or server 500)
     const errCode = err?.response?.data?.code || err?.code;
     const isDbOffline = errCode === 'ECONNREFUSED' || !err?.response || err?.response?.status >= 500;
     if (isDbOffline) {
+      saveRegisteredAccount({
+        email: normEmail,
+        username: cleanUsername || 'snapper',
+        displayName,
+        createdAt: new Date().toISOString(),
+      });
+
       const mockToken = 'mock_jwt_registered_' + Date.now();
       const newUser: User = {
         id: crypto.randomUUID(),

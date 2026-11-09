@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Flame, Camera, Settings as SettingsIcon, X, MessageSquare, Target } from 'lucide-react';
+import { Flame, Camera, Settings as SettingsIcon, X, MessageSquare, Target, Zap } from 'lucide-react';
+import { TagSkinModal } from '@/components/locket/TagSkinModal';
+import { isUserSnapBoostVip } from '@/utils/tagThemes';
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { LocketBottomBar, LocketTab } from '@/components/locket/LocketBottomBar';
 import { LocketFeedCard } from '@/components/locket/LocketFeedCard';
@@ -43,6 +45,8 @@ function HomePage() {
   const [isNotifsOpen, setIsNotifsOpen] = useState<boolean>(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState<boolean>(false);
   const [isChallengesOpen, setIsChallengesOpen] = useState<boolean>(false);
+  const [isTagSkinOpen, setIsTagSkinOpen] = useState<boolean>(false);
+  const [isVip, setIsVip] = useState<boolean>(isUserSnapBoostVip());
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [chatFriendId, setChatFriendId] = useState<string | null>(null);
 
@@ -65,6 +69,8 @@ function HomePage() {
     const handleFriends = () => setFriends(getFriends());
     const handleNotifs = () => setUnreadNotifs(getUnreadNotificationsCount());
     const handleChat = () => setUnreadChat(getTotalUnreadChatCount());
+    const handleVip = () => setIsVip(isUserSnapBoostVip());
+    window.addEventListener('visulingo_snapboost_changed', handleVip);
 
     window.addEventListener('visulingo_moments_changed', handleMoments);
     window.addEventListener('visulingo_saved_words_changed', handleSaved);
@@ -79,6 +85,7 @@ function HomePage() {
       window.removeEventListener('visulingo_friends_changed', handleFriends);
       window.removeEventListener('visulingo_notifications_changed', handleNotifs);
       window.removeEventListener('visulingo_chat_changed', handleChat);
+      window.removeEventListener('visulingo_snapboost_changed', handleVip);
     };
   }, []);
 
@@ -150,6 +157,21 @@ function HomePage() {
 
           {/* Header Action Row */}
           <div className="flex items-center gap-2">
+            {/* SnapBoost VIP Button */}
+            <button
+              type="button"
+              onClick={() => setIsTagSkinOpen(true)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black transition-all cursor-pointer group shadow-sm ${
+                isVip
+                  ? 'bg-gradient-to-r from-amber-400/25 to-yellow-400/20 border border-amber-400/40 text-amber-300 shadow-amber-400/20'
+                  : 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 text-purple-200 hover:border-purple-400/50'
+              }`}
+              title="Gói SnapBoost & Cửa Hàng Ngoại Trang Nhãn"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform fill-amber-400" />
+              <span>SnapBoost</span>
+            </button>
+
             {/* 0. Daily Challenges Mission */}
             <button
               type="button"
@@ -354,6 +376,12 @@ function HomePage() {
       <FriendLeaderboardModal
         isOpen={isLeaderboardOpen}
         onClose={() => setIsLeaderboardOpen(false)}
+      />
+
+      {/* Tag Skin Modal */}
+      <TagSkinModal
+        isOpen={isTagSkinOpen}
+        onClose={() => setIsTagSkinOpen(false)}
       />
 
       {/* Daily Challenges Modal */}

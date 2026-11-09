@@ -1,10 +1,17 @@
 #!/usr/bin/env node
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import pg from 'pg';
 import dotenv from 'dotenv';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), 'server/.env'), override: true });
+dotenv.config({ path: path.resolve(__dirname, '../../.env'), override: true });
+dotenv.config({ path: path.resolve(__dirname, '../../../.env'), override: true });
 
 const { Pool } = pg;
 const pool = new Pool({
@@ -12,7 +19,7 @@ const pool = new Pool({
 });
 
 async function runMigration() {
-  const migrationPath = path.resolve(process.cwd(), 'src/models/migration.sql');
+  const migrationPath = path.resolve(__dirname, 'migration.sql');
   const sql = fs.readFileSync(migrationPath, 'utf-8');
 
   console.log('Running database migration...');

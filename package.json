@@ -11,7 +11,8 @@
     "build": "npm run build --workspaces",
     "install:all": "npm install && npm install --prefix client && npm install --prefix server",
     "typecheck": "npm run typecheck --workspaces",
-    "migrate": "npm run migrate --prefix server"
+    "migrate": "npm run migrate --prefix server",
+    "seed": "npm run seed --prefix server"
   },
   "devDependencies": {
     "concurrently": "^9.0.1"

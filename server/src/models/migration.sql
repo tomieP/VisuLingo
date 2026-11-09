@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS vocabularies (
   meaning_vi VARCHAR(1000) NOT NULL,
   ipa VARCHAR(100),
   example_sentence TEXT,
-  source VARCHAR(20) DEFAULT 'api' CHECK (source IN ('api', 'manual')),
+  source VARCHAR(20) DEFAULT 'api' CHECK (source IN ('api', 'manual', 'ai_gemini')),
   status VARCHAR(10) DEFAULT 'auto' CHECK (status IN ('auto', 'verified', 'hidden')),
   cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

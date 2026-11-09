@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { Readable } from 'stream';
+import { env } from '../config/env';
 
 export interface CloudinaryUploadResult {
   storageKey: string;
@@ -16,9 +17,9 @@ export class CloudinaryAdapter {
   private constructor() {
     // Configure Cloudinary with environment variables
     cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME || '',
-      api_key: process.env.CLOUDINARY_API_KEY || '',
-      api_secret: process.env.CLOUDINARY_API_SECRET || '',
+      cloud_name: env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME || '',
+      api_key: env.CLOUDINARY_API_KEY || process.env.CLOUDINARY_API_KEY || '',
+      api_secret: env.CLOUDINARY_API_SECRET || process.env.CLOUDINARY_API_SECRET || '',
     });
   }
 

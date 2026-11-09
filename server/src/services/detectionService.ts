@@ -74,16 +74,24 @@ export async function analyzeImage(
   let storagePath = `memory://${imageId}`;
   let imageUrl = storagePath;
 
-  if (userId) {
+  const hasCloudinary = Boolean(
+    env.CLOUDINARY_CLOUD_NAME &&
+    env.CLOUDINARY_API_KEY &&
+    env.CLOUDINARY_API_SECRET
+  );
+
+  if (hasCloudinary) {
     try {
+      const folder = userId ? `visulingo/user_${userId}/images` : 'visulingo/snaps';
       const uploaded = await cloudinaryAdapter.uploadImageBuffer(
         imageBuffer,
-        `visulingo/user_${userId}/images`,
+        folder,
       );
       storagePath = uploaded.storageKey;
       imageUrl = uploaded.secureUrl;
+      logger.info(`[detectionService] Successfully uploaded to Cloudinary: ${imageUrl}`);
     } catch (cloudErr) {
-      logger.warn('Cloudinary upload failed, falling back to memory storage', { error: cloudErr });
+      logger.warn('[detectionService] Cloudinary upload failed, falling back to memory storage', { error: cloudErr });
     }
   }
 

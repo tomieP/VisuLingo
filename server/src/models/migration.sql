@@ -14,8 +14,13 @@ CREATE TABLE IF NOT EXISTS users (
   role VARCHAR(20) CHECK (role IN ('user', 'admin')) DEFAULT 'user',
   status VARCHAR(10) CHECK (status IN ('active', 'locked')) DEFAULT 'active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  last_login_at TIMESTAMP
+  last_login_at TIMESTAMP,
+  streak_count INTEGER DEFAULT 0,
+  last_active_date DATE
 );
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS streak_count INTEGER DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_date DATE;
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);

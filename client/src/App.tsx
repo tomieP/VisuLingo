@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { getCurrentUser } from '@/services/authService';
+import { fetchServerTime } from '@/utils/authoritativeTime';
+import { syncStreakWithServer } from '@/utils/storage';
 
 // Lazy load pages for better performance
 const HomePage = lazy(() => import('@/pages/HomePage'));
@@ -61,6 +63,19 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  useEffect(() => {
+    // Initial NTP server time calibration & streak sync
+    fetchServerTime().catch(() => {});
+    syncStreakWithServer().catch(() => {});
+
+    // Listen for anti-cheat tampering events
+    const handleTamper = () => {
+      console.warn('[Anti-Cheat Alert] Phát hiện thay đổi giờ bất thường trên thiết bị!');
+    };
+    window.addEventListener('visulingo_clock_tampered', handleTamper);
+    return () => window.removeEventListener('visulingo_clock_tampered', handleTamper);
+  }, []);
+
   return (
     <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#0B0F17] text-white font-medium">Loading...</div>}>
       <Routes>

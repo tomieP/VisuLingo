@@ -1,5 +1,10 @@
 import { incrementChallengeProgress } from './challenges';
 import api from '@/services/api';
+import {
+  getAuthoritativeDateString,
+  getAuthoritativeYesterdayString,
+  isClockTampered,
+} from './authoritativeTime';
 
 const STORAGE_KEY = 'visulingo_saved_words';
 
@@ -166,17 +171,40 @@ const STREAK_KEY = 'visulingo_user_streak';
 const STREAK_LAST_DATE_KEY = 'visulingo_user_streak_last_date';
 const STREAK_HISTORY_KEY = 'visulingo_streak_history';
 
-export function getLocalDateString(date = new Date()): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+export function getLocalDateString(date?: Date): string {
+  if (!date) {
+    return getAuthoritativeDateString();
+  }
+  return getAuthoritativeDateString(date);
 }
 
 export function getYesterdayDateString(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return getLocalDateString(d);
+  return getAuthoritativeYesterdayString();
+}
+
+/**
+ * Sync streak count with authoritative server database
+ */
+export async function syncStreakWithServer(): Promise<number> {
+  try {
+    const token = localStorage.getItem('visulingo_token');
+    if (!token) return getUserStreak();
+
+    const res = await api.get('/auth/streak');
+    if (res.data && typeof res.data.streak === 'number') {
+      const serverStreak = res.data.streak;
+      const serverLastDate = res.data.lastActiveDate;
+      localStorage.setItem(STREAK_KEY, serverStreak.toString());
+      if (serverLastDate) {
+        localStorage.setItem(STREAK_LAST_DATE_KEY, serverLastDate);
+      }
+      window.dispatchEvent(new Event('visulingo_streak_changed'));
+      return serverStreak;
+    }
+  } catch (err) {
+    // Graceful offline fallback
+  }
+  return getUserStreak();
 }
 
 export function getUserStreak(): number {
@@ -186,8 +214,8 @@ export function getUserStreak(): number {
     let count = rawCount !== null ? parseInt(rawCount, 10) : 0;
     if (isNaN(count) || count < 0) count = 0;
 
-    const today = getLocalDateString();
-    const yesterday = getYesterdayDateString();
+    const today = getAuthoritativeDateString();
+    const yesterday = getAuthoritativeYesterdayString();
 
     if (!lastDate) {
       return count;
@@ -213,25 +241,32 @@ export function setUserStreak(streak: number): void {
   const safeStreak = Math.max(0, streak);
   localStorage.setItem(STREAK_KEY, safeStreak.toString());
   if (safeStreak > 0) {
-    localStorage.setItem(STREAK_LAST_DATE_KEY, getLocalDateString());
+    localStorage.setItem(STREAK_LAST_DATE_KEY, getAuthoritativeDateString());
   }
   window.dispatchEvent(new Event('visulingo_streak_changed'));
 }
 
 /**
  * Ghi nhận hoạt động học tập trong ngày (chụp snap / lưu từ / hoàn thành thử thách)
- * Tự động tăng chuỗi nếu liên tiếp ngày hôm qua, hoặc bắt đầu 1 nếu sang chuỗi mới
+ * Tự động tăng chuỗi nếu liên tiếp ngày hôm qua, hoặc bắt đầu 1 nếu sang chuỗi mới.
+ * Tích hợp Anti-Cheat ngăn chặn đổi giờ hệ thống + đồng bộ Database Server.
  */
 export function recordDailyStreak(): { streak: number; isNewStreakDay: boolean } {
   try {
-    const today = getLocalDateString();
-    const yesterday = getYesterdayDateString();
+    // 1. Anti-Cheat Check: Nếu thiết bị lùi thời gian hoặc gian lận đồng hồ, chặn tăng streak
+    if (isClockTampered()) {
+      console.warn('[Anti-Cheat] Phát hiện thời gian thiết bị không hợp lệ. Khóa ghi nhận streak.');
+      return { streak: getUserStreak(), isNewStreakDay: false };
+    }
+
+    const today = getAuthoritativeDateString();
+    const yesterday = getAuthoritativeYesterdayString();
     const lastDate = localStorage.getItem(STREAK_LAST_DATE_KEY);
     const rawCount = localStorage.getItem(STREAK_KEY);
     let currentStreak = rawCount !== null ? parseInt(rawCount, 10) : 0;
     if (isNaN(currentStreak) || currentStreak < 0) currentStreak = 0;
 
-    // Đã duy trì streak hôm nay rồi
+    // Đã duy trì streak hôm nay rồi -> không lặp lại
     if (lastDate === today && currentStreak > 0) {
       return { streak: currentStreak, isNewStreakDay: false };
     }
@@ -260,6 +295,22 @@ export function recordDailyStreak(): { streak: number; isNewStreakDay: boolean }
 
     window.dispatchEvent(new Event('visulingo_streak_changed'));
     incrementChallengeProgress('maintain_streak', 1);
+
+    // 2. Đồng bộ lên Server PostgreSQL có thẩm quyền chống gian lận
+    const token = localStorage.getItem('visulingo_token');
+    if (token) {
+      api.post('/auth/streak').then((res) => {
+        if (res.data && typeof res.data.streak === 'number') {
+          localStorage.setItem(STREAK_KEY, res.data.streak.toString());
+          if (res.data.lastActiveDate) {
+            localStorage.setItem(STREAK_LAST_DATE_KEY, res.data.lastActiveDate);
+          }
+          window.dispatchEvent(new Event('visulingo_streak_changed'));
+        }
+      }).catch(() => {
+        // Lỗi mạng hoặc offline, giữ state client an toàn
+      });
+    }
 
     return { streak: newStreak, isNewStreakDay: true };
   } catch {

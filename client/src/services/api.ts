@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { syncServerOffset } from '../utils/authoritativeTime';
 
 const api = axios.create({
   baseURL: '/api',
@@ -16,10 +17,29 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor: handle 401 gracefully
+// Response interceptor: calibrate authoritative server time and handle 401 gracefully
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Calibrate server time offset from server's Date response header
+    const serverDateHeader = response.headers?.date;
+    if (serverDateHeader) {
+      const serverMs = new Date(serverDateHeader).getTime();
+      if (!isNaN(serverMs)) {
+        syncServerOffset(serverMs);
+      }
+    }
+    return response;
+  },
   (error) => {
+    // Also calibrate if error response had a Date header
+    const serverDateHeader = error.response?.headers?.date;
+    if (serverDateHeader) {
+      const serverMs = new Date(serverDateHeader).getTime();
+      if (!isNaN(serverMs)) {
+        syncServerOffset(serverMs);
+      }
+    }
+
     // Only redirect if explicit session expiration and not in login/register page
     if (error.response?.status === 401) {
       const isAuthRoute =

@@ -1,6 +1,7 @@
 import { enrichVocabTag } from './dictionary';
 import { TagThemeId, getActiveTagThemeId } from './tagThemes';
 import { recordDailyStreak, getLocalDateString } from './storage';
+import { getAuthoritativeNow } from './authoritativeTime';
 
 export function getUserAvatar(): string {
   return (
@@ -81,10 +82,10 @@ export function formatTimeAgo(dateInput?: string | number | Date | null): string
 
   if (!timestamp || isNaN(timestamp)) return 'Vừa xong';
 
-  const now = Date.now();
+  const now = getAuthoritativeNow();
   const diffMs = now - timestamp;
 
-  // Lệch thời gian nhỏ hoặc vài giây trước
+  // Lệch thời gian nhỏ, vừa tạo, hoặc timestamp tương lai do lệch nhẹ clock
   if (diffMs < 45 * 1000) {
     return 'Vừa xong';
   }
@@ -270,7 +271,8 @@ export function addMoment(moment: Omit<MomentPost, 'id' | 'timeAgo' | 'reactions
   const moments = getMoments();
   const currentActive = getActiveTagThemeId();
   const chosenThemeId = moment.tagThemeId || currentActive;
-  const nowIso = new Date().toISOString();
+  const nowMs = getAuthoritativeNow();
+  const nowIso = new Date(nowMs).toISOString();
 
   // Kích hoạt / Tăng chuỗi Streak khi đăng khoảnh khắc mới
   recordDailyStreak();
@@ -282,7 +284,7 @@ export function addMoment(moment: Omit<MomentPost, 'id' | 'timeAgo' | 'reactions
 
   const newMoment: MomentPost = {
     ...moment,
-    id: `moment-${Date.now()}`,
+    id: `moment-${nowMs}`,
     createdAt: nowIso,
     timeAgo: 'Vừa xong',
     tagThemeId: chosenThemeId,
@@ -325,9 +327,10 @@ export function addCommentToMoment(momentId: string, text: string): MomentCommen
   const currentDisplayName = localStorage.getItem('visulingo_display_name') || 'Bạn (Me)';
   const currentAvatar = getUserAvatar();
 
-  const nowIso = new Date().toISOString();
+  const nowMs = getAuthoritativeNow();
+  const nowIso = new Date(nowMs).toISOString();
   const newComment: MomentComment = {
-    id: `cmt-${Date.now()}`,
+    id: `cmt-${nowMs}`,
     author: {
       name: currentDisplayName,
       avatar: currentAvatar,

@@ -6,7 +6,8 @@ import { LocketSticker } from './LocketSticker';
 import { SnapCommentsModal } from './SnapCommentsModal';
 import { ShareSnapModal } from './ShareSnapModal';
 import { speakWord } from '@/utils/speech';
-import { saveWord, isWordSaved } from '@/utils/storage';
+import { saveWord, isWordSaved, getLocalDateString } from '@/utils/storage';
+import { getAuthoritativeDateString, getAuthoritativeYesterdayString } from '@/utils/authoritativeTime';
 
 interface LocketFeedCardProps {
   moment: MomentPost;
@@ -53,6 +54,21 @@ export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: 
     });
   };
 
+  const postDate = moment.createdAt ? getLocalDateString(new Date(moment.createdAt)) : '';
+  const todayStr = getAuthoritativeDateString();
+  const yesterdayStr = getAuthoritativeYesterdayString();
+
+  let displayBadge = moment.author.badge;
+  if (displayBadge === 'Hôm nay 🔥') {
+    if (postDate === todayStr) {
+      displayBadge = 'Hôm nay 🔥';
+    } else if (postDate === yesterdayStr) {
+      displayBadge = 'Hôm qua ⚡';
+    } else {
+      displayBadge = undefined;
+    }
+  }
+
   return (
     <div className="bg-[#161D2B]/90 border border-white/10 rounded-[30px] p-3.5 sm:p-4.5 shadow-xl backdrop-blur-xl text-white space-y-3 transition-all hover:border-white/20">
       {/* Author Header */}
@@ -77,9 +93,9 @@ export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: 
               <span className="font-bold text-sm tracking-tight group-hover:text-amber-300 transition-colors">
                 {moment.author.name}
               </span>
-              {moment.author.badge && (
+              {displayBadge && (
                 <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                  {moment.author.badge}
+                  {displayBadge}
                 </span>
               )}
             </div>

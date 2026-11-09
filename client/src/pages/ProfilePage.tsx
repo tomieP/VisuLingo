@@ -21,6 +21,7 @@ import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { LocketBottomBar } from '@/components/locket/LocketBottomBar';
 import { getCurrentUser, getUserUsername, setUserUsername } from '@/services/authService';
 import { getSavedWords, getUserStreak, getLocalDateString } from '@/utils/storage';
+import { getAuthoritativeDate } from '@/utils/authoritativeTime';
 import { getMoments, MomentPost, deleteMoment, isFakeMoment } from '@/utils/moments';
 import { speakWord } from '@/utils/speech';
 import { getBadges, evaluateBadges, EvaluatedBadge } from '@/utils/badges';
@@ -148,8 +149,8 @@ function ProfilePage() {
     listenCount,
   });
 
-  // Dynamic 7-day week calendar based on real device time & actual activity
-  const now = new Date();
+  // Dynamic 7-day week calendar based on authoritative server time & actual activity
+  const now = getAuthoritativeDate();
   const currentDayOfWeek = now.getDay();
   const mondayOffset = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
   const monday = new Date(now);

@@ -56,3 +56,32 @@ export async function getProfile(req: Request, res: Response, next: NextFunction
     next(error);
   }
 }
+
+export function getServerTime(_req: Request, res: Response): void {
+  const now = new Date();
+  res.status(200).json({
+    serverTime: now.toISOString(),
+    timestamp: now.getTime(),
+    serverDate: now.toISOString().slice(0, 10),
+  });
+}
+
+export async function getStreak(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = req.user!.userId;
+    const result = await authService.getUserStreak(userId);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function recordStreak(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = req.user!.userId;
+    const result = await authService.recordUserStreak(userId);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}

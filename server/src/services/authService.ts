@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { queryOne } from '../config/database';
+import { query, queryOne } from '../config/database';
 import { env } from '../config/env';
 import { Role } from '../config/constants';
 
@@ -145,4 +145,91 @@ export async function getCurrentUser(userId: string): Promise<UserProfile> {
     throw applicationError('Phiên đăng nhập không hợp lệ hoặc đã hết hạn', 401, 'UNAUTHORIZED');
   }
   return toProfile(row);
+}
+
+export interface StreakResult {
+  streak: number;
+  isNewStreakDay?: boolean;
+  lastActiveDate: string | null;
+  serverDate: string;
+}
+
+export async function getUserStreak(userId: string): Promise<StreakResult> {
+  const now = new Date();
+  const serverDate = now.toISOString().slice(0, 10);
+  try {
+    const row = await queryOne<{ streak_count: number | null; last_active_date: string | null }>(
+      `SELECT streak_count, to_char(last_active_date, 'YYYY-MM-DD') as last_active_date FROM users WHERE id = $1`,
+      [userId]
+    );
+    return {
+      streak: row?.streak_count || 0,
+      lastActiveDate: row?.last_active_date || null,
+      serverDate,
+    };
+  } catch (err: any) {
+    if (err?.code === '42703') {
+      try {
+        await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS streak_count INTEGER DEFAULT 0`);
+        await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_date DATE`);
+      } catch {}
+    }
+    return { streak: 0, lastActiveDate: null, serverDate };
+  }
+}
+
+export async function recordUserStreak(userId: string): Promise<StreakResult> {
+  const now = new Date();
+  const serverDate = now.toISOString().slice(0, 10);
+  try {
+    const row = await queryOne<{ streak_count: number | null; last_active_date: string | null }>(
+      `SELECT streak_count, to_char(last_active_date, 'YYYY-MM-DD') as last_active_date FROM users WHERE id = $1`,
+      [userId]
+    );
+
+    if (!row) {
+      throw applicationError('Không tìm thấy tài khoản người dùng', 404, 'NOT_FOUND');
+    }
+
+    const currentStreak = row.streak_count || 0;
+    const lastDate = row.last_active_date;
+
+    // Đã tính streak hôm nay rồi (so sánh chuẩn theo ngày server UTC, chống cheat đổi ngày thiết bị)
+    if (lastDate === serverDate && currentStreak > 0) {
+      return {
+        streak: currentStreak,
+        isNewStreakDay: false,
+        lastActiveDate: serverDate,
+        serverDate,
+      };
+    }
+
+    const yesterdayDate = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    let newStreak = 1;
+    if (lastDate === yesterdayDate && currentStreak > 0) {
+      // Sang ngày kế tiếp liên tiếp: Tăng streak
+      newStreak = currentStreak + 1;
+    }
+
+    await query(
+      `UPDATE users SET streak_count = $1, last_active_date = CURRENT_DATE WHERE id = $2`,
+      [newStreak, userId]
+    );
+
+    return {
+      streak: newStreak,
+      isNewStreakDay: true,
+      lastActiveDate: serverDate,
+      serverDate,
+    };
+  } catch (err: any) {
+    if (err?.code === '42703') {
+      try {
+        await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS streak_count INTEGER DEFAULT 0`);
+        await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_date DATE`);
+        return recordUserStreak(userId);
+      } catch {}
+    }
+    throw err;
+  }
 }

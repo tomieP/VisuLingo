@@ -7,6 +7,7 @@ import {
   Flame,
   Settings as SettingsIcon,
   Camera,
+  Trash2,
   Share2,
   CheckCircle2,
   Lock,
@@ -20,7 +21,7 @@ import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { LocketBottomBar } from '@/components/locket/LocketBottomBar';
 import { getCurrentUser, getUserUsername, setUserUsername } from '@/services/authService';
 import { getSavedWords, getUserStreak } from '@/utils/storage';
-import { getMoments } from '@/utils/moments';
+import { getMoments, MomentPost, deleteMoment, isFakeMoment } from '@/utils/moments';
 import { speakWord } from '@/utils/speech';
 
 interface BadgeItem {
@@ -101,7 +102,7 @@ function ProfilePage() {
   const currentUser = getCurrentUser();
   const userTag = getUserUsername();
   const savedWords = getSavedWords();
-  const moments = getMoments();
+  const [moments, setMoments] = useState<MomentPost[]>(getMoments());
   const [activeTab, setActiveTab] = useState<'badges' | 'snaps' | 'streak'>('badges');
   const [copiedToast, setCopiedToast] = useState(false);
   const userStreak = getUserStreak();
@@ -135,8 +136,15 @@ function ProfilePage() {
         'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
       );
     };
+    const handleMomentsChange = () => {
+      setMoments(getMoments());
+    };
     window.addEventListener('visulingo_avatar_changed', handleAvatarChange);
-    return () => window.removeEventListener('visulingo_avatar_changed', handleAvatarChange);
+    window.addEventListener('visulingo_moments_changed', handleMomentsChange);
+    return () => {
+      window.removeEventListener('visulingo_avatar_changed', handleAvatarChange);
+      window.removeEventListener('visulingo_moments_changed', handleMomentsChange);
+    };
   }, []);
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,9 +164,10 @@ function ProfilePage() {
 
   const myMoments = moments.filter(
     (m) =>
-      m.author.name === displayName ||
-      m.author.name.toLowerCase().includes('bạn') ||
-      (currentUser?.firstName && m.author.name.includes(currentUser.firstName))
+      !isFakeMoment(m) &&
+      (m.author.name === displayName ||
+        m.author.name.toLowerCase().includes('bạn') ||
+        (currentUser?.firstName && m.author.name.includes(currentUser.firstName)))
   );
 
   // Dynamic 7-day week calendar based on real device time & actual activity
@@ -511,6 +520,18 @@ function ProfilePage() {
                       <span className="absolute bottom-1.5 left-1.5 px-2 py-0.2 rounded-full bg-black/75 backdrop-blur-md text-[9px] font-bold text-white">
                         {moment.timeAgo}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm('Xóa ảnh Snap này khỏi hồ sơ của bạn?')) {
+                            deleteMoment(moment.id);
+                          }
+                        }}
+                        className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/70 hover:bg-rose-500 text-slate-300 hover:text-white transition-all cursor-pointer shadow-md"
+                        title="Xóa Snap này"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
 
                     <p className="text-[11px] text-white font-medium truncate px-0.5">

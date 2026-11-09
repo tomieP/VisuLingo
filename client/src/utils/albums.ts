@@ -23,6 +23,15 @@ export interface SnapPhoto {
 const ALBUMS_KEY = 'visulingo_user_albums';
 const PHOTOS_KEY = 'visulingo_user_photos';
 
+const FAKE_IMAGE_SUBSTRINGS = [
+  '1518455027359-f3f8164ba6bd', // desk
+  '1555041469-a586c61ea9bc', // sofa
+  '1533089860892-a7c6f0a88666', // croissant
+  '1497215728101-856f4ea42174', // office
+  '1555396273-367ea4eb4db5', // noodles
+  '1416879595882-3373a0480b5b', // garden
+];
+
 export function getAlbums(): Album[] {
   try {
     const raw = localStorage.getItem(ALBUMS_KEY);
@@ -126,10 +135,16 @@ export function getPhotos(albumId?: string): SnapPhoto[] {
   try {
     const raw = localStorage.getItem(PHOTOS_KEY);
     const photos: SnapPhoto[] = raw ? JSON.parse(raw) : [];
-    if (albumId && albumId !== 'all') {
-      return photos.filter((p) => p.albumId === albumId);
+    const filtered = photos.filter(
+      (p) => p && p.imageUrl && !FAKE_IMAGE_SUBSTRINGS.some((sub) => p.imageUrl.includes(sub))
+    );
+    if (filtered.length !== photos.length) {
+      localStorage.setItem(PHOTOS_KEY, JSON.stringify(filtered));
     }
-    return photos;
+    if (albumId && albumId !== 'all') {
+      return filtered.filter((p) => p.albumId === albumId);
+    }
+    return filtered;
   } catch {
     return [];
   }

@@ -142,17 +142,6 @@ const FAKE_MOMENT_IDS = new Set([
   '76d2d0a1-f6f9-4704-abab-60a67b3e4c0e',
   '0fd10246-1c95-42d3-ace8-9c43dbb22613',
 ]);
-const FAKE_AUTHOR_NAMES = new Set([
-  'Minh Quân',
-  'Khánh Linh',
-  'Thành Nam',
-  'Hương Ly',
-  'Tuấn Anh',
-  'Mai Chi',
-  'David Lee',
-  'Linh Sakura',
-  'Alex Miller',
-]);
 const FAKE_IMAGE_SUBSTRINGS = [
   '1518455027359-f3f8164ba6bd', // desk
   '1555041469-a586c61ea9bc', // sofa
@@ -164,13 +153,12 @@ const FAKE_IMAGE_SUBSTRINGS = [
 
 export function isFakeMoment(m: MomentPost): boolean {
   if (!m || !m.imageUrl) return true;
-  if (FAKE_MOMENT_IDS.has(m.id)) return true;
-  if (m.author && FAKE_AUTHOR_NAMES.has(m.author.name)) return true;
-  if (FAKE_IMAGE_SUBSTRINGS.some((sub) => m.imageUrl.includes(sub))) return true;
-  // Bất kỳ bài đăng người dùng thật nào có Cloud UUID (từ Neon PostgreSQL) thì LUÔN HỢP LỆ!
-  if (m.id && !m.id.startsWith('moment-') && m.id.length > 20) {
+  // Bất kỳ bài đăng nào có Cloud UUID (từ Neon PostgreSQL) thì 100% là bài người dùng thật!
+  if (m.id && !m.id.startsWith('moment-') && m.id.length >= 20) {
     return false;
   }
+  if (FAKE_MOMENT_IDS.has(m.id)) return true;
+  if (FAKE_IMAGE_SUBSTRINGS.some((sub) => m.imageUrl.includes(sub))) return true;
   return false;
 }
 

@@ -102,8 +102,42 @@ function HomePage() {
   const [isInstallModalOpen, setIsInstallModalOpen] = useState<boolean>(false);
 
   const loadData = () => {
-    setMoments(getMoments());
-    setFriends(getFriends());
+    const currentMoments = getMoments();
+    setMoments(currentMoments);
+
+    // Tự động đồng bộ bạn bè từ danh sách bạn đã thêm và các thành viên đã đăng Snap trên Feed
+    const explicitFriends = getFriends();
+    const friendsMap = new Map<string, FriendProfile>();
+    explicitFriends.forEach((f) => friendsMap.set(f.id, f));
+
+    currentMoments.forEach((m) => {
+      const aName = m.author?.name;
+      if (aName && aName !== 'Bạn (Me)') {
+        const friendId = `snapper-${aName.toLowerCase().replace(/[^a-z0-9_.]/g, '')}`;
+        if (!friendsMap.has(friendId)) {
+          const exists = Array.from(friendsMap.values()).some(
+            (ef) => ef.name.toLowerCase() === aName.toLowerCase()
+          );
+          if (!exists) {
+            friendsMap.set(friendId, {
+              id: friendId,
+              name: aName,
+              username: `@${aName.toLowerCase().replace(/[^a-z0-9_.]/g, '')}`,
+              avatar: m.author.avatar,
+              bio: `Thành viên học tập tích cực trên VisuLingo ✨`,
+              badge: m.author.badge || 'Snapper 🔥',
+              streak: 3,
+              totalWords: 15,
+              snapsCount: 1,
+              isFollowing: true,
+              albums: [],
+            });
+          }
+        }
+      }
+    });
+
+    setFriends(Array.from(friendsMap.values()));
     setSavedCount(getSavedWords().length);
     setUserStreak(getUserStreak());
     setUnreadNotifs(getUnreadNotificationsCount());
@@ -113,6 +147,33 @@ function HomePage() {
     syncCloudMoments().then((fresh) => {
       if (fresh && fresh.length > 0) {
         setMoments(fresh);
+        fresh.forEach((m) => {
+          const aName = m.author?.name;
+          if (aName && aName !== 'Bạn (Me)') {
+            const friendId = `snapper-${aName.toLowerCase().replace(/[^a-z0-9_.]/g, '')}`;
+            if (!friendsMap.has(friendId)) {
+              const exists = Array.from(friendsMap.values()).some(
+                (ef) => ef.name.toLowerCase() === aName.toLowerCase()
+              );
+              if (!exists) {
+                friendsMap.set(friendId, {
+                  id: friendId,
+                  name: aName,
+                  username: `@${aName.toLowerCase().replace(/[^a-z0-9_.]/g, '')}`,
+                  avatar: m.author.avatar,
+                  bio: `Thành viên học tập tích cực trên VisuLingo ✨`,
+                  badge: m.author.badge || 'Snapper 🔥',
+                  streak: 3,
+                  totalWords: 15,
+                  snapsCount: 1,
+                  isFollowing: true,
+                  albums: [],
+                });
+              }
+            }
+          }
+        });
+        setFriends(Array.from(friendsMap.values()));
       }
     }).catch(() => {});
   };
@@ -162,16 +223,29 @@ function HomePage() {
   const selectedFriend = friends.find((f) => f.id === selectedFriendId);
 
   // Compute displayed posts:
-  // - If viewing a specific friend: display photos from that friend's custom albums
+  // - If viewing a specific friend: display all real snaps from that friend + album photos
   // - If in "Tất cả": display all community feed moments
   let displayPosts: MomentPost[] = [];
 
   if (selectedFriend) {
+    // 1. Lọc tất cả bài Snap của bạn bè này trên Bảng tin Cloud Feed
+    const friendMoments = moments.filter((m) => {
+      const authorName = m.author?.name?.toLowerCase().trim() || '';
+      const targetName = selectedFriend.name.toLowerCase().trim();
+      const targetUsername = (selectedFriend.username || '').toLowerCase().trim().replace(/^@+/, '');
+      return (
+        authorName === targetName ||
+        authorName.includes(targetName) ||
+        targetName.includes(authorName) ||
+        (targetUsername && (authorName.includes(targetUsername) || targetUsername.includes(authorName)))
+      );
+    });
+
     const friendAlbums = selectedFriend.albums || [];
+    let albumPosts: MomentPost[] = [];
 
     if (selectedAlbumId === 'all') {
-      // All photos from all albums of this friend
-      displayPosts = friendAlbums.flatMap((album) =>
+      albumPosts = friendAlbums.flatMap((album) =>
         (album.photos || []).map((photo) => ({
           id: photo.id,
           author: {
@@ -187,8 +261,15 @@ function HomePage() {
           comments: [],
         }))
       );
+      // Kết hợp bài Cloud Moments thực tế với album
+      const combined = [...friendMoments];
+      albumPosts.forEach((ap) => {
+        if (!combined.some((m) => m.imageUrl === ap.imageUrl || m.id === ap.id)) {
+          combined.push(ap);
+        }
+      });
+      displayPosts = combined;
     } else {
-      // Only photos from the selected album
       const targetAlbum = friendAlbums.find((a) => a.id === selectedAlbumId);
       if (targetAlbum) {
         displayPosts = (targetAlbum.photos || []).map((photo) => ({
@@ -205,6 +286,8 @@ function HomePage() {
           reactions: { fire: 11, heart: 20, sparkles: 7 },
           comments: [],
         }));
+      } else {
+        displayPosts = friendMoments;
       }
     }
   } else {

@@ -14,7 +14,7 @@ import { NotificationsModal } from '@/components/locket/NotificationsModal';
 import { FriendLeaderboardModal } from '@/components/locket/FriendLeaderboardModal';
 import { DirectChatModal } from '@/components/locket/DirectChatModal';
 import { DailyChallengesModal } from '@/components/locket/DailyChallengesModal';
-import { getMoments, MomentPost } from '@/utils/moments';
+import { getMoments, syncCloudMoments, MomentPost } from '@/utils/moments';
 import { getSavedWords, getUserStreak } from '@/utils/storage';
 import { getFriends, FriendProfile } from '@/utils/friends';
 import { getUnreadNotificationsCount } from '@/utils/notifications';
@@ -29,6 +29,11 @@ function HomePage() {
     const tabParam = searchParams.get('tab') as LocketTab;
     if (tabParam === 'pocket' || tabParam === 'feed' || tabParam === 'snap') {
       setActiveTab(tabParam);
+    }
+    if (tabParam === 'feed') {
+      syncCloudMoments().then((cloudList) => {
+        if (cloudList && cloudList.length > 0) setMoments(cloudList);
+      });
     }
   }, [searchParams]);
   const [moments, setMoments] = useState<MomentPost[]>([]);
@@ -57,6 +62,13 @@ function HomePage() {
     setUserStreak(getUserStreak());
     setUnreadNotifs(getUnreadNotificationsCount());
     setUnreadChat(getTotalUnreadChatCount());
+
+    // Tự động kéo khoảnh khắc Cloud mới nhất của mọi người từ PostgreSQL Neon
+    syncCloudMoments().then((fresh) => {
+      if (fresh && fresh.length > 0) {
+        setMoments(fresh);
+      }
+    }).catch(() => {});
   };
 
   useEffect(() => {
@@ -328,7 +340,14 @@ function HomePage() {
       {/* Floating Bottom Navigation */}
       <LocketBottomBar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab) => {
+          setActiveTab(tab);
+          if (tab === 'feed') {
+            syncCloudMoments().then((list) => {
+              if (list && list.length > 0) setMoments(list);
+            });
+          }
+        }}
         savedCount={savedCount}
       />
 

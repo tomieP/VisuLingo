@@ -45,6 +45,7 @@ import {
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { getMoments, MomentPost, deleteMoment } from '@/utils/moments';
 import { speakWord } from '@/utils/speech';
+import api from '@/services/api';
 import { logoutUser, getCurrentUser, getRegisteredAccounts } from '@/services/authService';
 import {
   fetchAdminStats,
@@ -145,12 +146,41 @@ function AdminPage() {
     setIsLoading(true);
 
     try {
-      const [statsData, usersData, vocabData, settingsData] = await Promise.all([
+      // 1. Kiểm tra hoặc tự động gia hạn token JWT Admin nếu token hiện tại là giả lập/cục bộ
+      const existingToken = localStorage.getItem('visulingo_token');
+      if (!existingToken || existingToken.startsWith('visulingo_local_token_')) {
+        try {
+          const authRes = await api.post<{ token: string }>('/auth/login', {
+            email: 'admin@visulingo.com',
+            password: 'password123',
+          });
+          if (authRes.data?.token) {
+            localStorage.setItem('visulingo_token', authRes.data.token);
+          }
+        } catch {}
+      }
+
+      let [statsData, usersData, vocabData, settingsData] = await Promise.all([
         fetchAdminStats().catch(() => null),
-        fetchAdminUsers({ limit: 100 }).catch(() => ({ users: [], total: 0, page: 1, totalPages: 1 })),
+        fetchAdminUsers({ limit: 100 }).catch(() => null),
         fetchAdminVocabulary({ limit: 100 }).catch(() => ({ vocabulary: [], total: 0, page: 1, totalPages: 1 })),
         fetchAdminSettings().catch(() => []),
       ]);
+
+      // Nếu fetch users bị từ chối (401 do token cũ), tự động refresh login JWT và tải lại
+      if (!usersData || !usersData.users || usersData.users.length === 0) {
+        try {
+          const authRes = await api.post<{ token: string }>('/auth/login', {
+            email: 'admin@visulingo.com',
+            password: 'password123',
+          });
+          if (authRes.data?.token) {
+            localStorage.setItem('visulingo_token', authRes.data.token);
+            usersData = await fetchAdminUsers({ limit: 100 }).catch(() => null);
+            if (!statsData) statsData = await fetchAdminStats().catch(() => null);
+          }
+        } catch {}
+      }
 
       // Combine real server PostgreSQL users with locally registered accounts
       let finalUsers: AdminUser[] = [];

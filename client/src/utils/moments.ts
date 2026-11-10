@@ -152,6 +152,10 @@ const FAKE_IMAGE_SUBSTRINGS = [
 
 export function isFakeMoment(m: MomentPost): boolean {
   if (!m || !m.imageUrl) return true;
+  // Bất kỳ bài đăng nào có Cloud UUID (từ Neon PostgreSQL) thì LUÔN HỢP LỆ!
+  if (m.id && !m.id.startsWith('moment-') && m.id.length > 20) {
+    return false;
+  }
   if (FAKE_MOMENT_IDS.has(m.id)) return true;
   if (m.author && FAKE_AUTHOR_NAMES.has(m.author.name)) return true;
   if (FAKE_IMAGE_SUBSTRINGS.some((sub) => m.imageUrl.includes(sub))) return true;

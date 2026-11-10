@@ -1,8 +1,22 @@
 import axios from 'axios';
 import { syncServerOffset } from '../utils/authoritativeTime';
 
+const getBaseUrl = (): string => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // Tự động kết nối backend Render khi chạy trên Vercel / domain public / thiết bị điện thoại
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return 'https://visu-lingo.onrender.com/api';
+    }
+  }
+  return '/api';
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: getBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },

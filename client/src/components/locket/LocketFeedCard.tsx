@@ -1,5 +1,5 @@
 import { enrichVocabTag } from '@/utils/dictionary';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Volume2, Trash2, Eye, EyeOff, Heart, Flame, Sparkles, BookmarkPlus, Check, MessageCircle, Send, Share2 } from 'lucide-react';
 import { MomentPost, deleteMoment, reactToMoment, VocabTag, formatTimeAgo } from '@/utils/moments';
 import { LocketSticker } from './LocketSticker';
@@ -8,6 +8,7 @@ import { ShareSnapModal } from './ShareSnapModal';
 import { speakWord } from '@/utils/speech';
 import { saveWord, isWordSaved, getLocalDateString } from '@/utils/storage';
 import { getAuthoritativeDateString, getAuthoritativeYesterdayString } from '@/utils/authoritativeTime';
+import { resolveStickerOverlaps } from '@/utils/stickerLayout';
 
 interface LocketFeedCardProps {
   moment: MomentPost;
@@ -22,6 +23,11 @@ export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: 
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [showStickers, setShowStickers] = useState(true);
+
+  // Automatically separate overlapping stickers with anti-collision layout
+  const layoutTags = useMemo(() => {
+    return resolveStickerOverlaps(moment.vocabTags);
+  }, [moment.vocabTags]);
   const [displayTimeAgo, setDisplayTimeAgo] = useState(() =>
     formatTimeAgo(moment.createdAt || moment.id || moment.timeAgo)
   );
@@ -150,7 +156,7 @@ export function LocketFeedCard({ moment, onAuthorClick, onOpenChatWithFriend }: 
 
         {/* Floating Interactive Stickers on Photo */}
         {showStickers &&
-          moment.vocabTags.map((rawTag) => {
+          layoutTags.map((rawTag) => {
           const tag = enrichVocabTag(rawTag);
           return (
             <LocketSticker

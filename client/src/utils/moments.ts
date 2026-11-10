@@ -19,6 +19,7 @@ export interface VocabTag {
   x: number; // percentage (0..100)
   y: number; // percentage (0..100)
   themeId?: TagThemeId;
+  confidence?: number;
 }
 
 export interface MomentComment {

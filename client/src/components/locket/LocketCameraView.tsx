@@ -12,6 +12,7 @@ import { getCurrentUser } from '@/services/authService';
 import { TAG_THEMES, TagThemeId, getActiveTagThemeId, getTagThemeById, isTagThemeUnlocked, isUserSnapBoostVip } from '@/utils/tagThemes';
 import { TagSkinModal } from './TagSkinModal';
 import { getUserStreak, getSavedWords } from '@/utils/storage';
+import { resolveStickerOverlaps } from '@/utils/stickerLayout';
 
 interface LocketCameraViewProps {
   onMomentShared?: () => void;
@@ -20,6 +21,7 @@ interface LocketCameraViewProps {
 export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null);
+  const [editableTags, setEditableTags] = useState<VocabTag[]>([]);
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [showStickers, setShowStickers] = useState<boolean>(true);
   const [caption, setCaption] = useState<string>('');
@@ -143,11 +145,38 @@ export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
     reader.readAsDataURL(file);
 
     setDetectionResult(null);
+    setEditableTags([]);
     setSelectedObjectId(null);
 
     analyzeImage(file, {
       onSuccess: (data) => {
         setDetectionResult(data);
+        const chosenTheme = getTagThemeById(selectedSnapThemeId);
+        const finalThemeId: TagThemeId = isTagThemeUnlocked(chosenTheme, userStats) ? selectedSnapThemeId : 'classic';
+
+        const rawTags: VocabTag[] = data.objects.map((obj) => {
+          const enriched = enrichVocabTag({
+            word: obj.label,
+            meaningVi: obj.meaningVi || getMeaningForWord(obj.label),
+            ipa: obj.ipa || getIpaForWord(obj.label),
+            example: obj.exampleSentence,
+          });
+          return {
+            id: obj.id,
+            word: obj.label,
+            meaningVi: enriched.meaningVi,
+            ipa: enriched.ipa,
+            example: enriched.example,
+            confidence: obj.confidence,
+            themeId: finalThemeId,
+            x: Math.round((obj.boundingBox.x + obj.boundingBox.w / 2) * 100),
+            y: Math.round((obj.boundingBox.y + obj.boundingBox.h / 2) * 100),
+          };
+        });
+
+        // Smart anti-collision: push overlapping stickers apart so they never overlap
+        const antiCollisionTags = resolveStickerOverlaps(rawTags);
+        setEditableTags(antiCollisionTags);
       },
       onError: (err) => {
         console.error(err);
@@ -155,6 +184,13 @@ export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
       },
     });
   };
+
+  // Sync chosen skin theme across active editable tags
+  useEffect(() => {
+    setEditableTags((prev) =>
+      prev.map((t) => ({ ...t, themeId: selectedSnapThemeId }))
+    );
+  }, [selectedSnapThemeId]);
 
   const startLiveCamera = async (mode = facingMode) => {
     try {
@@ -316,23 +352,16 @@ const getMeaningForWord = (word: string) => {
   };
 
   const handleShareToFeed = () => {
-    if (!imageUrl || !detectionResult) return;
+    if (!imageUrl || editableTags.length === 0) return;
     setIsSharing(true);
 
     const chosenTheme = getTagThemeById(selectedSnapThemeId);
     const finalThemeId: TagThemeId = isTagThemeUnlocked(chosenTheme, userStats) ? selectedSnapThemeId : 'classic';
 
-    // Map detected objects into Locket Vocab Tags with Vietnamese meanings and verified unlocked theme
-    const vocabTags: VocabTag[] = detectionResult.objects.map((obj) => ({
-      id: obj.id,
-      word: obj.label,
-      meaningVi: obj.meaningVi || getMeaningForWord(obj.label),
-      ipa: obj.ipa || getIpaForWord(obj.label),
-      example: obj.exampleSentence || '',
-      confidence: obj.confidence,
+    // Use anti-collision positioned tags (including any manual drag adjustments)
+    const finalVocabTags: VocabTag[] = editableTags.map((tag) => ({
+      ...tag,
       themeId: finalThemeId,
-      x: Math.round((obj.boundingBox.x + obj.boundingBox.w / 2) * 100),
-      y: Math.round((obj.boundingBox.y + obj.boundingBox.h / 2) * 100),
     }));
 
     const currentUser = getCurrentUser();
@@ -345,11 +374,11 @@ const getMeaningForWord = (word: string) => {
       caption: caption.trim() || 'Snap học từ mới của tôi ✨',
       imageUrl,
       tagThemeId: finalThemeId,
-      vocabTags,
+      vocabTags: finalVocabTags,
     });
 
     // Save to the selected Album collection
-    savePhotoToAlbum(selectedAlbumId, imageUrl, vocabTags, caption.trim());
+    savePhotoToAlbum(selectedAlbumId, imageUrl, finalVocabTags, caption.trim());
     incrementChallengeProgress('snap_photos', 1);
 
     setIsSharing(false);
@@ -400,36 +429,40 @@ const getMeaningForWord = (word: string) => {
               </div>
             )}
 
-            {/* Floating Interactive Locket Stickers */}
-            {detectionResult &&
-              detectionResult.objects.map((obj) => {
-                const enriched = enrichVocabTag({
-                  word: obj.label,
-                  meaningVi: obj.meaningVi,
-                  ipa: obj.ipa,
-                  example: obj.exampleSentence,
-                });
-                return (
-                  <LocketSticker
-                    key={obj.id}
-                    word={obj.label}
-                    meaningVi={enriched.meaningVi}
-                    ipa={enriched.ipa}
-                    example={enriched.example}
-                    x={Math.round((obj.boundingBox.x + obj.boundingBox.w / 2) * 100)}
-                    y={Math.round((obj.boundingBox.y + obj.boundingBox.h / 2) * 100)}
-                    confidence={obj.confidence}
-                    themeId={selectedSnapThemeId}
-                    isFrozen={false}
-                    isSelected={selectedObjectId === obj.id}
-                    onSelect={() => setSelectedObjectId(obj.id)}
-                  />
-                );
-              })}
+            {/* Floating Interactive Locket Stickers with Anti-Collision & Drag */}
+            {showStickers &&
+              editableTags.map((tag) => (
+                <LocketSticker
+                  key={tag.id}
+                  word={tag.word}
+                  meaningVi={tag.meaningVi}
+                  ipa={tag.ipa}
+                  example={tag.example}
+                  x={tag.x}
+                  y={tag.y}
+                  confidence={tag.confidence}
+                  themeId={selectedSnapThemeId}
+                  isFrozen={false}
+                  isDraggable={true}
+                  onPositionChange={(newX, newY) => {
+                    setEditableTags((prev) =>
+                      prev.map((t) => (t.id === tag.id ? { ...t, x: newX, y: newY } : t))
+                    );
+                  }}
+                  isSelected={selectedObjectId === tag.id}
+                  onSelect={() => setSelectedObjectId(tag.id)}
+                />
+              ))}
 
+            {/* Helper tip: Drag stickers to customize position */}
+            {editableTags.length > 1 && (
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-none z-30 px-3 py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/15 text-[10px] text-amber-300 font-semibold shadow-lg animate-in fade-in duration-300 whitespace-nowrap">
+                ✨ Kéo nhãn để điều chỉnh vị trí theo ý thích
+              </div>
+            )}
             
             {/* Toggle Show/Hide Stickers Button (Eye icon) */}
-            {detectionResult && detectionResult.objects.length > 0 && (
+            {editableTags.length > 0 && (
               <button
                 type="button"
                 onClick={() => setShowStickers(!showStickers)}
@@ -448,7 +481,7 @@ const getMeaningForWord = (word: string) => {
             )}
 
             {/* Tag Skin Customizer Button - ONLY available before posting */}
-            {detectionResult && detectionResult.objects.length > 0 && (
+            {editableTags.length > 0 && (
               <button
                 type="button"
                 onClick={() => setIsTagSkinOpen(true)}
@@ -468,6 +501,7 @@ const getMeaningForWord = (word: string) => {
               onClick={() => {
                 setImageUrl(null);
                 setDetectionResult(null);
+                setEditableTags([]);
                 setSelectedObjectId(null);
                 startLiveCamera(facingMode);
               }}

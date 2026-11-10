@@ -16,6 +16,7 @@ import { FriendProfile, FriendAlbum, FriendSnapPhoto, toggleFollowFriend } from 
 import { LocketSticker } from './LocketSticker';
 import { speakWord } from '@/utils/speech';
 import { saveWord } from '@/utils/storage';
+import { resolveStickerOverlaps } from '@/utils/stickerLayout';
 
 interface FriendProfileModalProps {
   friend: FriendProfile | null;
@@ -185,7 +186,7 @@ export function FriendProfileModal({
                   alt={selectedPhoto.caption}
                   className="w-full h-full object-cover"
                 />
-                {selectedPhoto.vocabTags.map((tag) => (
+                {resolveStickerOverlaps(selectedPhoto.vocabTags).map((tag) => (
                   <LocketSticker
                     key={tag.id}
                     word={tag.word}
@@ -212,7 +213,7 @@ export function FriendProfileModal({
                   Từ vựng {friend.name} đã học trong ảnh này:
                 </span>
                 <div className="flex flex-wrap gap-2">
-                  {selectedPhoto.vocabTags.map((tag) => (
+                  {resolveStickerOverlaps(selectedPhoto.vocabTags).map((tag) => (
                     <div
                       key={tag.id}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white"

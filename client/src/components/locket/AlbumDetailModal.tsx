@@ -4,6 +4,7 @@ import { Album, SnapPhoto, deletePhoto, deleteAlbum } from '@/utils/albums';
 import { LocketSticker } from './LocketSticker';
 import { speakWord } from '@/utils/speech';
 import { AddPhotoToAlbumModal } from './AddPhotoToAlbumModal';
+import { resolveStickerOverlaps } from '@/utils/stickerLayout';
 
 interface AlbumDetailModalProps {
   album: Album | null;
@@ -113,7 +114,7 @@ export function AlbumDetailModal({ album, photos, isOpen, onClose, onUpdated }: 
                   alt={selectedPhoto.caption || ''}
                   className="w-full h-full object-cover"
                 />
-                {selectedPhoto.vocabTags.map((tag) => (
+                {resolveStickerOverlaps(selectedPhoto.vocabTags).map((tag) => (
                   <LocketSticker
                     key={tag.id}
                     word={tag.word}
@@ -134,7 +135,7 @@ export function AlbumDetailModal({ album, photos, isOpen, onClose, onUpdated }: 
                   Từ vựng trong ảnh này:
                 </span>
                 <div className="flex flex-wrap gap-2">
-                  {selectedPhoto.vocabTags.map((tag) => (
+                  {resolveStickerOverlaps(selectedPhoto.vocabTags).map((tag) => (
                     <button
                       key={tag.id}
                       type="button"

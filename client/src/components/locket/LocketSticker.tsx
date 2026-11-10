@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getActiveTagTheme, getTagThemeById, TagTheme, TagThemeId } from '@/utils/tagThemes';
 import { Volume2, Sparkles, Plus, Check } from 'lucide-react';
 import { speakWord } from '@/utils/speech';
@@ -17,6 +17,8 @@ interface LocketStickerProps {
   onSelect?: () => void;
   themeId?: TagThemeId | string;
   isFrozen?: boolean; // When true (already posted), skin is locked and cannot be changed
+  isDraggable?: boolean; // When true (in camera preview), user can drag to fine-tune placement
+  onPositionChange?: (newX: number, newY: number) => void;
 }
 
 export function LocketSticker({
@@ -31,9 +33,15 @@ export function LocketSticker({
   onSelect,
   themeId,
   isFrozen = false,
+  isDraggable = false,
+  onPositionChange,
 }: LocketStickerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const stickerRef = useRef<HTMLDivElement>(null);
+  const dragTrackerRef = useRef<{ startX: number; startY: number; moved: boolean } | null>(null);
+
   const [theme, setTheme] = useState<TagTheme>(() => {
     if (themeId) return getTagThemeById(themeId);
     return getActiveTagTheme();
@@ -81,19 +89,75 @@ export function LocketSticker({
     });
   };
 
+  // Drag and drop handlers for manual repositioning before posting
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (!isDraggable) return;
+    dragTrackerRef.current = { startX: e.clientX, startY: e.clientY, moved: false };
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    } catch {}
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!dragTrackerRef.current || !isDraggable) return;
+    const dx = e.clientX - dragTrackerRef.current.startX;
+    const dy = e.clientY - dragTrackerRef.current.startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+      dragTrackerRef.current.moved = true;
+      if (!isDragging) setIsDragging(true);
+    }
+    if (!dragTrackerRef.current.moved) return;
+
+    const parent = stickerRef.current?.parentElement;
+    if (!parent) return;
+    const rect = parent.getBoundingClientRect();
+    const newX = Math.max(14, Math.min(86, ((e.clientX - rect.left) / rect.width) * 100));
+    const newY = Math.max(10, Math.min(88, ((e.clientY - rect.top) / rect.height) * 100));
+    onPositionChange?.(Math.round(newX * 10) / 10, Math.round(newY * 10) / 10);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (isDraggable) {
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+      } catch {}
+    }
+    const hadMoved = dragTrackerRef.current?.moved;
+    dragTrackerRef.current = null;
+    setIsDragging(false);
+
+    // If it was just a tap (not a drag), toggle details popup
+    if (!hadMoved) {
+      setShowPopup(!showPopup);
+      onSelect?.();
+    }
+  };
+
   return (
     <div
-      className="absolute -translate-x-1/2 -translate-y-1/2 select-none z-20 group"
+      ref={stickerRef}
+      className={`absolute -translate-x-1/2 -translate-y-1/2 select-none group touch-none ${
+        isSelected || isDragging ? 'z-40' : 'z-20'
+      }`}
       style={{ left: `${x}%`, top: `${y}%` }}
     >
       {/* Floating Interactive Pill with Dynamic Theme */}
       <div
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
         onClick={() => {
-          setShowPopup(!showPopup);
-          onSelect?.();
+          if (!isDraggable) {
+            setShowPopup(!showPopup);
+            onSelect?.();
+          }
         }}
-        className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full cursor-pointer transition-all duration-300 shadow-xl backdrop-blur-md ${
-          isSelected
+        className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-200 shadow-xl backdrop-blur-md ${
+          isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
+        } ${
+          isDragging
+            ? `${theme.classes.pill} scale-110 shadow-2xl ring-2 ring-amber-400/80`
+            : isSelected
             ? `${theme.classes.pill} scale-110 ${theme.classes.selectedRing}`
             : `${theme.classes.pill} hover:scale-105`
         }`}
@@ -112,11 +176,12 @@ export function LocketSticker({
           }`}
         />
 
-        <span className={`text-xs tracking-tight capitalize select-none ${theme.classes.text}`}>{word}</span>
+        <span className={`text-xs tracking-tight capitalize select-none font-medium ${theme.classes.text}`}>{word}</span>
 
         {/* Pronounce quick button */}
         <button
           type="button"
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={handlePronounce}
           className={`p-0.5 rounded-full hover:scale-110 transition-transform ${theme.classes.speaker}`}
           title="Nghe phát âm"

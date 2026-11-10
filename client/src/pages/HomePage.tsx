@@ -146,34 +146,34 @@ function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0F17] text-white flex flex-col font-sans selection:bg-amber-400 selection:text-black">
-      {/* Top Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#0B0F17]/85 border-b border-white/5 py-2.5 px-4 sm:px-6">
-        <div className="max-w-md mx-auto flex items-center justify-between">
+    <div className="min-h-[100dvh] bg-[#0B0F17] text-white flex flex-col font-sans selection:bg-amber-400 selection:text-black">
+      {/* Top Header with Safe Area Notch Protection */}
+      <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#0B0F17]/92 border-b border-white/5 px-3 sm:px-6 pt-[max(env(safe-area-inset-top),12px)] pb-2.5 transition-all">
+        <div className="max-w-md mx-auto flex items-center justify-between gap-1">
           {/* Logo (Clean & compact, no bulky badge) */}
           <VisuLingoLogo size="sm" showBadge={false} />
 
-          {/* Header Action Row: Pure, spacious Locket style */}
-          <div className="flex items-center gap-2">
+          {/* Header Action Row: Adaptive for small phone screens */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {/* 0. Tải App button */}
             <button
               type="button"
               onClick={() => setIsInstallModalOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/40 text-xs font-bold text-amber-300 transition-all cursor-pointer group shadow-sm shadow-amber-400/10"
+              className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/40 text-[11px] sm:text-xs font-bold text-amber-300 transition-all cursor-pointer group shadow-xs shrink-0"
               title="Tải ứng dụng về màn hình chính"
             >
-              <Download className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
-              <span>Tải App</span>
+              <Download className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform shrink-0" />
+              <span className="hidden xs:inline sm:inline">Tải App</span>
             </button>
 
             {/* 1. Streak flame badge */}
             <button
               type="button"
               onClick={() => setIsLeaderboardOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/20 text-xs font-bold text-amber-300 transition-all cursor-pointer group"
+              className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/20 text-xs font-bold text-amber-300 transition-all cursor-pointer group shrink-0"
               title="Chuỗi streak của bạn & Bảng xếp hạng"
             >
-              <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400 group-hover:scale-110 transition-transform" />
+              <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400 group-hover:scale-110 transition-transform shrink-0" />
               <span>{userStreak}</span>
             </button>
 
@@ -184,7 +184,7 @@ function HomePage() {
                 setChatFriendId(null);
                 setIsChatOpen(true);
               }}
-              className="relative p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
+              className="relative p-1.5 sm:p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer shrink-0"
               title="Hộp thư: Tin nhắn & Hoạt động"
             >
               <MessageSquare className="w-4 h-4" />
@@ -196,7 +196,7 @@ function HomePage() {
             {/* 3. Settings */}
             <Link
               to="/settings"
-              className="p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors"
+              className="p-1.5 sm:p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors shrink-0"
               title="Cài đặt & Hồ sơ"
             >
               <SettingsIcon className="w-4 h-4" />
@@ -206,7 +206,7 @@ function HomePage() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-md w-full mx-auto px-3.5 py-3">
+      <main className="flex-1 max-w-md w-full mx-auto px-2.5 sm:px-4 py-2 sm:py-3 flex flex-col justify-start">
         {/* Tab 1: Snap & Scan Viewfinder (Camera Center) */}
         {activeTab === 'snap' && (
           <LocketCameraView onMomentShared={() => setActiveTab('feed')} />

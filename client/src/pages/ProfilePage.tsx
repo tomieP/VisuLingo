@@ -185,9 +185,9 @@ function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F17] text-white flex flex-col font-sans selection:bg-amber-400 selection:text-black pb-28">
-      {/* 1. Mobile-Optimized Top Navbar */}
-      <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#0B0F17]/90 border-b border-white/10 px-4 py-2.5">
+    <div className="min-h-[100dvh] bg-[#0B0F17] text-white flex flex-col font-sans selection:bg-amber-400 selection:text-black pb-28">
+      {/* 1. Mobile-Optimized Top Navbar with Safe Area Protection */}
+      <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#0B0F17]/92 border-b border-white/10 px-3.5 sm:px-6 pt-[max(env(safe-area-inset-top),12px)] pb-2.5 transition-all">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Link

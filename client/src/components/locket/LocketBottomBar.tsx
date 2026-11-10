@@ -14,8 +14,8 @@ export function LocketBottomBar({ activeTab, onTabChange, savedCount }: LocketBo
   const isHome = location.pathname === '/';
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-3">
-      <div className="bg-[#121824]/90 backdrop-blur-2xl border border-white/20 rounded-full px-4 py-2 shadow-[0_12px_40px_rgba(0,0,0,0.7)] flex items-center justify-between text-white">
+    <div className="fixed bottom-[max(env(safe-area-inset-bottom),1rem)] left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-3 pointer-events-none">
+      <div className="bg-[#121824]/92 backdrop-blur-2xl border border-white/20 rounded-full px-4 py-2 shadow-[0_12px_40px_rgba(0,0,0,0.7)] flex items-center justify-between text-white pointer-events-auto">
         {/* Tab 1: Friend Snaps */}
         {isHome ? (
           <button

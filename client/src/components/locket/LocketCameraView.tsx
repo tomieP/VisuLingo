@@ -287,10 +287,10 @@ const getMeaningForWord = (word: string) => {
   };
 
   return (
-    <div className="max-w-md mx-auto space-y-3.5 pb-24 px-1 sm:px-0">
+    <div className="max-w-md w-full mx-auto space-y-3 pb-24 px-0.5 sm:px-0">
       {/* Viewfinder Window (Polaroid / Locket mobile camera style) */}
       <div
-        className={`relative bg-[#161D2B] border-2 border-white/15 rounded-[32px] sm:rounded-[36px] overflow-hidden shadow-2xl aspect-[3/4] sm:aspect-square flex flex-col items-center justify-center text-white transition-all ${
+        className={`relative bg-[#161D2B] border-2 border-white/15 rounded-[32px] sm:rounded-[36px] overflow-hidden shadow-2xl w-full aspect-[3/4] max-h-[62dvh] sm:aspect-square flex flex-col items-center justify-center text-white transition-all ${
           imageUrl || isLiveCamera ? 'p-0' : 'p-4 sm:p-6'
         }`}
         onDrop={handleDrop}

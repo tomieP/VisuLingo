@@ -54,7 +54,7 @@ function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F17] text-white flex flex-col justify-center items-center p-4 selection:bg-amber-400 selection:text-black relative overflow-hidden">
+    <div className="min-h-[100dvh] bg-[#0B0F17] text-white flex flex-col justify-center items-center p-4 pt-[max(env(safe-area-inset-top),1.5rem)] pb-[max(env(safe-area-inset-bottom),1.5rem)] selection:bg-amber-400 selection:text-black relative overflow-hidden">
       {/* Background glow effects */}
       <div className="fixed top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 

@@ -39,7 +39,7 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F17] text-white flex flex-col justify-center items-center p-4 selection:bg-amber-400 selection:text-black relative overflow-hidden">
+    <div className="min-h-[100dvh] bg-[#0B0F17] text-white flex flex-col justify-center items-center p-4 pt-[max(env(safe-area-inset-top),1.5rem)] pb-[max(env(safe-area-inset-bottom),1.5rem)] selection:bg-amber-400 selection:text-black relative overflow-hidden">
       {/* Background ambient lighting effects */}
       <div className="fixed top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-gradient-to-tr from-amber-500/15 via-orange-500/10 to-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="fixed -bottom-20 -right-20 w-80 h-80 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />

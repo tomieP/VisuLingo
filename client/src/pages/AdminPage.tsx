@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -65,7 +65,8 @@ type AdminTab = 'overview' | 'users' | 'snaps' | 'vocab' | 'challenges' | 'badge
 
 function AdminPage() {
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
+  const [currentUser] = useState(() => getCurrentUser());
+  const isFetchingRef = useRef(false);
 
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [searchQuery, setSearchQuery] = useState('');
@@ -112,7 +113,7 @@ function AdminPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Initial load & Route Guard: Only Admin can access
+  // Initial load & Route Guard: Only Admin can access (Run once on mount)
   useEffect(() => {
     if (!currentUser || currentUser.role !== 'admin') {
       navigate('/', { replace: true });
@@ -132,14 +133,17 @@ function AdminPage() {
       window.removeEventListener('visulingo_challenges_changed', handleChChange);
       window.removeEventListener('visulingo_badges_changed', handleBadgeChange);
     };
-  }, [currentUser, navigate]);
+  }, []); // Run ONCE on mount
 
   if (!currentUser || currentUser.role !== 'admin') {
     return null;
   }
 
   const loadAllData = async () => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     setIsLoading(true);
+
     try {
       const [statsData, usersData, vocabData, settingsData] = await Promise.all([
         fetchAdminStats().catch(() => null),
@@ -226,65 +230,22 @@ function AdminPage() {
             status: 'verified',
             createdAt: new Date().toISOString(),
           },
-          {
-            id: 'v-2',
-            word: 'coffee cup',
-            meaningVi: 'ly cà phê',
-            ipa: '/ˈkɒf.i kʌp/',
-            exampleSentence: 'A warm coffee cup on the desk.',
-            category: 'Đồ dùng ăn uống',
-            status: 'verified',
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: 'v-3',
-            word: 'smartphone',
-            meaningVi: 'điện thoại thông minh',
-            ipa: '/ˈsmɑːrt.foʊn/',
-            exampleSentence: 'He is checking his smartphone.',
-            category: 'Thiết bị công nghệ',
-            status: 'verified',
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: 'v-4',
-            word: 'backpack',
-            meaningVi: 'ba lô đeo vai',
-            ipa: '/ˈbæk.pæk/',
-            exampleSentence: 'He packed his backpack for study.',
-            category: 'Thời trang & Phụ kiện',
-            status: 'verified',
-            createdAt: new Date().toISOString(),
-          },
         ]);
       }
 
       if (settingsData && settingsData.length > 0) {
         setSettings(settingsData);
-        const map: Record<string, string> = {};
+        const form: Record<string, string> = {};
         settingsData.forEach((s) => {
-          map[s.key] = s.value;
+          form[s.key] = s.value;
         });
-        setSettingsForm(map);
-      } else {
-        const defaults = [
-          { key: 'confidence_threshold', value: '0.5', description: 'Ngưỡng tin cậy tối thiểu AI Vision (0.1 - 1.0)', updatedAt: new Date().toISOString() },
-          { key: 'max_upload_mb', value: '10', description: 'Dung lượng tải ảnh tối đa cho phép (MB)', updatedAt: new Date().toISOString() },
-          { key: 'jwt_expires_in', value: '7d', description: 'Thời gian hiệu lực của phiên đăng nhập JWT', updatedAt: new Date().toISOString() },
-          { key: 'cloudinary_storage', value: 'gvdkots6', description: 'Cloud Name lưu trữ ảnh thực tế', updatedAt: new Date().toISOString() },
-        ];
-        setSettings(defaults);
-        setSettingsForm({
-          confidence_threshold: '0.5',
-          max_upload_mb: '10',
-          jwt_expires_in: '7d',
-          cloudinary_storage: 'gvdkots6',
-        });
+        setSettingsForm(form);
       }
-    } catch (err: any) {
-      showToast(err?.response?.data?.message || 'Không thể tải dữ liệu quản trị viên');
+    } catch (err) {
+      console.error('Failed to load admin data:', err);
     } finally {
       setIsLoading(false);
+      isFetchingRef.current = false;
     }
   };
 

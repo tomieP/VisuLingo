@@ -11,9 +11,10 @@ export type TagThemeId =
   | 'ruby_sunset'
   | 'kitty_ribbon'
   | 'halloween_bat'
-  | 'manga_comic';
+  | 'manga_comic'
+  | 'noel_christmas';
 
-export type TagFrameStyle = 'standard' | 'kitty_ribbon' | 'halloween_bat' | 'manga_comic';
+export type TagFrameStyle = 'standard' | 'kitty_ribbon' | 'halloween_bat' | 'manga_comic' | 'noel_christmas';
 
 export interface TagThemeClasses {
   pill: string;
@@ -236,6 +237,24 @@ export const TAG_THEMES: TagTheme[] = [
       text: 'text-black font-black tracking-tight uppercase',
       speaker: 'text-black hover:text-amber-700',
       selectedRing: 'ring-4 ring-black/40',
+    },
+  },
+  {
+    id: 'noel_christmas',
+    name: 'Giáng Sinh & Tuyết Noel (Vẽ Tay)',
+    description: 'Khung vẽ tay: Mũ ông già Noel viền tuyết trắng, nhánh thông quả đỏ & tuyết lấp lánh',
+    category: 'snapboost_vip',
+    frameStyle: 'noel_christmas',
+    accentColor: '#ef4444',
+    glowShadow: '0 0 24px rgba(239,68,68,0.7)',
+    conditionText: 'Đặc quyền Gói SnapBoost VIP hoặc đổi 350 XP',
+    xpPrice: 350,
+    classes: {
+      pill: 'bg-gradient-to-r from-red-950/90 via-slate-950/95 to-emerald-950/90 hover:from-red-900/90 text-white border-2 border-red-500/90 shadow-[0_0_22px_rgba(239,68,68,0.65)] backdrop-blur-xl',
+      dot: 'bg-red-400 shadow-[0_0_10px_#ef4444]',
+      text: 'text-white font-extrabold tracking-wide',
+      speaker: 'text-amber-300 hover:text-white',
+      selectedRing: 'ring-4 ring-red-400/50',
     },
   },
 ];

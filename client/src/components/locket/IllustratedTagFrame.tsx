@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type TagFrameStyle = 'standard' | 'kitty_ribbon' | 'halloween_bat' | 'manga_comic';
+export type TagFrameStyle = 'standard' | 'kitty_ribbon' | 'halloween_bat' | 'manga_comic' | 'noel_christmas';
 
 interface IllustratedTagFrameProps {
   frameStyle?: TagFrameStyle;
@@ -263,6 +263,123 @@ export const IllustratedTagFrame: React.FC<IllustratedTagFrameProps> = ({ frameS
             <path d="M10 2 L10 18" stroke="#000000" strokeWidth="2" strokeLinecap="round" />
             <path d="M4 4 L16 16" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
             <path d="M16 4 L4 16" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </div>
+      </div>
+    );
+  }
+
+  if (frameStyle === 'noel_christmas') {
+    return (
+      <div className="absolute inset-0 pointer-events-none select-none z-10 overflow-visible">
+        {/* 1. Snow Cap on Top Edge (Mép tuyết phủ trắng xóa) */}
+        <div className="absolute -top-1.5 left-2 right-2 h-2.5 overflow-visible">
+          <svg
+            viewBox="0 0 100 12"
+            preserveAspectRatio="none"
+            className="w-full h-full filter drop-shadow-[0_1px_2px_rgba(255,255,255,0.4)]"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {/* Wavy fluffy snow path */}
+            <path
+              d="M0 12 C5 4, 12 10, 18 5 C25 1, 32 8, 40 4 C48 0, 56 7, 65 3 C74 0, 82 8, 90 4 C95 2, 98 8, 100 12 Z"
+              fill="#ffffff"
+            />
+            {/* Ice blue shading */}
+            <path
+              d="M0 12 C10 8, 25 10, 40 7 C55 4, 70 9, 85 6 C95 4, 100 12, 100 12"
+              stroke="#bae6fd"
+              strokeWidth="0.8"
+            />
+          </svg>
+        </div>
+
+        {/* 2. Hand-Drawn Santa Claus Hat (Mũ Noel đỏ trên góc trái) */}
+        <div className="absolute -left-3.5 -top-4.5 w-8 h-8 filter drop-shadow-[0_3px_8px_rgba(239,68,68,0.7)] -rotate-12">
+          <svg
+            viewBox="0 0 36 36"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-full h-full"
+          >
+            {/* Red Cone curved body */}
+            <path
+              d="M7 25 C10 16, 18 6, 27 8 C23 12, 18 18, 16 25 Z"
+              fill="#dc2626"
+              stroke="#991b1b"
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+            />
+            {/* Dark fold shadow */}
+            <path
+              d="M13 18 C16 16, 20 12, 23 10"
+              stroke="#7f1d1d"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+            />
+            {/* White Fur Brim */}
+            <path
+              d="M4 25 C4 23, 19 23, 19 25 C19 28, 4 28, 4 25 Z"
+              fill="#ffffff"
+              stroke="#e2e8f0"
+              strokeWidth="1.2"
+              strokeLinejoin="round"
+            />
+            {/* Fluffy Pom-pom ball on the tip */}
+            <circle cx="28" cy="8" r="3.5" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1" />
+            <circle cx="27" cy="7" r="1.2" fill="#f8fafc" />
+          </svg>
+        </div>
+
+        {/* 3. Holly Leaves & Red Berries (Nhánh thông và chùm quả đỏ trên góc phải) */}
+        <div className="absolute -right-3 -top-3 w-7 h-7 filter drop-shadow-[0_2px_6px_rgba(22,101,52,0.6)] rotate-12">
+          <svg
+            viewBox="0 0 32 32"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-full h-full"
+          >
+            {/* Holly Leaf 1 (Left) */}
+            <path
+              d="M16 16 C12 13, 8 16, 5 12 C9 10, 9 6, 8 2 C12 5, 16 6, 16 16 Z"
+              fill="#15803d"
+              stroke="#14532d"
+              strokeWidth="1.2"
+              strokeLinejoin="round"
+            />
+            {/* Holly Leaf 2 (Right) */}
+            <path
+              d="M16 16 C19 13, 23 16, 26 12 C22 10, 22 6, 23 2 C19 5, 16 6, 16 16 Z"
+              fill="#16a34a"
+              stroke="#14532d"
+              strokeWidth="1.2"
+              strokeLinejoin="round"
+            />
+            {/* Leaf veins */}
+            <path d="M16 14 L9 6" stroke="#86efac" strokeWidth="0.8" strokeLinecap="round" />
+            <path d="M16 14 L22 6" stroke="#86efac" strokeWidth="0.8" strokeLinecap="round" />
+
+            {/* 3 Red Holly Berries */}
+            <circle cx="13" cy="18" r="3" fill="#ef4444" stroke="#991b1b" strokeWidth="0.8" />
+            <circle cx="12.2" cy="17.2" r="0.9" fill="#ffffff" />
+
+            <circle cx="18" cy="19" r="3" fill="#dc2626" stroke="#991b1b" strokeWidth="0.8" />
+            <circle cx="17.2" cy="18.2" r="0.9" fill="#ffffff" />
+
+            <circle cx="15" cy="22" r="2.8" fill="#b91c1c" stroke="#7f1d1d" strokeWidth="0.8" />
+            <circle cx="14.3" cy="21.3" r="0.8" fill="#ffffff" />
+          </svg>
+        </div>
+
+        {/* 4. Delicate Winter Snowflake (Bông tuyết trắng lấp lánh góc dưới) */}
+        <div className="absolute -left-1.5 -bottom-1.5 w-4 h-4 text-sky-200 animate-pulse filter drop-shadow-[0_0_4px_#38bdf8]">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+            <line x1="12" y1="2" x2="12" y2="22" />
+            <line x1="2" y1="12" x2="22" y2="12" />
+            <line x1="5" y1="5" x2="19" y2="19" />
+            <line x1="19" y1="5" x2="5" y2="19" />
+            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
           </svg>
         </div>
       </div>

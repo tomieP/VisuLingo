@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, QrCode, Search, Sparkles, UserPlus, Check, Copy, Share2 } from 'lucide-react';
+import { X, QrCode, Search, Sparkles, UserPlus, Check, Copy, Share2, Flame, BookOpen } from 'lucide-react';
 import { FriendProfile, addNewFriend, getFriends } from '@/utils/friends';
 
 interface AddFriendModalProps {
@@ -7,6 +7,105 @@ interface AddFriendModalProps {
   onClose: () => void;
   onFriendAdded?: () => void;
 }
+
+const SUGGESTED_LEARNERS: FriendProfile[] = [
+  {
+    id: 'sug-alex-2026',
+    name: 'Alex Miller',
+    username: '@alex_miller',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+    bio: 'Du học sinh Úc • Chăm snap từ vựng đường phố mỗi sáng ☕🇦🇺',
+    badge: 'IELTS 7.5 🏆',
+    streak: 15,
+    totalWords: 168,
+    snapsCount: 24,
+    isFollowing: true,
+    albums: [
+      {
+        id: 'alb-alex-cafe',
+        title: 'Cafe & Brunch Words',
+        emoji: '☕',
+        description: 'Từ vựng đồ uống và bữa sáng chuẩn Tây',
+        photos: [
+          {
+            id: 'ph-alex-1',
+            imageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=800&q=80',
+            caption: 'Morning brew before class!',
+            timeAgo: '1 giờ trước',
+            vocabTags: [
+              { id: 'tag-sug-1', word: 'espresso', meaningVi: 'cà phê cô đặc', ipa: '/esˈpres.əʊ/', x: 0.5, y: 0.5 },
+              { id: 'tag-sug-2', word: 'porcelain cup', meaningVi: 'tách sứ', ipa: '/ˈpɔː.səl.ɪn kʌp/', x: 0.35, y: 0.65 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'sug-linh-2026',
+    name: 'Linh Sakura',
+    username: '@linh_sakura',
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&q=80',
+    bio: 'Mê decor phòng & học từ vựng đời sống qua ảnh Locket 🌿',
+    badge: 'Snap Master ✨',
+    streak: 28,
+    totalWords: 240,
+    snapsCount: 42,
+    isFollowing: true,
+    albums: [
+      {
+        id: 'alb-linh-room',
+        title: 'Cozy Workspace',
+        emoji: '🕯️',
+        description: 'Từ vựng bàn học và góc làm việc ấm áp',
+        photos: [
+          {
+            id: 'ph-linh-1',
+            imageUrl: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=800&q=80',
+            caption: 'Góc học tập yên tĩnh buổi tối',
+            timeAgo: '3 giờ trước',
+            vocabTags: [
+              { id: 'tag-sug-3', word: 'stationery', meaningVi: 'văn phòng phẩm', ipa: '/ˈsteɪ.ʃən.ri/', x: 0.45, y: 0.5 },
+              { id: 'tag-sug-4', word: 'desk lamp', meaningVi: 'đèn bàn', ipa: '/desk læmp/', x: 0.65, y: 0.3 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'sug-david-2026',
+    name: 'David Lee',
+    username: '@david_visual',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+    bio: 'Kỹ sư công nghệ thích chụp ảnh & giữ streak từ vựng 💻🔥',
+    badge: 'Streak Titan 🔥',
+    streak: 42,
+    totalWords: 310,
+    snapsCount: 56,
+    isFollowing: true,
+    albums: [
+      {
+        id: 'alb-david-tech',
+        title: 'Tech & Gadgets',
+        emoji: '💻',
+        description: 'Từ vựng công nghệ và thiết bị điện tử',
+        photos: [
+          {
+            id: 'ph-david-1',
+            imageUrl: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=800&q=80',
+            caption: 'Working on new features today!',
+            timeAgo: 'Hôm qua',
+            vocabTags: [
+              { id: 'tag-sug-5', word: 'mechanical keyboard', meaningVi: 'bàn phím cơ', ipa: '/məˈkæn.ɪ.kəl ˈkiː.bɔːd/', x: 0.5, y: 0.6 },
+              { id: 'tag-sug-6', word: 'monitor', meaningVi: 'màn hình máy tính', ipa: '/ˈmɒn.ɪ.tər/', x: 0.5, y: 0.35 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];
 
 export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModalProps) {
   const [activeTab, setActiveTab] = useState<'qr' | 'search' | 'suggested'>('search');
@@ -33,11 +132,20 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
       return;
     }
 
+    const avatarList = [
+      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+      'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&q=80',
+      'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80',
+      'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?auto=format&fit=crop&w=150&q=80',
+    ];
+    const pickedAvatar = avatarList[Math.abs(cleanHandle.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)) % avatarList.length];
+
     const newPerson: FriendProfile = {
       id: `friend-${Date.now()}`,
       name: cleanHandle.charAt(0).toUpperCase() + cleanHandle.slice(1),
       username: formattedUsername,
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+      avatar: pickedAvatar,
       bio: 'Người bạn đồng hành học từ vựng tiếng Anh trên VisuLingo 🌟',
       badge: 'Bạn mới 🤝',
       streak: 1,
@@ -213,24 +321,62 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
 
           {/* TAB 3: GỢI Ý BẠN HỌC */}
           {activeTab === 'suggested' && (
-            <div className="text-center py-10 space-y-3 px-4">
-              <div className="w-12 h-12 rounded-full bg-amber-400/10 border border-amber-400/20 flex items-center justify-center mx-auto text-amber-400">
-                <Sparkles className="w-6 h-6" />
+            <div className="space-y-3 py-1">
+              <div className="p-2.5 rounded-2xl bg-amber-400/10 border border-amber-400/20 text-xs text-amber-300 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 shrink-0 text-amber-400" />
+                <span>Những bạn học tiếng Anh năng nổ nhất tuần này trên VisuLingo:</span>
               </div>
-              <div className="space-y-1">
-                <h4 className="text-sm font-bold text-white">Chưa có đề xuất kết bạn</h4>
-                <p className="text-xs text-slate-400">
-                  Hãy dùng tab "Tìm username" hoặc quét mã QR để kết nối bạn bè thật!
-                </p>
-              </div>
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('search')}
-                  className="px-4 py-2 rounded-full bg-amber-400 text-slate-950 font-bold text-xs hover:bg-amber-300 transition-all shadow-md shadow-amber-400/20 cursor-pointer"
-                >
-                  Tìm bạn theo username 🔍
-                </button>
+
+              <div className="space-y-2.5">
+                {SUGGESTED_LEARNERS.map((learner) => {
+                  const isAlreadyFriend = currentFriends.some(
+                    (f) => f.id === learner.id || f.username.toLowerCase() === learner.username.toLowerCase()
+                  );
+
+                  return (
+                    <div
+                      key={learner.id}
+                      className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img
+                          src={learner.avatar}
+                          alt={learner.name}
+                          className="w-11 h-11 rounded-full object-cover ring-2 ring-amber-400/30 shrink-0"
+                        />
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-xs text-white truncate">{learner.name}</span>
+                            <span className="text-[10px] text-amber-400 font-medium">{learner.username}</span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 truncate">{learner.bio}</p>
+                          <div className="flex items-center gap-2 text-[10px] text-slate-400 pt-0.5">
+                            <span className="flex items-center gap-0.5 text-amber-400 font-bold">
+                              <Flame className="w-3 h-3 fill-amber-400" /> {learner.streak} ngày streak
+                            </span>
+                            <span>•</span>
+                            <span className="flex items-center gap-0.5 text-emerald-400 font-semibold">
+                              <BookOpen className="w-3 h-3" /> {learner.totalWords} từ vựng
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleAdd(learner)}
+                        disabled={isAlreadyFriend}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all cursor-pointer ${
+                          isAlreadyFriend
+                            ? 'bg-white/10 text-emerald-300 border border-emerald-500/30 cursor-default'
+                            : 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-md shadow-amber-400/20 active:scale-95'
+                        }`}
+                      >
+                        {isAlreadyFriend ? '✓ Đã kết bạn' : '+ Kết bạn'}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

@@ -27,7 +27,7 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
   const [copied, setCopied] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [isGeneratingQr, setIsGeneratingQr] = useState<boolean>(false);
-  const [serverUsers, setServerUsers] = useState<Array<{ id: string; tagName: string; displayName: string | null }>>([]);
+  const [serverUsers, setServerUsers] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchMessage, setSearchMessage] = useState<string | null>(null);
 
@@ -163,8 +163,13 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
     setTimeout(() => setSearchMessage(null), 3000);
   };
 
-  const handleAddServerUser = (u: { id: string; tagName: string; displayName: string | null }) => {
-    const cleanHandle = u.tagName.replace(/^@+/, '').toLowerCase();
+  const handleAddServerUser = (u: any) => {
+    const rawHandle =
+      u.tagName ||
+      u.username ||
+      (u.email ? u.email.split('@')[0] : '') ||
+      'snapper';
+    const cleanHandle = rawHandle.replace(/^@+/, '').toLowerCase().trim();
     const newPerson: FriendProfile = {
       id: `friend-${u.id}`,
       name: u.displayName || cleanHandle,
@@ -439,14 +444,20 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
                   <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">
                     Tài khoản tìm thấy trên hệ thống ({serverUsers.length}):
                   </span>
-                  {serverUsers.map((u) => {
+                  {serverUsers.map((u: any) => {
                     const isAlreadyFriend = currentFriends.some(
                       (f) =>
                         f.id === `friend-${u.id}` ||
                         f.name.toLowerCase() === (u.displayName || '').toLowerCase()
                     );
 
-                    const cleanHandle = u.tagName.replace(/^@+/, '');
+                    const rawHandle =
+                      u.tagName ||
+                      u.username ||
+                      (u.email ? u.email.split('@')[0] : '') ||
+                      'snapper';
+                    const cleanHandle = rawHandle.replace(/^@+/, '').toLowerCase().trim();
+                    const displayTag = `@${cleanHandle}`;
 
                     return (
                       <div
@@ -456,14 +467,16 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
                         <div className="flex items-center gap-2.5 min-w-0">
                           <img
                             src={`https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanHandle)}`}
-                            alt={u.displayName || u.tagName}
+                            alt={u.displayName || displayTag}
                             className="w-9 h-9 rounded-full bg-slate-800 p-0.5 border border-amber-400/40 shrink-0"
                           />
                           <div className="min-w-0">
                             <p className="text-xs font-bold text-white truncate">
                               {u.displayName || cleanHandle}
                             </p>
-                            <p className="text-[11px] text-amber-400 font-mono font-semibold truncate">{u.tagName}</p>
+                            <p className="text-[11px] text-amber-400 font-mono font-bold truncate">
+                              {displayTag}
+                            </p>
                           </div>
                         </div>
 

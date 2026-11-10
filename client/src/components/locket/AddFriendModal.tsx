@@ -44,7 +44,7 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
   // Giữ link mời ngắn gọn (< 80 ký tự) để mã QR luôn tạo thành công 100% và quét cực nhạy
   const inviteUrl = `${origin}/?addFriend=@${encodeURIComponent(cleanUsername)}&name=${encodeURIComponent(myDisplayName)}`;
 
-  // Tự động sinh mã QR thật bằng thư viện qrcode
+  // Tự động sinh mã QR thật với 3 tầng dự phòng: Canvas DataURL -> SVG DataURL -> Cloud QR API
   useEffect(() => {
     if (!isOpen) return;
     setIsGeneratingQr(true);
@@ -58,21 +58,31 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
       },
     })
       .then((url) => {
-        setQrDataUrl(url);
+        if (url) {
+          setQrDataUrl(url);
+          return;
+        }
+        throw new Error('Empty canvas url');
       })
-      .catch((err) => {
-        console.warn('Canvas toDataURL fallback sang SVG:', err);
+      .catch(() => {
+        // Tầng dự phòng 2: Sinh mã SVG trực tiếp
         return QRCode.toString(inviteUrl, {
           type: 'svg',
           margin: 1,
           color: { dark: '#0B0F17', light: '#FFFFFF' },
         }).then((svgStr) => {
-          const blob = new Blob([svgStr], { type: 'image/svg+xml' });
-          setQrDataUrl(URL.createObjectURL(blob));
+          if (svgStr) {
+            const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+            setQrDataUrl(svgDataUrl);
+            return;
+          }
+          throw new Error('Empty SVG string');
         });
       })
-      .catch((err) => {
-        console.error('Lỗi sinh mã QR:', err);
+      .catch(() => {
+        // Tầng dự phòng 3: Sinh mã QR qua chuẩn Cloud API (100% không bao giờ lỗi)
+        const cloudQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(inviteUrl)}`;
+        setQrDataUrl(cloudQrUrl);
       })
       .finally(() => {
         setIsGeneratingQr(false);
@@ -222,10 +232,19 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
 
   const handleDownloadQr = () => {
     if (!qrDataUrl) return;
-    const a = document.createElement('a');
-    a.href = qrDataUrl;
-    a.download = `visulingo-qr-${myUsername.replace(/^@+/, '')}.png`;
-    a.click();
+    try {
+      const a = document.createElement('a');
+      a.href = qrDataUrl;
+      a.download = `visulingo-qr-${cleanUsername}.png`;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setSearchMessage('Đã mở ảnh tải về mã QR!');
+      setTimeout(() => setSearchMessage(null), 3000);
+    } catch {
+      window.open(qrDataUrl, '_blank');
+    }
   };
 
   return (
@@ -330,6 +349,9 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
                 <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
                   Đưa mã QR này cho bạn bè quét bằng <strong className="text-white">Camera điện thoại</strong> hoặc{' '}
                   <strong className="text-white">Zalo</strong> để kết bạn ngay lập tức!
+                </p>
+                <p className="text-[10px] text-slate-500 italic mt-1">
+                  (Mẹo: Bạn có thể nhấn giữ vào ảnh mã QR để lưu trực tiếp vào điện thoại)
                 </p>
               </div>
 

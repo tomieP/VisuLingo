@@ -2,15 +2,27 @@ import { Pool } from 'pg';
 import { env } from './env';
 import { logger } from '../utils/logger';
 
+function cleanDatabaseUrl(rawUrl: string): string {
+  if (!rawUrl) return rawUrl;
+  // Tự động làm sạch nếu người dùng lỡ dán cả DATABASE_URL="..." hoặc nhiều dòng từ Neon
+  const match = rawUrl.match(/postgres(?:ql)?:\/\/[^\s"']+/);
+  if (match) {
+    return match[0];
+  }
+  return rawUrl.trim().replace(/^["']|["']$/g, '');
+}
+
+const cleanedDbUrl = cleanDatabaseUrl(env.DATABASE_URL);
+
 const isCloudDb =
-  env.DATABASE_URL.includes('neon.tech') ||
-  env.DATABASE_URL.includes('render.com') ||
-  env.DATABASE_URL.includes('supabase.co') ||
-  env.DATABASE_URL.includes('sslmode=require') ||
+  cleanedDbUrl.includes('neon.tech') ||
+  cleanedDbUrl.includes('render.com') ||
+  cleanedDbUrl.includes('supabase.co') ||
+  cleanedDbUrl.includes('sslmode=require') ||
   env.NODE_ENV === 'production';
 
 const pool = new Pool({
-  connectionString: env.DATABASE_URL,
+  connectionString: cleanedDbUrl,
   ssl: isCloudDb ? { rejectUnauthorized: false } : undefined,
   max: 20,
   idleTimeoutMillis: 30000,

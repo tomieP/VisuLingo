@@ -132,7 +132,15 @@ export function deleteMoment(momentId: string): void {
 
 const MOMENTS_KEY = 'visulingo_locket_moments';
 
-const FAKE_MOMENT_IDS = new Set(['moment-1', 'moment-2', 'moment-3']);
+const FAKE_MOMENT_IDS = new Set([
+  'moment-1',
+  'moment-2',
+  'moment-3',
+  '88c43880-822f-4bc9-b7b1-e6def109f71b',
+  '1f0844a6-5a63-4f76-bebd-81a50bc147cd',
+  '76d2d0a1-f6f9-4704-abab-60a67b3e4c0e',
+  '0fd10246-1c95-42d3-ace8-9c43dbb22613',
+]);
 const FAKE_AUTHOR_NAMES = new Set([
   'Minh Quân',
   'Khánh Linh',
@@ -140,6 +148,9 @@ const FAKE_AUTHOR_NAMES = new Set([
   'Hương Ly',
   'Tuấn Anh',
   'Mai Chi',
+  'David Lee',
+  'Linh Sakura',
+  'Alex Miller',
 ]);
 const FAKE_IMAGE_SUBSTRINGS = [
   '1518455027359-f3f8164ba6bd', // desk
@@ -152,13 +163,13 @@ const FAKE_IMAGE_SUBSTRINGS = [
 
 export function isFakeMoment(m: MomentPost): boolean {
   if (!m || !m.imageUrl) return true;
-  // Bất kỳ bài đăng nào có Cloud UUID (từ Neon PostgreSQL) thì LUÔN HỢP LỆ!
-  if (m.id && !m.id.startsWith('moment-') && m.id.length > 20) {
-    return false;
-  }
   if (FAKE_MOMENT_IDS.has(m.id)) return true;
   if (m.author && FAKE_AUTHOR_NAMES.has(m.author.name)) return true;
   if (FAKE_IMAGE_SUBSTRINGS.some((sub) => m.imageUrl.includes(sub))) return true;
+  // Bất kỳ bài đăng người dùng thật nào có Cloud UUID (từ Neon PostgreSQL) thì LUÔN HỢP LỆ!
+  if (m.id && !m.id.startsWith('moment-') && m.id.length > 20) {
+    return false;
+  }
   return false;
 }
 
@@ -378,18 +389,20 @@ export async function syncCloudMoments(): Promise<MomentPost[]> {
 
       const mergedMap = new Map<string, MomentPost>();
 
-      // Đưa các bài đăng từ Cloud vào trước
+      // 1. Đưa các bài đăng thực tế từ Cloud vào làm chuẩn
       cloudMoments.forEach((cm) => {
-        mergedMap.set(cm.id, cm);
+        if (!isFakeMoment(cm)) {
+          mergedMap.set(cm.id, cm);
+        }
       });
 
-      // Giữ lại các bài đăng local mới tạo chưa kịp có UUID Cloud
+      // 2. Chỉ giữ lại các bài đăng local thật người dùng vừa chụp trên máy này (bắt đầu bằng 'moment-')
       currentList.forEach((lm) => {
-        if (!mergedMap.has(lm.id)) {
-          mergedMap.set(lm.id, lm);
+        if (lm.id && lm.id.startsWith('moment-') && !isFakeMoment(lm)) {
+          if (!mergedMap.has(lm.id)) {
+            mergedMap.set(lm.id, lm);
 
-          // Tự động đẩy lên Cloud nếu chưa có trên Cloud
-          if (lm.id.startsWith('moment-') && !isFakeMoment(lm)) {
+            // Tự động đẩy lên Cloud Neon PostgreSQL
             api
               .post<{ moment: MomentPost }>('/moments', {
                 authorName: lm.author.name,

@@ -449,110 +449,113 @@ export function reactToMoment(momentId: string, reaction: 'fire' | 'heart' | 'sp
   }
 }
 
-let isSyncingMoments = false;
+let inFlightSyncPromise: Promise<MomentPost[]> | null = null;
 
 /**
  * Đồng bộ bài đăng hai chiều giữa Cloud Neon PostgreSQL và trình duyệt
  * Giúp người dùng trên các điện thoại / thiết bị khác nhau xem được bài đăng của nhau
  */
-export async function syncCloudMoments(): Promise<MomentPost[]> {
-  if (isSyncingMoments) return getMoments();
-  isSyncingMoments = true;
-
-  try {
-    const res = await api.get<{ moments: MomentPost[] }>('/moments');
-    const cloudMoments = res.data?.moments;
-
-    if (Array.isArray(cloudMoments)) {
-      const currentList = getMoments();
-
-      const mergedMap = new Map<string, MomentPost>();
-
-      // 1. Đưa các bài đăng thực tế từ Cloud vào làm chuẩn, bảo tồn tương tác local
-      cloudMoments.forEach((cm) => {
-        if (!isFakeMoment(cm)) {
-          const localExisting = currentList.find((m) => m.id === cm.id);
-          const localComments = localExisting?.comments || [];
-          const cloudComments = cm.comments || [];
-
-          // Gộp comments từ cloud và local không trùng lặp
-          const commentMap = new Map<string, MomentComment>();
-          cloudComments.forEach((c) => commentMap.set(c.id, c));
-          localComments.forEach((c) => commentMap.set(c.id, c));
-          const mergedComments = Array.from(commentMap.values());
-
-          // Bảo toàn trạng thái thả tim / lửa của người dùng máy này
-          const preservedUserReacted = localExisting?.userReacted || cm.userReacted || null;
-
-          const merged: MomentPost = {
-            ...cm,
-            userId: cm.userId || (cm as any).user_id || localExisting?.userId || null,
-            comments: mergedComments,
-            userReacted: preservedUserReacted,
-            reactions: {
-              fire: Math.max(cm.reactions?.fire || 0, localExisting?.reactions?.fire || 0),
-              heart: Math.max(cm.reactions?.heart || 0, localExisting?.reactions?.heart || 0),
-              sparkles: Math.max(cm.reactions?.sparkles || 0, localExisting?.reactions?.sparkles || 0),
-            },
-          };
-          mergedMap.set(cm.id, merged);
-        }
-      });
-
-      // 2. Chỉ giữ lại các bài đăng local thật người dùng vừa chụp trên máy này (bắt đầu bằng 'moment-')
-      currentList.forEach((lm) => {
-        if (lm.id && lm.id.startsWith('moment-') && !isFakeMoment(lm)) {
-          if (!mergedMap.has(lm.id)) {
-            mergedMap.set(lm.id, lm);
-
-            // Tự động đẩy lên Cloud Neon PostgreSQL
-            api
-              .post<{ moment: MomentPost }>('/moments', {
-                authorName: lm.author.name,
-                authorAvatar: lm.author.avatar,
-                authorBadge: lm.author.badge,
-                caption: lm.caption,
-                imageUrl: lm.imageUrl,
-                tagThemeId: lm.tagThemeId,
-                vocabTags: lm.vocabTags,
-              })
-              .then((upRes) => {
-                if (upRes.data?.moment?.id) {
-                  const updated = getMoments().map((m) =>
-                    m.id === lm.id ? { ...m, id: upRes.data.moment.id } : m
-                  );
-                  localStorage.setItem(MOMENTS_KEY, JSON.stringify(updated));
-                  window.dispatchEvent(new Event('visulingo_moments_changed'));
-                }
-              })
-              .catch(() => {});
-          }
-        }
-      });
-
-      const mergedList = Array.from(mergedMap.values());
-
-      // Sắp xếp bài mới nhất lên đầu
-      mergedList.sort((a, b) => {
-        const timeA = new Date(a.createdAt || 0).getTime();
-        const timeB = new Date(b.createdAt || 0).getTime();
-        return timeB - timeA;
-      });
-
-      if (JSON.stringify(mergedList) !== JSON.stringify(currentList)) {
-        localStorage.setItem(MOMENTS_KEY, JSON.stringify(mergedList));
-        window.dispatchEvent(new Event('visulingo_moments_changed'));
-      }
-
-      return mergedList;
-    }
-  } catch (err) {
-    // Offline hoặc server chưa sẵn sàng: fallback mượt mà với local storage
-  } finally {
-    isSyncingMoments = false;
+export function syncCloudMoments(): Promise<MomentPost[]> {
+  if (inFlightSyncPromise) {
+    return inFlightSyncPromise;
   }
 
-  return getMoments();
+  inFlightSyncPromise = (async () => {
+    try {
+      const res = await api.get<{ moments: MomentPost[] }>('/moments');
+      const cloudMoments = res.data?.moments;
+
+      if (Array.isArray(cloudMoments)) {
+        const currentList = getMoments();
+
+        const mergedMap = new Map<string, MomentPost>();
+
+        // 1. Đưa các bài đăng thực tế từ Cloud vào làm chuẩn, bảo tồn tương tác local
+        cloudMoments.forEach((cm) => {
+          if (!isFakeMoment(cm)) {
+            const localExisting = currentList.find((m) => m.id === cm.id);
+            const localComments = localExisting?.comments || [];
+            const cloudComments = cm.comments || [];
+
+            // Gộp comments từ cloud và local không trùng lặp
+            const commentMap = new Map<string, MomentComment>();
+            cloudComments.forEach((c) => commentMap.set(c.id, c));
+            localComments.forEach((c) => commentMap.set(c.id, c));
+            const mergedComments = Array.from(commentMap.values());
+
+            // Bảo toàn trạng thái thả tim / lửa của người dùng máy này
+            const preservedUserReacted = localExisting?.userReacted || cm.userReacted || null;
+
+            const merged: MomentPost = {
+              ...cm,
+              userId: cm.userId || (cm as any).user_id || localExisting?.userId || null,
+              comments: mergedComments,
+              userReacted: preservedUserReacted,
+              reactions: {
+                fire: Math.max(cm.reactions?.fire || 0, localExisting?.reactions?.fire || 0),
+                heart: Math.max(cm.reactions?.heart || 0, localExisting?.reactions?.heart || 0),
+                sparkles: Math.max(cm.reactions?.sparkles || 0, localExisting?.reactions?.sparkles || 0),
+              },
+            };
+            mergedMap.set(cm.id, merged);
+          }
+        });
+
+        // 2. Chỉ giữ lại các bài đăng local thật người dùng vừa chụp trên máy này (bắt đầu bằng 'moment-')
+        currentList.forEach((lm) => {
+          if (lm.id && lm.id.startsWith('moment-') && !isFakeMoment(lm)) {
+            if (!mergedMap.has(lm.id)) {
+              mergedMap.set(lm.id, lm);
+
+              // Tự động đẩy lên Cloud Neon PostgreSQL
+              api
+                .post<{ moment: MomentPost }>('/moments', {
+                  authorName: lm.author.name,
+                  authorAvatar: lm.author.avatar,
+                  authorBadge: lm.author.badge,
+                  caption: lm.caption,
+                  imageUrl: lm.imageUrl,
+                  tagThemeId: lm.tagThemeId,
+                  vocabTags: lm.vocabTags,
+                })
+                .then((upRes) => {
+                  if (upRes.data?.moment?.id) {
+                    const updated = getMoments().map((m) =>
+                      m.id === lm.id ? { ...m, id: upRes.data.moment.id } : m
+                    );
+                    localStorage.setItem(MOMENTS_KEY, JSON.stringify(updated));
+                    window.dispatchEvent(new Event('visulingo_moments_changed'));
+                  }
+                })
+                .catch(() => {});
+            }
+          }
+        });
+
+        const mergedList = Array.from(mergedMap.values());
+
+        // Sắp xếp bài mới nhất lên đầu
+        mergedList.sort((a, b) => {
+          const timeA = new Date(a.createdAt || 0).getTime();
+          const timeB = new Date(b.createdAt || 0).getTime();
+          return timeB - timeA;
+        });
+
+        localStorage.setItem(MOMENTS_KEY, JSON.stringify(mergedList));
+        window.dispatchEvent(new Event('visulingo_moments_changed'));
+
+        return mergedList;
+      }
+    } catch (err) {
+      // Offline hoặc server chưa sẵn sàng: fallback mượt mà với local storage
+    } finally {
+      inFlightSyncPromise = null;
+    }
+
+    return getMoments();
+  })();
+
+  return inFlightSyncPromise;
 }
 
 // Tự động kích hoạt đồng bộ đám mây khi mở ứng dụng và định kỳ

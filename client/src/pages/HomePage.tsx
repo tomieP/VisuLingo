@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Flame, Camera, Settings as SettingsIcon, X, MessageSquare, Download, Bell } from 'lucide-react';
+import { Flame, Camera, Settings as SettingsIcon, X, MessageSquare, Download, Bell, Sparkles } from 'lucide-react';
 import { InstallAppModal } from '@/components/common/InstallAppModal';
 import { TagSkinModal } from '@/components/locket/TagSkinModal';
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
@@ -82,7 +82,8 @@ function HomePage() {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, [searchParams]);
-  const [moments, setMoments] = useState<MomentPost[]>([]);
+  const [moments, setMoments] = useState<MomentPost[]>(getMoments());
+  const [isSyncing, setIsSyncing] = useState<boolean>(true);
   const [friends, setFriends] = useState<FriendProfile[]>([]);
   const [savedCount, setSavedCount] = useState<number>(0);
   const [userStreak, setUserStreak] = useState<number>(getUserStreak());
@@ -145,38 +146,43 @@ function HomePage() {
     setUnreadChat(getTotalUnreadChatCount());
 
     // Tự động kéo khoảnh khắc Cloud mới nhất của mọi người từ PostgreSQL Neon
-    syncCloudMoments().then((fresh) => {
-      if (fresh && fresh.length > 0) {
-        setMoments(fresh);
-        fresh.forEach((m) => {
-          const aName = (m.author?.name || '').replace(/\s+/g, ' ').trim();
-          if (aName && aName !== 'Bạn (Me)' && aName.toLowerCase() !== 'bạn') {
-            const friendId = `snapper-${cleanName(aName).replace(/[^a-z0-9_.]/g, '')}`;
-            if (!friendsMap.has(friendId)) {
-              const exists = Array.from(friendsMap.values()).some(
-                (ef) => cleanName(ef.name) === cleanName(aName)
-              );
-              if (!exists) {
-                friendsMap.set(friendId, {
-                  id: friendId,
-                  name: aName,
-                  username: `@${cleanName(aName).replace(/[^a-z0-9_.]/g, '')}`,
-                  avatar: m.author.avatar,
-                  bio: `Thành viên học tập tích cực trên VisuLingo ✨`,
-                  badge: m.author.badge || 'Snapper 🔥',
-                  streak: 3,
-                  totalWords: 15,
-                  snapsCount: 1,
-                  isFollowing: true,
-                  albums: [],
-                });
+    syncCloudMoments()
+      .then((fresh) => {
+        setIsSyncing(false);
+        if (fresh && fresh.length > 0) {
+          setMoments(fresh);
+          fresh.forEach((m) => {
+            const aName = (m.author?.name || '').replace(/\s+/g, ' ').trim();
+            if (aName && aName !== 'Bạn (Me)' && aName.toLowerCase() !== 'bạn') {
+              const friendId = `snapper-${cleanName(aName).replace(/[^a-z0-9_.]/g, '')}`;
+              if (!friendsMap.has(friendId)) {
+                const exists = Array.from(friendsMap.values()).some(
+                  (ef) => cleanName(ef.name) === cleanName(aName)
+                );
+                if (!exists) {
+                  friendsMap.set(friendId, {
+                    id: friendId,
+                    name: aName,
+                    username: `@${cleanName(aName).replace(/[^a-z0-9_.]/g, '')}`,
+                    avatar: m.author.avatar,
+                    bio: `Thành viên học tập tích cực trên VisuLingo ✨`,
+                    badge: m.author.badge || 'Snapper 🔥',
+                    streak: 3,
+                    totalWords: 15,
+                    snapsCount: 1,
+                    isFollowing: true,
+                    albums: [],
+                  });
+                }
               }
             }
-          }
-        });
-        setFriends(Array.from(friendsMap.values()));
-      }
-    }).catch(() => {});
+          });
+          setFriends(Array.from(friendsMap.values()));
+        }
+      })
+      .catch(() => {
+        setIsSyncing(false);
+      });
   };
 
   useEffect(() => {
@@ -502,22 +508,46 @@ function HomePage() {
 
             {/* 3. Snaps List */}
             {displayPosts.length === 0 ? (
-              <div className="text-center py-10 bg-[#161D2B]/50 border border-white/10 rounded-[28px] p-6 space-y-3 text-slate-400">
-                <div className="w-12 h-12 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 flex items-center justify-center mx-auto shadow-md">
-                  <Camera className="w-6 h-6" />
+              isSyncing ? (
+                <div className="text-center py-12 bg-[#161D2B]/50 border border-white/10 rounded-[28px] p-6 space-y-3 text-slate-400">
+                  <div className="w-12 h-12 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 flex items-center justify-center mx-auto shadow-md">
+                    <Sparkles className="w-6 h-6 text-amber-400 animate-spin" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-white">Đang đồng bộ khoảnh khắc từ Cloud...</p>
+                    <p className="text-[11px] text-slate-400">Đang kéo Snaps từ Neon PostgreSQL về máy bạn ✨</p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-bold text-white">Chưa có bài đăng nào trên Feed</p>
-                  <p className="text-[11px] text-slate-400">Hãy chụp Snap đầu tiên để lưu lại từ vựng thực tế nhé!</p>
+              ) : (
+                <div className="text-center py-10 bg-[#161D2B]/50 border border-white/10 rounded-[28px] p-6 space-y-3 text-slate-400">
+                  <div className="w-12 h-12 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 flex items-center justify-center mx-auto shadow-md">
+                    <Camera className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-white">Chưa có bài đăng nào trên Feed</p>
+                    <p className="text-[11px] text-slate-400">Hãy chụp Snap đầu tiên để lưu lại từ vựng thực tế nhé!</p>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSyncing(true);
+                        syncCloudMoments().finally(() => setIsSyncing(false));
+                      }}
+                      className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-all border border-white/10 cursor-pointer active:scale-95"
+                    >
+                      Đồng bộ lại Cloud 🔄
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('snap')}
+                      className="px-4 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs transition-all shadow-md shadow-amber-400/20 active:scale-95 cursor-pointer"
+                    >
+                      Chụp Snap ngay
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('snap')}
-                  className="px-4 py-2 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs transition-all shadow-md shadow-amber-400/20 active:scale-95"
-                >
-                  Chụp Snap ngay
-                </button>
-              </div>
+              )
             ) : (
               <div className="space-y-4">
                 {displayPosts.map((moment) => (

@@ -24,18 +24,20 @@ const isCloudDb =
 const pool = new Pool({
   connectionString: cleanedDbUrl,
   ssl: isCloudDb ? { rejectUnauthorized: false } : undefined,
-  max: 20,
-  idleTimeoutMillis: 30000,
+  max: 10,
+  idleTimeoutMillis: 15000,
   connectionTimeoutMillis: 10000,
 });
 
 pool.on('error', (err) => {
-  logger.error('Unexpected error on idle PostgreSQL client', err);
-  if (env.NODE_ENV === 'production') process.exit(-1);
+  // Ghi log cảnh báo khi client nhàn rỗi ngắt kết nối (do Neon PostgreSQL serverless đóng kết nối idle)
+  // Tuyệt đối KHÔNG gọi process.exit() làm crash container Render
+  logger.warn('PostgreSQL idle client disconnected (Neon serverless scale down): ' + (err?.message || err));
 });
 
 /**
  * Query helper with proper error handling and logging.
+ * Tự động thử lại 1 lần nếu kết nối cơ sở dữ liệu vừa bị ngắt do Neon idle timeout
  * @param text SQL query string
  * @param params Query parameters (optional)
  */
@@ -43,7 +45,24 @@ export async function query<T>(text: string, params?: any[]): Promise<T[]> {
   try {
     const result = await pool.query(text, params);
     return result.rows as T[];
-  } catch (err) {
+  } catch (err: any) {
+    const isConnError =
+      err?.code === 'ECONNRESET' ||
+      err?.code === '57P01' ||
+      err?.message?.includes('Connection terminated') ||
+      err?.message?.includes('closed unexpectedly');
+
+    if (isConnError) {
+      logger.warn(`Database connection dropped, auto-retrying query once: ${text.slice(0, 50)}...`);
+      try {
+        const retryResult = await pool.query(text, params);
+        return retryResult.rows as T[];
+      } catch (retryErr) {
+        logger.error(`Database retry failed: ${text}`, retryErr as Error);
+        throw retryErr;
+      }
+    }
+
     logger.error(`Database query failed: ${text}`, err as Error);
     throw err;
   }

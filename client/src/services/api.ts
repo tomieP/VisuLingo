@@ -38,13 +38,28 @@ api.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
+  async (error) => {
     // Also calibrate if error response had a Date header
     const serverDateHeader = error.response?.headers?.date;
     if (serverDateHeader) {
       const serverMs = new Date(serverDateHeader).getTime();
       if (!isNaN(serverMs)) {
         syncServerOffset(serverMs);
+      }
+    }
+
+    // Tự động thử lại 1 lần nếu gặp lỗi mạng tạm thời hoặc Render đang khởi động lạnh (cold start)
+    const config = error.config;
+    if (config && !config._retry) {
+      const isTransientError =
+        error.code === 'ERR_NETWORK' ||
+        error.code === 'ECONNABORTED' ||
+        (error.response && [502, 503, 504].includes(error.response.status));
+
+      if (isTransientError) {
+        config._retry = true;
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        return api(config);
       }
     }
 

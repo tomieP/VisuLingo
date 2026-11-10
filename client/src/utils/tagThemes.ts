@@ -241,14 +241,13 @@ export const TAG_THEMES: TagTheme[] = [
   },
   {
     id: 'noel_christmas',
-    name: 'Giáng Sinh & Tuyết Noel (Vẽ Tay)',
+    name: 'Giáng Sinh & Tuyết Noel (Quà Tặng Free)',
     description: 'Khung vẽ tay: Mũ ông già Noel viền tuyết trắng, nhánh thông quả đỏ & tuyết lấp lánh',
-    category: 'snapboost_vip',
+    category: 'free_milestone',
     frameStyle: 'noel_christmas',
     accentColor: '#ef4444',
     glowShadow: '0 0 24px rgba(239,68,68,0.7)',
-    conditionText: 'Đặc quyền Gói SnapBoost VIP hoặc đổi 350 XP',
-    xpPrice: 350,
+    conditionText: '🎁 Quà tặng Giáng Sinh miễn phí cho tất cả mọi người',
     classes: {
       pill: 'bg-gradient-to-r from-red-950/90 via-slate-950/95 to-emerald-950/90 hover:from-red-900/90 text-white border-2 border-red-500/90 shadow-[0_0_22px_rgba(239,68,68,0.65)] backdrop-blur-xl',
       dot: 'bg-red-400 shadow-[0_0_10px_#ef4444]',
@@ -319,8 +318,8 @@ export interface UserStatsForThemes {
 }
 
 export function isTagThemeUnlocked(theme: TagTheme, stats: UserStatsForThemes): boolean {
-  // 1. Classic is always unlocked
-  if (theme.id === 'classic') return true;
+  // 1. Classic & Noel Christmas Holiday Gift are 100% free & unlocked for all users!
+  if (theme.id === 'classic' || theme.id === 'noel_christmas') return true;
 
   // 2. If user is VIP, all themes are automatically unlocked!
   const isVip = stats.isVip ?? isUserSnapBoostVip();

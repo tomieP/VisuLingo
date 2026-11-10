@@ -228,7 +228,12 @@ export function isFakeMoment(m: MomentPost): boolean {
   return false;
 }
 
+let memoryMomentsCache: MomentPost[] | null = null;
+
 export function getMoments(): MomentPost[] {
+  if (memoryMomentsCache && memoryMomentsCache.length > 0) {
+    return memoryMomentsCache;
+  }
   try {
     const raw = localStorage.getItem(MOMENTS_KEY);
     if (!raw) {
@@ -541,7 +546,16 @@ export function syncCloudMoments(): Promise<MomentPost[]> {
           return timeB - timeA;
         });
 
-        localStorage.setItem(MOMENTS_KEY, JSON.stringify(mergedList));
+        // Cập nhật bộ nhớ RAM tức thì
+        memoryMomentsCache = mergedList;
+
+        // Lưu vào localStorage an toàn (không bị văng nếu dữ liệu ảnh lớn vượt hạn mức)
+        try {
+          localStorage.setItem(MOMENTS_KEY, JSON.stringify(mergedList));
+        } catch (storageErr) {
+          console.warn('Dữ liệu ảnh lớn, đã ưu tiên lưu bộ nhớ RAM:', storageErr);
+        }
+
         window.dispatchEvent(new Event('visulingo_moments_changed'));
 
         return mergedList;

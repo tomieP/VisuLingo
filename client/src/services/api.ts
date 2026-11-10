@@ -5,6 +5,10 @@ const getBaseUrl = (): string => {
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
+  // Nếu đang mở trên Vercel, dùng origin /api để đi qua Vercel Edge proxy (Singapore), triệt tiêu lỗi CORS và tăng tốc độ
+  if (typeof window !== 'undefined' && window.location.origin && window.location.origin.includes('vercel.app')) {
+    return `${window.location.origin}/api`;
+  }
   // Mặc định kết nối trực tiếp backend đám mây Render (PostgreSQL Neon) để đồng bộ mọi tài khoản & snaps
   return 'https://visu-lingo.onrender.com/api';
 };
@@ -48,19 +52,18 @@ api.interceptors.response.use(
       }
     }
 
-    // Tự động thử lại 1 lần nếu gặp lỗi mạng tạm thời hoặc Render đang khởi động lạnh (cold start)
+    // Tự động thử lại nếu gặp lỗi mạng hoặc Render đang khởi động lạnh
     const config = error.config;
     if (config && !config._retry) {
-      const isTransientError =
-        error.code === 'ERR_NETWORK' ||
-        error.code === 'ECONNABORTED' ||
-        (error.response && [502, 503, 504].includes(error.response.status));
-
-      if (isTransientError) {
-        config._retry = true;
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        return api(config);
+      config._retry = true;
+      // Đổi qua lại giữa Vercel proxy và Render trực tiếp nếu một bên bị gián đoạn mạng
+      if (config.baseURL && config.baseURL.includes('vercel.app')) {
+        config.baseURL = 'https://visu-lingo.onrender.com/api';
+      } else if (typeof window !== 'undefined' && window.location.origin && window.location.origin.includes('vercel.app')) {
+        config.baseURL = `${window.location.origin}/api`;
       }
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      return api(config);
     }
 
     // Only redirect if explicit session expiration and not in login/register page

@@ -25,8 +25,6 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
   const [activeTab, setActiveTab] = useState<'qr' | 'search' | 'suggested'>('qr');
   const [searchQuery, setSearchQuery] = useState('');
   const [copied, setCopied] = useState(false);
-  const [qrDataUrl, setQrDataUrl] = useState<string>('');
-  const [isGeneratingQr, setIsGeneratingQr] = useState<boolean>(false);
   const [serverUsers, setServerUsers] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchMessage, setSearchMessage] = useState<string | null>(null);
@@ -40,53 +38,54 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
     cleanUsername
   ).trim();
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://visu-lingo.vercel.app';
-  // Giữ link mời ngắn gọn (< 80 ký tự) để mã QR luôn tạo thành công 100% và quét cực nhạy
-  const inviteUrl = `${origin}/?addFriend=@${encodeURIComponent(cleanUsername)}&name=${encodeURIComponent(myDisplayName)}`;
+  const publicBaseUrl =
+    typeof window !== 'undefined' &&
+    !window.location.hostname.includes('localhost') &&
+    !window.location.hostname.includes('127.0.0.1')
+      ? window.location.origin
+      : 'https://visu-lingo.vercel.app';
 
-  // Tự động sinh mã QR thật với 3 tầng dự phòng: Canvas DataURL -> SVG DataURL -> Cloud QR API
+  // Giữ link mời ngắn gọn (< 80 ký tự) để mã QR luôn tạo thành công 100% và quét cực nhạy
+  const inviteUrl = `${publicBaseUrl}/?addFriend=@${encodeURIComponent(cleanUsername)}&name=${encodeURIComponent(myDisplayName)}`;
+
+  // Link mã QR chuẩn đám mây luôn sẵn sàng ngay từ ban đầu (0s chờ đợi)
+  const cloudQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=2&data=${encodeURIComponent(inviteUrl)}`;
+
+  const [qrSvg, setQrSvg] = useState<string>('');
+  const [qrDataUrl, setQrDataUrl] = useState<string>(cloudQrUrl);
+
+  // Tự động sinh mã QR nội tuyến SVG và Canvas DataURL
   useEffect(() => {
     if (!isOpen) return;
-    setIsGeneratingQr(true);
+
+    // 1. Tạo SVG nội tuyến siêu nét trực tiếp trong DOM
+    QRCode.toString(inviteUrl, {
+      type: 'svg',
+      margin: 2,
+      color: { dark: '#0B0F17', light: '#FFFFFF' },
+    })
+      .then((svgStr) => {
+        if (svgStr) {
+          setQrSvg(svgStr);
+          const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+          setQrDataUrl(svgDataUrl);
+        }
+      })
+      .catch(() => {});
+
+    // 2. Tạo Canvas PNG để nút Tải ảnh QR lưu được file ảnh .png
     QRCode.toDataURL(inviteUrl, {
       width: 320,
-      margin: 1,
+      margin: 2,
       errorCorrectionLevel: 'L',
-      color: {
-        dark: '#0B0F17',
-        light: '#FFFFFF',
-      },
+      color: { dark: '#0B0F17', light: '#FFFFFF' },
     })
-      .then((url) => {
-        if (url) {
-          setQrDataUrl(url);
-          return;
+      .then((pngUrl) => {
+        if (pngUrl) {
+          setQrDataUrl(pngUrl);
         }
-        throw new Error('Empty canvas url');
       })
-      .catch(() => {
-        // Tầng dự phòng 2: Sinh mã SVG trực tiếp
-        return QRCode.toString(inviteUrl, {
-          type: 'svg',
-          margin: 1,
-          color: { dark: '#0B0F17', light: '#FFFFFF' },
-        }).then((svgStr) => {
-          if (svgStr) {
-            const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
-            setQrDataUrl(svgDataUrl);
-            return;
-          }
-          throw new Error('Empty SVG string');
-        });
-      })
-      .catch(() => {
-        // Tầng dự phòng 3: Sinh mã QR qua chuẩn Cloud API (100% không bao giờ lỗi)
-        const cloudQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(inviteUrl)}`;
-        setQrDataUrl(cloudQrUrl);
-      })
-      .finally(() => {
-        setIsGeneratingQr(false);
-      });
+      .catch(() => {});
   }, [isOpen, inviteUrl]);
 
   // Tìm kiếm người dùng thật từ Server PostgreSQL và tự động nhận diện link mời được dán
@@ -328,20 +327,21 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
           {/* TAB 1: MÃ QR THẬT CỦA BẠN (SCANNABLE) */}
           {activeTab === 'qr' && (
             <div className="text-center space-y-4 py-1">
-              <div className="w-52 h-52 mx-auto rounded-3xl bg-white p-3.5 shadow-2xl shadow-amber-400/15 flex flex-col items-center justify-center border-4 border-amber-400/40 relative">
-                {isGeneratingQr ? (
-                  <div className="flex flex-col items-center gap-2 text-slate-700">
-                    <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-xs font-semibold">Đang tạo mã QR...</span>
-                  </div>
-                ) : qrDataUrl ? (
-                  <img
-                    src={qrDataUrl}
-                    alt={`Mã QR của ${myDisplayName}`}
-                    className="w-full h-full object-contain rounded-xl select-none"
+              <div className="w-52 h-52 mx-auto rounded-3xl bg-white p-3.5 shadow-2xl shadow-amber-400/15 flex flex-col items-center justify-center border-4 border-amber-400/40 relative overflow-hidden">
+                {qrSvg ? (
+                  <div
+                    className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:object-contain select-none"
+                    dangerouslySetInnerHTML={{ __html: qrSvg }}
                   />
                 ) : (
-                  <span className="text-xs text-rose-500">Không thể tải mã QR</span>
+                  <img
+                    src={qrDataUrl || cloudQrUrl}
+                    alt={`Mã QR của ${myDisplayName}`}
+                    className="w-full h-full object-contain rounded-xl select-none"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = cloudQrUrl;
+                    }}
+                  />
                 )}
               </div>
 

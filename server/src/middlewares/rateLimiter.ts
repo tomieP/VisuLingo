@@ -8,7 +8,7 @@ const isDev = process.env.NODE_ENV !== 'production';
  */
 export const detectionLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: isDev ? 300 : 60,
+  max: isDev ? 300 : 180,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -22,11 +22,11 @@ export const detectionLimiter = rateLimit({
 
 /**
  * General API rate limiter:
- * Allows 20,000 req / 15 mins in dev, 2,000 in prod.
+ * Generous limits with Reverse Proxy IP support.
  */
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isDev ? 100000 : 2000,
+  max: isDev ? 100000 : 10000,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -35,16 +35,19 @@ export const apiLimiter = rateLimit({
     retryable: true,
   },
   keyGenerator: (req) => (req as any).user?.userId || req.ip || 'unknown',
-  skip: (req) => isDev || req.path === '/health' || req.path.startsWith('/auth'),
+  skip: (req) =>
+    isDev ||
+    req.path === '/health' ||
+    req.path.startsWith('/auth') ||
+    req.path.startsWith('/admin'),
 });
 
 /**
  * Auth endpoints rate limiter (register / login):
- * Completely skipped in dev mode for smooth testing, 100 req / 15 mins in prod.
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isDev ? 100000 : 100,
+  max: isDev ? 100000 : 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

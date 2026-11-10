@@ -12,6 +12,9 @@ import adminRoutes from './routes/adminRoutes';
 
 const app = express();
 
+// Trust reverse proxy (Render / Cloudflare) so req.ip and rateLimiter work accurately per client
+app.set('trust proxy', 1);
+
 const corsOrigin = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
   : '*';

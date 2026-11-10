@@ -45,7 +45,7 @@ import {
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { getMoments, MomentPost, deleteMoment } from '@/utils/moments';
 import { speakWord } from '@/utils/speech';
-import { logoutUser, getCurrentUser } from '@/services/authService';
+import { logoutUser, getCurrentUser, getRegisteredAccounts } from '@/services/authService';
 import {
   fetchAdminStats,
   fetchAdminUsers,
@@ -143,42 +143,37 @@ function AdminPage() {
     try {
       const [statsData, usersData, vocabData, settingsData] = await Promise.all([
         fetchAdminStats().catch(() => null),
-        fetchAdminUsers({ limit: 50 }).catch(() => ({ users: [], total: 0, page: 1, totalPages: 1 })),
-        fetchAdminVocabulary({ limit: 50 }).catch(() => ({ vocabulary: [], total: 0, page: 1, totalPages: 1 })),
+        fetchAdminUsers({ limit: 100 }).catch(() => ({ users: [], total: 0, page: 1, totalPages: 1 })),
+        fetchAdminVocabulary({ limit: 100 }).catch(() => ({ vocabulary: [], total: 0, page: 1, totalPages: 1 })),
         fetchAdminSettings().catch(() => []),
       ]);
 
-      if (statsData) {
-        setStats(statsData);
-      } else {
-        setStats({
-          users: { total: 2, active: 2, locked: 0, newThisWeek: 2 },
-          analyses: { total: 14, failed: 0, errorRatePercent: 0, avgLatencyMs: 380 },
-          content: { totalCollections: 3, totalImages: 8, totalVocabularies: 150 },
-          topSavedWords: [
-            { word: 'laptop', count: 18 },
-            { word: 'coffee cup', count: 14 },
-            { word: 'smartphone', count: 12 },
-            { word: 'book', count: 9 },
-            { word: 'backpack', count: 7 },
-          ],
-          recentAuditLogs: [
-            {
-              id: 'audit-1',
-              adminEmail: 'admin@visulingo.com',
-              action: 'ADMIN_LOGIN',
-              entityType: 'auth',
-              entityId: null,
-              createdAt: new Date().toISOString(),
-            },
-          ],
-        });
+      // Combine real server PostgreSQL users with locally registered accounts
+      let finalUsers: AdminUser[] = [];
+      if (usersData?.users && usersData.users.length > 0) {
+        finalUsers = [...usersData.users];
       }
 
-      if (usersData?.users && usersData.users.length > 0) {
-        setUsers(usersData.users);
-      } else {
-        setUsers([
+      const localAccounts = getRegisteredAccounts();
+      for (const loc of localAccounts) {
+        if (!finalUsers.some((u) => u.email.toLowerCase() === loc.email.toLowerCase())) {
+          finalUsers.push({
+            id: `usr-reg-${loc.username || loc.email}`,
+            email: loc.email,
+            displayName: loc.displayName || loc.username,
+            role: loc.email.toLowerCase().includes('admin') ? 'admin' : 'user',
+            status: 'active',
+            createdAt: loc.createdAt || new Date().toISOString(),
+            lastLoginAt: new Date().toISOString(),
+            totalSavedWords: 0,
+            totalCollections: 0,
+          });
+        }
+      }
+
+      // If absolutely no accounts exist anywhere yet, seed default admin
+      if (finalUsers.length === 0) {
+        finalUsers = [
           {
             id: 'usr-admin',
             email: 'admin@visulingo.com',
@@ -187,21 +182,34 @@ function AdminPage() {
             status: 'active',
             createdAt: new Date().toISOString(),
             lastLoginAt: new Date().toISOString(),
-            totalSavedWords: 42,
-            totalCollections: 3,
+            totalSavedWords: 0,
+            totalCollections: 0,
           },
-          {
-            id: 'usr-student',
-            email: 'student@visulingo.com',
-            displayName: 'Nguyễn Hoàng Phúc',
-            role: 'user',
-            status: 'active',
-            createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-            lastLoginAt: new Date().toISOString(),
-            totalSavedWords: 19,
-            totalCollections: 2,
+        ];
+      }
+
+      setUsers(finalUsers);
+
+      const totalCalculatedUsers = Math.max(statsData?.users?.total || 0, finalUsers.length);
+      const activeCalculatedUsers = Math.max(statsData?.users?.active || 0, finalUsers.filter(u => u.status === 'active').length);
+
+      if (statsData) {
+        setStats({
+          ...statsData,
+          users: {
+            ...statsData.users,
+            total: totalCalculatedUsers,
+            active: activeCalculatedUsers,
           },
-        ]);
+        });
+      } else {
+        setStats({
+          users: { total: totalCalculatedUsers, active: activeCalculatedUsers, locked: 0, newThisWeek: totalCalculatedUsers },
+          analyses: { total: 0, failed: 0, errorRatePercent: 0, avgLatencyMs: 250 },
+          content: { totalCollections: 0, totalImages: 0, totalVocabularies: vocabData?.vocabulary?.length || 0 },
+          topSavedWords: [],
+          recentAuditLogs: [],
+        });
       }
 
       if (vocabData?.vocabulary && vocabData.vocabulary.length > 0) {

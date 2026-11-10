@@ -39,7 +39,8 @@ export const apiLimiter = rateLimit({
     isDev ||
     req.path === '/health' ||
     req.path.startsWith('/auth') ||
-    req.path.startsWith('/admin'),
+    req.path.startsWith('/admin') ||
+    req.path.startsWith('/moments'),
 });
 
 /**

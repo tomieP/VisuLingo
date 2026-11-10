@@ -205,4 +205,22 @@ VALUES (
 )
 ON CONFLICT (email) DO NOTHING;
 
+-- 14. moments table (Cloud Locket Feed)
+CREATE TABLE IF NOT EXISTS moments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  author_name VARCHAR(150) NOT NULL,
+  author_avatar TEXT,
+  author_badge VARCHAR(50) DEFAULT 'Hôm nay 🔥',
+  caption TEXT,
+  image_url TEXT NOT NULL,
+  tag_theme_id VARCHAR(50) DEFAULT 'classic',
+  vocab_tags JSONB NOT NULL DEFAULT '[]'::jsonb,
+  reactions JSONB NOT NULL DEFAULT '{"fire": 0, "heart": 0}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_moments_user_id ON moments(user_id);
+CREATE INDEX IF NOT EXISTS idx_moments_created_at ON moments(created_at DESC);
+
 COMMIT;

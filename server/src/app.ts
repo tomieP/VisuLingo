@@ -9,6 +9,7 @@ import savedWordRoutes from './routes/savedWordRoutes';
 import collectionRoutes from './routes/collectionRoutes';
 import imageRoutes from './routes/imageRoutes';
 import adminRoutes from './routes/adminRoutes';
+import momentRoutes from './routes/momentRoutes';
 
 const app = express();
 
@@ -33,8 +34,8 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ limit: '15mb', extended: true }));
 
 // Health check (no rate limiting)
 app.get('/health', (_req, res) => {
@@ -61,6 +62,9 @@ app.use('/api/images', imageRoutes);
 
 // Admin routes (all protected by authenticateJwt + requireRole('admin'))
 app.use('/api/admin', adminRoutes);
+
+// Moments / Locket Cloud Feed routes (Public read, authenticated / guest create)
+app.use('/api/moments', momentRoutes);
 
 app.use(errorHandler);
 

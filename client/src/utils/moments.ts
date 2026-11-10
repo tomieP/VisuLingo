@@ -1,3 +1,4 @@
+import api from '@/services/api';
 import { enrichVocabTag } from './dictionary';
 import { TagThemeId, getActiveTagThemeId } from './tagThemes';
 import { recordDailyStreak, getLocalDateString } from './storage';
@@ -122,6 +123,11 @@ export function deleteMoment(momentId: string): void {
   const moments = getMoments().filter((m) => m.id !== momentId);
   localStorage.setItem(MOMENTS_KEY, JSON.stringify(moments));
   window.dispatchEvent(new Event('visulingo_moments_changed'));
+
+  // Xóa trên Neon PostgreSQL Cloud trong nền
+  if (!momentId.startsWith('moment-')) {
+    api.delete(`/moments/${momentId}`).catch(() => {});
+  }
 }
 
 const MOMENTS_KEY = 'visulingo_locket_moments';
@@ -283,9 +289,10 @@ export function addMoment(moment: Omit<MomentPost, 'id' | 'timeAgo' | 'reactions
     themeId: t.themeId || chosenThemeId,
   }));
 
+  const localTempId = `moment-${nowMs}`;
   const newMoment: MomentPost = {
     ...moment,
-    id: `moment-${nowMs}`,
+    id: localTempId,
     createdAt: nowIso,
     timeAgo: 'Vừa xong',
     tagThemeId: chosenThemeId,
@@ -296,6 +303,31 @@ export function addMoment(moment: Omit<MomentPost, 'id' | 'timeAgo' | 'reactions
   moments.unshift(newMoment);
   localStorage.setItem(MOMENTS_KEY, JSON.stringify(moments));
   window.dispatchEvent(new Event('visulingo_moments_changed'));
+
+  // Đồng bộ ngay lập tức lên Neon Cloud PostgreSQL để người khác thấy bài đăng
+  api
+    .post<{ moment: MomentPost }>('/moments', {
+      authorName: moment.author.name,
+      authorAvatar: moment.author.avatar,
+      authorBadge: moment.author.badge,
+      caption: moment.caption,
+      imageUrl: moment.imageUrl,
+      tagThemeId: chosenThemeId,
+      vocabTags: tagsWithTheme,
+    })
+    .then((res) => {
+      if (res.data?.moment?.id) {
+        const cloudId = res.data.moment.id;
+        const currentList = getMoments();
+        const updatedList = currentList.map((m) => (m.id === localTempId ? { ...m, id: cloudId } : m));
+        localStorage.setItem(MOMENTS_KEY, JSON.stringify(updatedList));
+        window.dispatchEvent(new Event('visulingo_moments_changed'));
+      }
+    })
+    .catch((err) => {
+      console.warn('Đang chờ kết nối Cloud để đồng bộ bài đăng:', err?.message || err);
+    });
+
   return newMoment;
 }
 
@@ -315,7 +347,109 @@ export function reactToMoment(momentId: string, reaction: 'fire' | 'heart' | 'sp
     }
     localStorage.setItem(MOMENTS_KEY, JSON.stringify(moments));
     window.dispatchEvent(new Event('visulingo_moments_changed'));
+
+    // Đồng bộ phản ứng thả tim / lửa lên Neon Cloud
+    if (!momentId.startsWith('moment-')) {
+      api.post(`/moments/${momentId}/react`, { type: reaction }).catch(() => {});
+    }
   }
+}
+
+let isSyncingMoments = false;
+
+/**
+ * Đồng bộ bài đăng hai chiều giữa Cloud Neon PostgreSQL và trình duyệt
+ * Giúp người dùng trên các điện thoại / thiết bị khác nhau xem được bài đăng của nhau
+ */
+export async function syncCloudMoments(): Promise<MomentPost[]> {
+  if (isSyncingMoments) return getMoments();
+  isSyncingMoments = true;
+
+  try {
+    const res = await api.get<{ moments: MomentPost[] }>('/moments');
+    const cloudMoments = res.data?.moments;
+
+    if (Array.isArray(cloudMoments)) {
+      const currentList = getMoments();
+
+      const mergedMap = new Map<string, MomentPost>();
+
+      // Đưa các bài đăng từ Cloud vào trước
+      cloudMoments.forEach((cm) => {
+        mergedMap.set(cm.id, cm);
+      });
+
+      // Giữ lại các bài đăng local mới tạo chưa kịp có UUID Cloud
+      currentList.forEach((lm) => {
+        if (!mergedMap.has(lm.id)) {
+          mergedMap.set(lm.id, lm);
+
+          // Tự động đẩy lên Cloud nếu chưa có trên Cloud
+          if (lm.id.startsWith('moment-') && !isFakeMoment(lm)) {
+            api
+              .post<{ moment: MomentPost }>('/moments', {
+                authorName: lm.author.name,
+                authorAvatar: lm.author.avatar,
+                authorBadge: lm.author.badge,
+                caption: lm.caption,
+                imageUrl: lm.imageUrl,
+                tagThemeId: lm.tagThemeId,
+                vocabTags: lm.vocabTags,
+              })
+              .then((upRes) => {
+                if (upRes.data?.moment?.id) {
+                  const updated = getMoments().map((m) =>
+                    m.id === lm.id ? { ...m, id: upRes.data.moment.id } : m
+                  );
+                  localStorage.setItem(MOMENTS_KEY, JSON.stringify(updated));
+                  window.dispatchEvent(new Event('visulingo_moments_changed'));
+                }
+              })
+              .catch(() => {});
+          }
+        }
+      });
+
+      const mergedList = Array.from(mergedMap.values());
+
+      // Sắp xếp bài mới nhất lên đầu
+      mergedList.sort((a, b) => {
+        const timeA = new Date(a.createdAt || 0).getTime();
+        const timeB = new Date(b.createdAt || 0).getTime();
+        return timeB - timeA;
+      });
+
+      if (JSON.stringify(mergedList) !== JSON.stringify(currentList)) {
+        localStorage.setItem(MOMENTS_KEY, JSON.stringify(mergedList));
+        window.dispatchEvent(new Event('visulingo_moments_changed'));
+      }
+
+      return mergedList;
+    }
+  } catch (err) {
+    // Offline hoặc server chưa sẵn sàng: fallback mượt mà với local storage
+  } finally {
+    isSyncingMoments = false;
+  }
+
+  return getMoments();
+}
+
+// Tự động kích hoạt đồng bộ đám mây khi mở ứng dụng và định kỳ
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    syncCloudMoments();
+  }, 1000);
+
+  setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      syncCloudMoments();
+    }
+  }, 20000);
+
+  window.addEventListener('focus', () => {
+    syncCloudMoments();
+  });
 }
 
 export function addCommentToMoment(momentId: string, text: string): MomentComment | null {

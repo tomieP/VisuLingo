@@ -2,11 +2,19 @@ import { Pool } from 'pg';
 import { env } from './env';
 import { logger } from '../utils/logger';
 
+const isCloudDb =
+  env.DATABASE_URL.includes('neon.tech') ||
+  env.DATABASE_URL.includes('render.com') ||
+  env.DATABASE_URL.includes('supabase.co') ||
+  env.DATABASE_URL.includes('sslmode=require') ||
+  env.NODE_ENV === 'production';
+
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
+  ssl: isCloudDb ? { rejectUnauthorized: false } : undefined,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: 10000,
 });
 
 pool.on('error', (err) => {

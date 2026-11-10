@@ -105,41 +105,7 @@ function HomePage() {
   const loadData = () => {
     const currentMoments = getMoments();
     setMoments(currentMoments);
-
-    // Tự động đồng bộ bạn bè từ danh sách bạn đã thêm và các thành viên đã đăng Snap trên Feed
-    const cleanName = (s?: string) => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
-    const explicitFriends = getFriends();
-    const friendsMap = new Map<string, FriendProfile>();
-    explicitFriends.forEach((f) => friendsMap.set(f.id, f));
-
-    currentMoments.forEach((m) => {
-      const aName = (m.author?.name || '').replace(/\s+/g, ' ').trim();
-      if (aName && aName !== 'Bạn (Me)' && aName.toLowerCase() !== 'bạn') {
-        const friendId = `snapper-${cleanName(aName).replace(/[^a-z0-9_.]/g, '')}`;
-        if (!friendsMap.has(friendId)) {
-          const exists = Array.from(friendsMap.values()).some(
-            (ef) => cleanName(ef.name) === cleanName(aName)
-          );
-          if (!exists) {
-            friendsMap.set(friendId, {
-              id: friendId,
-              name: aName,
-              username: `@${cleanName(aName).replace(/[^a-z0-9_.]/g, '')}`,
-              avatar: m.author.avatar,
-              bio: `Thành viên học tập tích cực trên VisuLingo ✨`,
-              badge: m.author.badge || 'Snapper 🔥',
-              streak: 3,
-              totalWords: 15,
-              snapsCount: 1,
-              isFollowing: true,
-              albums: [],
-            });
-          }
-        }
-      }
-    });
-
-    setFriends(Array.from(friendsMap.values()));
+    setFriends(getFriends());
     setSavedCount(getSavedWords().length);
     setUserStreak(getUserStreak());
     setUnreadNotifs(getUnreadNotificationsCount());
@@ -151,33 +117,6 @@ function HomePage() {
         setIsSyncing(false);
         if (fresh && fresh.length > 0) {
           setMoments(fresh);
-          fresh.forEach((m) => {
-            const aName = (m.author?.name || '').replace(/\s+/g, ' ').trim();
-            if (aName && aName !== 'Bạn (Me)' && aName.toLowerCase() !== 'bạn') {
-              const friendId = `snapper-${cleanName(aName).replace(/[^a-z0-9_.]/g, '')}`;
-              if (!friendsMap.has(friendId)) {
-                const exists = Array.from(friendsMap.values()).some(
-                  (ef) => cleanName(ef.name) === cleanName(aName)
-                );
-                if (!exists) {
-                  friendsMap.set(friendId, {
-                    id: friendId,
-                    name: aName,
-                    username: `@${cleanName(aName).replace(/[^a-z0-9_.]/g, '')}`,
-                    avatar: m.author.avatar,
-                    bio: `Thành viên học tập tích cực trên VisuLingo ✨`,
-                    badge: m.author.badge || 'Snapper 🔥',
-                    streak: 3,
-                    totalWords: 15,
-                    snapsCount: 1,
-                    isFollowing: true,
-                    albums: [],
-                  });
-                }
-              }
-            }
-          });
-          setFriends(Array.from(friendsMap.values()));
         }
       })
       .catch(() => {

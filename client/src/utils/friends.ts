@@ -88,7 +88,13 @@ export function addNewFriend(newFriend: FriendProfile): FriendProfile[] {
     return getFriends();
   }
   const friends = getFriends();
-  if (friends.some((f) => f.id === newFriend.id)) return friends;
+  const alreadyExists = friends.some(
+    (f) =>
+      f.id === newFriend.id ||
+      (f.username && newFriend.username && f.username.toLowerCase() === newFriend.username.toLowerCase())
+  );
+  if (alreadyExists) return friends;
+
   friends.push(newFriend);
   localStorage.setItem(FRIENDS_KEY, JSON.stringify(friends));
   window.dispatchEvent(new Event('visulingo_friends_changed'));

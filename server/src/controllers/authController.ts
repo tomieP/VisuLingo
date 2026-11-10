@@ -85,3 +85,13 @@ export async function recordStreak(req: Request, res: Response, next: NextFuncti
     next(error);
   }
 }
+
+export async function searchUsersController(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const q = (req.query.q as string) || '';
+    const users = await authService.searchUsers(q);
+    res.status(200).json({ users });
+  } catch (error) {
+    next(error);
+  }
+}

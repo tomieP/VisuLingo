@@ -16,7 +16,7 @@ import { DirectChatModal } from '@/components/locket/DirectChatModal';
 import { DailyChallengesModal } from '@/components/locket/DailyChallengesModal';
 import { getMoments, syncCloudMoments, MomentPost } from '@/utils/moments';
 import { getSavedWords, getUserStreak } from '@/utils/storage';
-import { getFriends, FriendProfile } from '@/utils/friends';
+import { getFriends, addNewFriend, FriendProfile } from '@/utils/friends';
 import { getUnreadNotificationsCount } from '@/utils/notifications';
 import { getTotalUnreadChatCount } from '@/utils/chat';
 
@@ -24,6 +24,7 @@ function HomePage() {
   const [searchParams] = useSearchParams();
   const initialTab = (searchParams.get('tab') as LocketTab) || 'snap';
   const [activeTab, setActiveTab] = useState<LocketTab>(initialTab);
+  const [friendToast, setFriendToast] = useState<string | null>(null);
 
   useEffect(() => {
     const tabParam = searchParams.get('tab') as LocketTab;
@@ -34,6 +35,37 @@ function HomePage() {
       syncCloudMoments().then((cloudList) => {
         if (cloudList && cloudList.length > 0) setMoments(cloudList);
       });
+    }
+
+    // Tự động kết bạn khi mở link mời hoặc quét mã QR chứa ?addFriend=@username
+    const addFriendParam = searchParams.get('addFriend');
+    if (addFriendParam) {
+      const friendName = searchParams.get('name') || addFriendParam.replace(/^@+/, '');
+      const friendAvatar =
+        searchParams.get('avatar') ||
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
+      const cleanHandle = addFriendParam.startsWith('@') ? addFriendParam : `@${addFriendParam}`;
+
+      const newFriend: FriendProfile = {
+        id: `friend-${cleanHandle.toLowerCase().replace(/[^a-z0-9_.]/g, '')}`,
+        name: friendName,
+        username: cleanHandle,
+        avatar: friendAvatar,
+        bio: 'Bạn bè kết nối qua mã QR / link mời ✨',
+        badge: 'Bạn mới 🤝',
+        streak: 1,
+        totalWords: 0,
+        snapsCount: 0,
+        isFollowing: true,
+        albums: [],
+      };
+
+      addNewFriend(newFriend);
+      setFriends(getFriends());
+      setFriendToast(`🎉 Bạn đã kết bạn thành công với ${friendName} (${cleanHandle})!`);
+      setTimeout(() => setFriendToast(null), 5500);
+
+      window.history.replaceState({}, '', window.location.pathname);
     }
   }, [searchParams]);
   const [moments, setMoments] = useState<MomentPost[]>([]);
@@ -216,6 +248,22 @@ function HomePage() {
           </div>
         </div>
       </header>
+
+      {/* Toast popup when friend added from link/QR */}
+      {friendToast && (
+        <div className="sticky top-[max(env(safe-area-inset-top),60px)] z-50 max-w-md mx-auto w-full px-3 py-1 animate-in fade-in slide-in-from-top-2">
+          <div className="p-3 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 font-black text-xs shadow-xl flex items-center justify-between gap-2 border border-amber-300">
+            <span>{friendToast}</span>
+            <button
+              type="button"
+              onClick={() => setFriendToast(null)}
+              className="p-1 rounded-full hover:bg-black/10 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-md w-full mx-auto px-2.5 sm:px-4 py-2 sm:py-3 flex flex-col justify-start">

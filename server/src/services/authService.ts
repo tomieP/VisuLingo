@@ -233,3 +233,24 @@ export async function recordUserStreak(userId: string): Promise<StreakResult> {
     throw err;
   }
 }
+
+export async function searchUsers(q: string): Promise<{ id: string; email: string; displayName: string | null; role: string }[]> {
+  const clean = q.trim();
+  if (!clean) return [];
+  const term = `%${clean}%`;
+  const rows = await query<{ id: string; email: string; display_name: string | null; role: Role }>(
+    `SELECT id, email, display_name, role
+     FROM users
+     WHERE status = 'active'
+       AND (LOWER(email) LIKE LOWER($1) OR LOWER(display_name) LIKE LOWER($1))
+     ORDER BY created_at DESC
+     LIMIT 10`,
+    [term]
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    email: r.email,
+    displayName: r.display_name,
+    role: r.role,
+  }));
+}

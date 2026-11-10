@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Download, Share, PlusSquare, Smartphone, CheckCircle2 } from 'lucide-react';
+import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 
 interface InstallAppModalProps {
   isOpen: boolean;
@@ -62,13 +63,11 @@ export function InstallAppModal({ isOpen, onClose }: InstallAppModalProps) {
         {/* App Logo & Title */}
         <div className="flex flex-col items-center text-center space-y-3 pt-2">
           <div className="relative">
-            <img
-              src="/apple-touch-icon.png"
-              alt="VisuLingo Icon"
-              className="w-20 h-20 rounded-2xl shadow-lg ring-2 ring-amber-400/40 p-0.5 object-cover"
-            />
-            <div className="absolute -bottom-1 -right-1 p-1 bg-amber-400 text-slate-950 rounded-full">
-              <Download className="w-3.5 h-3.5" />
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-b from-[#1E293B] to-[#0F172A] border border-amber-400/30 flex items-center justify-center p-2.5 shadow-2xl ring-4 ring-amber-400/20">
+              <VisuLingoLogo size="xl" showWordmark={false} />
+            </div>
+            <div className="absolute -bottom-1.5 -right-1.5 p-1.5 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 rounded-full shadow-lg">
+              <Download className="w-3.5 h-3.5 stroke-[2.5]" />
             </div>
           </div>
           <div>

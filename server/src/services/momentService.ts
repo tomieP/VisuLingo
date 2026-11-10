@@ -17,6 +17,7 @@ export interface MomentRecord {
     fire: number;
     heart: number;
   };
+  comments?: any[];
   createdAt: string;
   timeAgo?: string;
 }
@@ -42,14 +43,43 @@ function computeTimeAgo(dateString: string): string {
 export async function listMoments(limit = 60): Promise<MomentRecord[]> {
   try {
     const safeLimit = Math.min(Math.max(1, limit), 100);
-    const rows = await query<any>(
-      `SELECT id, user_id, author_name, author_avatar, author_badge, caption,
-              image_url, tag_theme_id, vocab_tags, reactions, created_at
-       FROM moments
-       ORDER BY created_at DESC
-       LIMIT $1`,
-      [safeLimit]
-    );
+    let rows: any[] = [];
+    try {
+      rows = await query<any>(
+        `SELECT id, user_id, author_name, author_avatar, author_badge, caption,
+                image_url, tag_theme_id, vocab_tags, reactions, comments, created_at
+         FROM moments
+         ORDER BY created_at DESC
+         LIMIT $1`,
+        [safeLimit]
+      );
+    } catch (err: any) {
+      if (err?.code === '42703') {
+        // Nếu database chưa có cột comments, tự động tạo và query lại
+        try {
+          await query(`ALTER TABLE moments ADD COLUMN IF NOT EXISTS comments JSONB DEFAULT '[]'::jsonb`);
+          rows = await query<any>(
+            `SELECT id, user_id, author_name, author_avatar, author_badge, caption,
+                    image_url, tag_theme_id, vocab_tags, reactions, comments, created_at
+             FROM moments
+             ORDER BY created_at DESC
+             LIMIT $1`,
+            [safeLimit]
+          );
+        } catch {
+          rows = await query<any>(
+            `SELECT id, user_id, author_name, author_avatar, author_badge, caption,
+                    image_url, tag_theme_id, vocab_tags, reactions, created_at
+             FROM moments
+             ORDER BY created_at DESC
+             LIMIT $1`,
+            [safeLimit]
+          );
+        }
+      } else {
+        throw err;
+      }
+    }
 
     return rows.map((r) => ({
       id: r.id,
@@ -64,6 +94,7 @@ export async function listMoments(limit = 60): Promise<MomentRecord[]> {
       tagThemeId: r.tag_theme_id || 'classic',
       vocabTags: Array.isArray(r.vocab_tags) ? r.vocab_tags : [],
       reactions: r.reactions || { fire: 0, heart: 0 },
+      comments: Array.isArray(r.comments) ? r.comments : [],
       createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
       timeAgo: computeTimeAgo(r.created_at),
     }));
@@ -128,23 +159,55 @@ export async function createMoment(data: {
 
 export async function reactToMoment(momentId: string, type: 'fire' | 'heart'): Promise<{ fire: number; heart: number }> {
   const fieldKey = type === 'heart' ? 'heart' : 'fire';
-  const row = await queryOne<any>(
-    `UPDATE moments
-     SET reactions = jsonb_set(
-       COALESCE(reactions, '{"fire":0,"heart":0}'::jsonb),
-       '{${fieldKey}}',
-       ((COALESCE(reactions->>'${fieldKey}', '0')::int + 1)::text)::jsonb
-     )
-     WHERE id = $1
-     RETURNING reactions`,
-    [momentId]
-  );
+  const current = await queryOne<any>(`SELECT reactions FROM moments WHERE id = $1`, [momentId]);
+  const currentReactions = current?.reactions || { fire: 0, heart: 0 };
+  const currentCount = parseInt(currentReactions[fieldKey] || '0', 10);
+  const updatedCount = isNaN(currentCount) ? 1 : currentCount + 1;
+  const newReactions = { ...currentReactions, [fieldKey]: updatedCount };
 
-  if (!row) {
-    throw new Error('Không tìm thấy bài viết');
+  await query(`UPDATE moments SET reactions = $1::jsonb WHERE id = $2`, [JSON.stringify(newReactions), momentId]);
+  return newReactions;
+}
+
+export async function addComment(
+  momentId: string,
+  comment: { authorName: string; authorAvatar?: string; text: string }
+): Promise<any> {
+  const newCmt = {
+    id: `cmt-${Date.now()}`,
+    author: {
+      name: comment.authorName || 'Snapper',
+      avatar:
+        comment.authorAvatar ||
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+    },
+    text: comment.text,
+    createdAt: new Date().toISOString(),
+    timeAgo: 'Vừa xong',
+  };
+
+  try {
+    await query(
+      `UPDATE moments
+       SET comments = COALESCE(comments, '[]'::jsonb) || $1::jsonb
+       WHERE id = $2`,
+      [JSON.stringify([newCmt]), momentId]
+    );
+  } catch (err: any) {
+    if (err?.code === '42703') {
+      try {
+        await query(`ALTER TABLE moments ADD COLUMN IF NOT EXISTS comments JSONB DEFAULT '[]'::jsonb`);
+        await query(
+          `UPDATE moments
+           SET comments = COALESCE(comments, '[]'::jsonb) || $1::jsonb
+           WHERE id = $2`,
+          [JSON.stringify([newCmt]), momentId]
+        );
+      } catch {}
+    }
   }
 
-  return row.reactions || { fire: 0, heart: 0 };
+  return newCmt;
 }
 
 export async function deleteMoment(momentId: string, userId?: string, isAdmin?: boolean): Promise<boolean> {

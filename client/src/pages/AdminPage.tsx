@@ -75,7 +75,14 @@ function AdminPage() {
 
   // Real backend states
   const [stats, setStats] = useState<AdminStats | null>(null);
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>(() => {
+    try {
+      const cached = localStorage.getItem('visulingo_cached_admin_users');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [vocabList, setVocabList] = useState<AdminVocab[]>([]);
   const [settings, setSettings] = useState<AdminSetting[]>([]);
   const [moments, setMoments] = useState<MomentPost[]>([]);
@@ -146,18 +153,17 @@ function AdminPage() {
     setIsLoading(true);
 
     try {
-      // 1. Kiểm tra hoặc tự động gia hạn token JWT Admin nếu token hiện tại là giả lập/cục bộ
-      const existingToken = localStorage.getItem('visulingo_token');
-      if (!existingToken || existingToken.startsWith('visulingo_local_token_')) {
-        try {
-          const authRes = await api.post<{ token: string }>('/auth/login', {
-            email: 'admin@visulingo.com',
-            password: 'password123',
-          });
-          if (authRes.data?.token) {
-            localStorage.setItem('visulingo_token', authRes.data.token);
-          }
-        } catch {}
+      // 1. Luôn xác thực quyền Quản trị viên lấy JWT Token chính chủ từ máy chủ Render
+      try {
+        const authRes = await api.post<{ token: string }>('/auth/login', {
+          email: 'admin@visulingo.com',
+          password: 'password123',
+        });
+        if (authRes.data?.token) {
+          localStorage.setItem('visulingo_token', authRes.data.token);
+        }
+      } catch (err) {
+        console.warn('Không thể gia hạn Admin token:', err);
       }
 
       let [statsData, usersData, vocabData, settingsData] = await Promise.all([
@@ -167,7 +173,7 @@ function AdminPage() {
         fetchAdminSettings().catch(() => []),
       ]);
 
-      // Nếu fetch users bị từ chối (401 do token cũ), tự động refresh login JWT và tải lại
+      // Nếu lần gọi đầu chưa thành công (ví dụ Render đang khởi động lạnh), thử lại 1 lần
       if (!usersData || !usersData.users || usersData.users.length === 0) {
         try {
           const authRes = await api.post<{ token: string }>('/auth/login', {
@@ -182,7 +188,7 @@ function AdminPage() {
         } catch {}
       }
 
-      // Combine real server PostgreSQL users with locally registered accounts
+      // Kết hợp dữ liệu tài khoản thực tế từ PostgreSQL
       let finalUsers: AdminUser[] = [];
       if (usersData?.users && usersData.users.length > 0) {
         finalUsers = [...usersData.users];
@@ -205,24 +211,20 @@ function AdminPage() {
         }
       }
 
-      // If absolutely no accounts exist anywhere yet, seed default admin
-      if (finalUsers.length === 0) {
-        finalUsers = [
-          {
-            id: 'usr-admin',
-            email: 'admin@visulingo.com',
-            displayName: 'Quản trị viên VisuLingo',
-            role: 'admin',
-            status: 'active',
-            createdAt: new Date().toISOString(),
-            lastLoginAt: new Date().toISOString(),
-            totalSavedWords: 0,
-            totalCollections: 0,
-          },
-        ];
+      // Giữ lại cache cũ nếu mạng chập chờn, chống hiện tượng "ẩn hiện" tài khoản
+      if (finalUsers.length > 0) {
+        setUsers(finalUsers);
+        try {
+          localStorage.setItem('visulingo_cached_admin_users', JSON.stringify(finalUsers));
+        } catch {}
+      } else {
+        const cached = localStorage.getItem('visulingo_cached_admin_users');
+        if (cached) {
+          try {
+            setUsers(JSON.parse(cached));
+          } catch {}
+        }
       }
-
-      setUsers(finalUsers);
 
       const totalCalculatedUsers = Math.max(statsData?.users?.total || 0, finalUsers.length);
       const activeCalculatedUsers = Math.max(statsData?.users?.active || 0, finalUsers.filter(u => u.status === 'active').length);

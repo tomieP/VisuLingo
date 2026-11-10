@@ -4,6 +4,7 @@ import {
   getMoments,
   createMoment,
   reactToMoment,
+  addComment,
   deleteMoment,
 } from '../controllers/momentController';
 
@@ -18,7 +19,10 @@ router.post('/', optionalAuthenticate, createMoment);
 // 3. Tương tác thả tim / thả lửa
 router.post('/:id/react', reactToMoment);
 
-// 4. Xóa bài Snap
+// 4. Bình luận Snap
+router.post('/:id/comments', addComment);
+
+// 5. Xóa bài Snap
 router.delete('/:id', optionalAuthenticate, deleteMoment);
 
 export default router;

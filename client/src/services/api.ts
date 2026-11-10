@@ -5,14 +5,8 @@ const getBaseUrl = (): string => {
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  // Tự động kết nối backend Render khi chạy trên Vercel / domain public / thiết bị điện thoại
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      return 'https://visu-lingo.onrender.com/api';
-    }
-  }
-  return '/api';
+  // Mặc định kết nối trực tiếp backend đám mây Render (PostgreSQL Neon) để đồng bộ mọi tài khoản & snaps
+  return 'https://visu-lingo.onrender.com/api';
 };
 
 const api = axios.create({

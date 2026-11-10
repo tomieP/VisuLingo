@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { FriendProfile, addNewFriend, getFriends } from '@/utils/friends';
 import { getUserUsername, getCurrentUser } from '@/services/authService';
-import { getUserAvatar } from '@/utils/moments';
 import api from '@/services/api';
 
 interface AddFriendModalProps {
@@ -34,25 +33,25 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
 
   const myUsername = getUserUsername();
   const currentUser = getCurrentUser();
-  const myDisplayName =
+  const cleanUsername = myUsername.replace(/^@+/, '').trim() || 'snapper';
+  const myDisplayName = (
     localStorage.getItem('visulingo_display_name') ||
     currentUser?.firstName ||
-    myUsername.replace(/^@+/, '');
-  const myAvatar = localStorage.getItem('visulingo_avatar') || getUserAvatar();
+    cleanUsername
+  ).trim();
 
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://visu-lingo.vercel.app';
-  const inviteUrl = `${origin}/?addFriend=${encodeURIComponent(myUsername)}&name=${encodeURIComponent(
-    myDisplayName
-  )}&avatar=${encodeURIComponent(myAvatar)}`;
+  // Giữ link mời ngắn gọn (< 80 ký tự) để mã QR luôn tạo thành công 100% và quét cực nhạy
+  const inviteUrl = `${origin}/?addFriend=@${encodeURIComponent(cleanUsername)}&name=${encodeURIComponent(myDisplayName)}`;
 
   // Tự động sinh mã QR thật bằng thư viện qrcode
   useEffect(() => {
     if (!isOpen) return;
     setIsGeneratingQr(true);
     QRCode.toDataURL(inviteUrl, {
-      width: 400,
-      margin: 2,
-      errorCorrectionLevel: 'M',
+      width: 320,
+      margin: 1,
+      errorCorrectionLevel: 'L',
       color: {
         dark: '#0B0F17',
         light: '#FFFFFF',
@@ -60,6 +59,17 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
     })
       .then((url) => {
         setQrDataUrl(url);
+      })
+      .catch((err) => {
+        console.warn('Canvas toDataURL fallback sang SVG:', err);
+        return QRCode.toString(inviteUrl, {
+          type: 'svg',
+          margin: 1,
+          color: { dark: '#0B0F17', light: '#FFFFFF' },
+        }).then((svgStr) => {
+          const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+          setQrDataUrl(URL.createObjectURL(blob));
+        });
       })
       .catch((err) => {
         console.error('Lỗi sinh mã QR:', err);

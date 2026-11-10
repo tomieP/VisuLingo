@@ -102,3 +102,36 @@ export function markAllNotificationsAsRead(): void {
 export function getUnreadNotificationsCount(): number {
   return getNotifications().filter((n) => !n.isRead).length;
 }
+
+export function addNotification(
+  notif: Omit<AppNotification, 'id' | 'timeAgo' | 'isRead'> & { id?: string; timeAgo?: string }
+): AppNotification {
+  const notifs = getNotifications();
+  const newNotif: AppNotification = {
+    id: notif.id || `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    type: notif.type,
+    actor: notif.actor,
+    text: notif.text,
+    timeAgo: notif.timeAgo || 'Vừa xong',
+    isRead: false,
+    snapThumbnail: notif.snapThumbnail,
+    vocabWords: notif.vocabWords,
+    actionLabel: notif.actionLabel,
+    actionType: notif.actionType,
+    actionCompleted: false,
+  };
+
+  // Đưa thông báo mới nhất lên đầu danh sách
+  notifs.unshift(newNotif);
+  // Giữ tối đa 50 thông báo gần nhất
+  const trimmed = notifs.slice(0, 50);
+  localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(trimmed));
+  window.dispatchEvent(new Event('visulingo_notifications_changed'));
+
+  // Bắn sự kiện hiển thị Toast nổi trên màn hình
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('visulingo_new_notification_toast', { detail: newNotif }));
+  }
+
+  return newNotif;
+}

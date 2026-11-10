@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Flame, Camera, Settings as SettingsIcon, X, MessageSquare, Download } from 'lucide-react';
+import { Flame, Camera, Settings as SettingsIcon, X, MessageSquare, Download, Bell } from 'lucide-react';
 import { InstallAppModal } from '@/components/common/InstallAppModal';
 import { TagSkinModal } from '@/components/locket/TagSkinModal';
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
@@ -17,7 +17,7 @@ import { DailyChallengesModal } from '@/components/locket/DailyChallengesModal';
 import { getMoments, syncCloudMoments, MomentPost } from '@/utils/moments';
 import { getSavedWords, getUserStreak } from '@/utils/storage';
 import { getFriends, addNewFriend, FriendProfile } from '@/utils/friends';
-import { getUnreadNotificationsCount } from '@/utils/notifications';
+import { getUnreadNotificationsCount, addNotification, AppNotification } from '@/utils/notifications';
 import { getTotalUnreadChatCount } from '@/utils/chat';
 
 function HomePage() {
@@ -25,6 +25,7 @@ function HomePage() {
   const initialTab = (searchParams.get('tab') as LocketTab) || 'snap';
   const [activeTab, setActiveTab] = useState<LocketTab>(initialTab);
   const [friendToast, setFriendToast] = useState<string | null>(null);
+  const [liveNotif, setLiveNotif] = useState<AppNotification | null>(null);
 
   useEffect(() => {
     const tabParam = searchParams.get('tab') as LocketTab;
@@ -64,6 +65,19 @@ function HomePage() {
       setFriends(getFriends());
       setFriendToast(`🎉 Bạn đã kết bạn thành công với ${friendName} (${cleanHandle})!`);
       setTimeout(() => setFriendToast(null), 5500);
+
+      // Lưu vào danh sách thông báo chính thức
+      addNotification({
+        type: 'vocab_share',
+        actor: {
+          name: friendName,
+          avatar: friendAvatar,
+          badge: 'Bạn mới 🤝',
+        },
+        text: 'đã kết bạn với bạn qua mã QR / link mời! Hãy chụp Snap từ vựng gửi lời chào nhé 👋',
+        actionLabel: 'Chụp Snap ngay',
+        actionType: 'reply_reaction',
+      });
 
       window.history.replaceState({}, '', window.location.pathname);
     }
@@ -114,6 +128,14 @@ function HomePage() {
     const handleNotifs = () => setUnreadNotifs(getUnreadNotificationsCount());
     const handleChat = () => setUnreadChat(getTotalUnreadChatCount());
 
+    const handleNewNotifToast = (e: any) => {
+      const notif = e.detail;
+      if (notif) {
+        setLiveNotif(notif);
+        setTimeout(() => setLiveNotif(null), 5000);
+      }
+    };
+    window.addEventListener('visulingo_new_notification_toast', handleNewNotifToast);
 
     window.addEventListener('visulingo_moments_changed', handleMoments);
     window.addEventListener('visulingo_saved_words_changed', handleSaved);
@@ -128,6 +150,7 @@ function HomePage() {
       window.removeEventListener('visulingo_friends_changed', handleFriends);
       window.removeEventListener('visulingo_notifications_changed', handleNotifs);
       window.removeEventListener('visulingo_chat_changed', handleChat);
+      window.removeEventListener('visulingo_new_notification_toast', handleNewNotifToast);
     };
   }, []);
 
@@ -221,7 +244,22 @@ function HomePage() {
               <span>{userStreak}</span>
             </button>
 
-            {/* 2. Unified Social Inbox (Tin nhắn & Hoạt động) */}
+            {/* 2. Notifications Bell button */}
+            <button
+              type="button"
+              onClick={() => setIsNotifsOpen(true)}
+              className="relative p-1.5 sm:p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer shrink-0"
+              title="Thông báo tương tác (Tim, Bình luận, Bạn bè)"
+            >
+              <Bell className="w-4 h-4" />
+              {unreadNotifs > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-[9px] font-black text-white flex items-center justify-center ring-2 ring-[#0B0F17] animate-pulse">
+                  {unreadNotifs > 99 ? '99+' : unreadNotifs}
+                </span>
+              )}
+            </button>
+
+            {/* 3. Direct Chat (Tin nhắn) */}
             <button
               type="button"
               onClick={() => {
@@ -229,15 +267,15 @@ function HomePage() {
                 setIsChatOpen(true);
               }}
               className="relative p-1.5 sm:p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer shrink-0"
-              title="Hộp thư: Tin nhắn & Hoạt động"
+              title="Tin nhắn bạn bè"
             >
               <MessageSquare className="w-4 h-4" />
-              {(unreadChat > 0 || unreadNotifs > 0) && (
+              {unreadChat > 0 && (
                 <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-[#0B0F17]" />
               )}
             </button>
 
-            {/* 3. Settings */}
+            {/* 4. Settings */}
             <Link
               to="/settings"
               className="p-1.5 sm:p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors shrink-0"
@@ -248,6 +286,44 @@ function HomePage() {
           </div>
         </div>
       </header>
+
+      {/* Floating real-time Notification Toast */}
+      {liveNotif && (
+        <div
+          onClick={() => {
+            setIsNotifsOpen(true);
+            setLiveNotif(null);
+          }}
+          className="sticky top-[max(env(safe-area-inset-top),60px)] z-50 max-w-md mx-auto w-full px-3 py-1 animate-in fade-in slide-in-from-top-3 cursor-pointer"
+        >
+          <div className="p-3 rounded-2xl bg-[#161D2B]/95 backdrop-blur-xl border border-amber-400/50 shadow-2xl shadow-amber-400/20 flex items-center justify-between gap-3 text-white">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <img
+                src={liveNotif.actor.avatar}
+                alt=""
+                className="w-8 h-8 rounded-full object-cover ring-2 ring-amber-400/50 shrink-0"
+              />
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-white truncate">
+                  {liveNotif.actor.name}{' '}
+                  <span className="font-normal text-slate-300">{liveNotif.text}</span>
+                </p>
+                <p className="text-[10px] text-amber-400 font-semibold">{liveNotif.timeAgo || 'Vừa xong'}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLiveNotif(null);
+              }}
+              className="p-1 rounded-full text-slate-400 hover:text-white"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Toast popup when friend added from link/QR */}
       {friendToast && (

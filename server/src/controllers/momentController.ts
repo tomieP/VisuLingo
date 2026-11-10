@@ -49,6 +49,21 @@ export async function reactToMoment(req: Request, res: Response, next: NextFunct
   }
 }
 
+export async function addComment(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const id = req.params.id as string;
+    const { authorName, authorAvatar, text } = req.body;
+    if (!text || typeof text !== 'string') {
+      res.status(400).json({ error: 'Nội dung bình luận không được rỗng' });
+      return;
+    }
+    const comment = await momentService.addComment(id, { authorName, authorAvatar, text });
+    res.status(201).json({ comment });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function deleteMoment(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const id = req.params.id as string;

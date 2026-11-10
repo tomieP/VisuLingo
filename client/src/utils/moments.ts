@@ -3,6 +3,7 @@ import { enrichVocabTag } from './dictionary';
 import { TagThemeId, getActiveTagThemeId } from './tagThemes';
 import { recordDailyStreak, getLocalDateString } from './storage';
 import { getAuthoritativeNow } from './authoritativeTime';
+import { addNotification } from './notifications';
 
 export function getUserAvatar(): string {
   return (
@@ -350,6 +351,13 @@ export function reactToMoment(momentId: string, reaction: 'fire' | 'heart' | 'sp
   const moments = getMoments();
   const target = moments.find((m) => m.id === momentId);
   if (target) {
+    if (!target.reactions) {
+      target.reactions = { fire: 0, heart: 0, sparkles: 0 };
+    }
+    target.reactions.fire = target.reactions.fire || 0;
+    target.reactions.heart = target.reactions.heart || 0;
+    target.reactions.sparkles = target.reactions.sparkles || 0;
+
     if (target.userReacted === reaction) {
       target.reactions[reaction] = Math.max(0, target.reactions[reaction] - 1);
       target.userReacted = null;
@@ -359,13 +367,30 @@ export function reactToMoment(momentId: string, reaction: 'fire' | 'heart' | 'sp
       }
       target.reactions[reaction] += 1;
       target.userReacted = reaction;
+
+      // Kích hoạt thông báo khi thả tim / lửa / lấp lánh
+      const currentDisplayName = localStorage.getItem('visulingo_display_name') || 'Bạn';
+      const reactionEmoji = reaction === 'heart' ? '❤️ tim' : reaction === 'fire' ? '🔥 lửa' : '✨';
+      addNotification({
+        type: 'reaction',
+        actor: {
+          name: currentDisplayName,
+          avatar: getUserAvatar(),
+          badge: 'Tương tác 🔥',
+        },
+        text: `đã thả ${reactionEmoji} vào bức ảnh của ${target.author.name}!`,
+        snapThumbnail: target.imageUrl,
+        actionLabel: 'Xem Snap',
+        actionType: 'view_snap',
+      });
     }
     localStorage.setItem(MOMENTS_KEY, JSON.stringify(moments));
     window.dispatchEvent(new Event('visulingo_moments_changed'));
 
     // Đồng bộ phản ứng thả tim / lửa lên Neon Cloud
     if (!momentId.startsWith('moment-')) {
-      api.post(`/moments/${momentId}/react`, { type: reaction }).catch(() => {});
+      const serverType = reaction === 'sparkles' ? 'fire' : reaction;
+      api.post(`/moments/${momentId}/react`, { type: serverType }).catch(() => {});
     }
   }
 }
@@ -389,10 +414,33 @@ export async function syncCloudMoments(): Promise<MomentPost[]> {
 
       const mergedMap = new Map<string, MomentPost>();
 
-      // 1. Đưa các bài đăng thực tế từ Cloud vào làm chuẩn
+      // 1. Đưa các bài đăng thực tế từ Cloud vào làm chuẩn, bảo tồn tương tác local
       cloudMoments.forEach((cm) => {
         if (!isFakeMoment(cm)) {
-          mergedMap.set(cm.id, cm);
+          const localExisting = currentList.find((m) => m.id === cm.id);
+          const localComments = localExisting?.comments || [];
+          const cloudComments = cm.comments || [];
+
+          // Gộp comments từ cloud và local không trùng lặp
+          const commentMap = new Map<string, MomentComment>();
+          cloudComments.forEach((c) => commentMap.set(c.id, c));
+          localComments.forEach((c) => commentMap.set(c.id, c));
+          const mergedComments = Array.from(commentMap.values());
+
+          // Bảo toàn trạng thái thả tim / lửa của người dùng máy này
+          const preservedUserReacted = localExisting?.userReacted || cm.userReacted || null;
+
+          const merged: MomentPost = {
+            ...cm,
+            comments: mergedComments,
+            userReacted: preservedUserReacted,
+            reactions: {
+              fire: Math.max(cm.reactions?.fire || 0, localExisting?.reactions?.fire || 0),
+              heart: Math.max(cm.reactions?.heart || 0, localExisting?.reactions?.heart || 0),
+              sparkles: Math.max(cm.reactions?.sparkles || 0, localExisting?.reactions?.sparkles || 0),
+            },
+          };
+          mergedMap.set(cm.id, merged);
         }
       });
 
@@ -495,5 +543,32 @@ export function addCommentToMoment(momentId: string, text: string): MomentCommen
   target.comments.push(newComment);
   localStorage.setItem(MOMENTS_KEY, JSON.stringify(moments));
   window.dispatchEvent(new Event('visulingo_moments_changed'));
+
+  // Kích hoạt thông báo khi có bình luận mới
+  const truncatedText = text.trim().slice(0, 45) + (text.trim().length > 45 ? '...' : '');
+  addNotification({
+    type: 'comment',
+    actor: {
+      name: currentDisplayName,
+      avatar: currentAvatar,
+      badge: 'Bình luận 💬',
+    },
+    text: `đã bình luận: "${truncatedText}"`,
+    snapThumbnail: target.imageUrl,
+    actionLabel: 'Xem Snap',
+    actionType: 'view_snap',
+  });
+
+  // Đồng bộ bình luận lên máy chủ Neon Cloud PostgreSQL
+  if (!momentId.startsWith('moment-')) {
+    api
+      .post(`/moments/${momentId}/comments`, {
+        authorName: currentDisplayName,
+        authorAvatar: currentAvatar,
+        text: text.trim(),
+      })
+      .catch(() => {});
+  }
+
   return newComment;
 }

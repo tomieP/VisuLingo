@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Send, MessageCircle, Sparkles } from 'lucide-react';
-import { MomentPost, addCommentToMoment, formatTimeAgo } from '@/utils/moments';
+import { MomentPost, addCommentToMoment, formatTimeAgo, getMoments } from '@/utils/moments';
 
 interface SnapCommentsModalProps {
   moment: MomentPost | null;
@@ -16,23 +16,69 @@ const QUICK_REPLIES = [
   'Học chăm chỉ quá nè 👏',
 ];
 
-export function SnapCommentsModal({ moment, isOpen, onClose }: SnapCommentsModalProps) {
+export function SnapCommentsModal({ moment: initialMoment, isOpen, onClose }: SnapCommentsModalProps) {
   const [commentText, setCommentText] = useState('');
+  const [currentMoment, setCurrentMoment] = useState<MomentPost | null>(initialMoment);
+  const commentsEndRef = useRef<HTMLDivElement>(null);
 
-  if (!isOpen || !moment) return null;
+  useEffect(() => {
+    setCurrentMoment(initialMoment);
+  }, [initialMoment]);
 
-  const comments = moment.comments || [];
+  useEffect(() => {
+    if (!initialMoment || !isOpen) return;
+
+    const handleMomentsChanged = () => {
+      const fresh = getMoments().find((m) => m.id === initialMoment.id);
+      if (fresh) {
+        setCurrentMoment(fresh);
+      }
+    };
+
+    window.addEventListener('visulingo_moments_changed', handleMomentsChanged);
+    return () => window.removeEventListener('visulingo_moments_changed', handleMomentsChanged);
+  }, [initialMoment, isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [isOpen, currentMoment?.comments?.length]);
+
+  if (!isOpen || !currentMoment) return null;
+
+  const comments = currentMoment.comments || [];
 
   const handleSend = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!commentText.trim()) return;
 
-    addCommentToMoment(moment.id, commentText);
+    const newCmt = addCommentToMoment(currentMoment.id, commentText);
+    if (newCmt) {
+      setCurrentMoment((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          comments: [...(prev.comments || []), newCmt],
+        };
+      });
+    }
     setCommentText('');
   };
 
   const handleQuickReply = (text: string) => {
-    addCommentToMoment(moment.id, text);
+    const newCmt = addCommentToMoment(currentMoment.id, text);
+    if (newCmt) {
+      setCurrentMoment((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          comments: [...(prev.comments || []), newCmt],
+        };
+      });
+    }
   };
 
   return (
@@ -47,7 +93,7 @@ export function SnapCommentsModal({ moment, isOpen, onClose }: SnapCommentsModal
             <div>
               <h3 className="font-extrabold text-sm text-white">Bình luận Snap</h3>
               <p className="text-[10px] text-slate-400">
-                Snap của <strong className="text-amber-300">{moment.author.name}</strong> • {comments.length} phản hồi
+                Snap của <strong className="text-amber-300">{currentMoment.author.name}</strong> • {comments.length} phản hồi
               </p>
             </div>
           </div>
@@ -62,10 +108,10 @@ export function SnapCommentsModal({ moment, isOpen, onClose }: SnapCommentsModal
         </div>
 
         {/* Caption snippet */}
-        {moment.caption && (
+        {currentMoment.caption && (
           <div className="p-2.5 rounded-2xl bg-white/5 border border-white/5 text-xs text-slate-300 italic flex items-center gap-2 shrink-0">
             <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="truncate">"{moment.caption}"</span>
+            <span className="truncate">"{currentMoment.caption}"</span>
           </div>
         )}
 
@@ -94,6 +140,7 @@ export function SnapCommentsModal({ moment, isOpen, onClose }: SnapCommentsModal
               </div>
             ))
           )}
+          <div ref={commentsEndRef} />
         </div>
 
         {/* Quick Reaction Pills */}

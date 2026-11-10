@@ -21,6 +21,20 @@ async function autoMigrateDatabase() {
       await query(sql);
       logger.info('[Database] Auto-migration successfully verified!');
     }
+
+    // Ensure default admin account is active in PostgreSQL
+    await query(`
+      INSERT INTO users (email, password_hash, display_name, role, status)
+      VALUES (
+        'admin@visulingo.com',
+        crypt('password123', gen_salt('bf')),
+        'Quản trị viên VisuLingo',
+        'admin',
+        'active'
+      )
+      ON CONFLICT (email) DO UPDATE SET role = 'admin'
+    `);
+    logger.info('[Database] Default admin account verified (admin@visulingo.com / password123)');
   } catch (err: any) {
     logger.warn('[Database] Auto-migration check:', err?.message || err);
   }

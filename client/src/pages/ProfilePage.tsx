@@ -16,6 +16,7 @@ import {
   Zap,
   Target,
   Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { LocketBottomBar } from '@/components/locket/LocketBottomBar';
@@ -201,6 +202,15 @@ function ProfilePage() {
           </div>
 
           <div className="flex items-center gap-1.5">
+            {currentUser?.role === 'admin' && (
+              <Link
+                to="/admin"
+                className="p-2 rounded-full bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 hover:text-amber-200 transition-colors"
+                title="Trang Quản trị Hệ thống (Admin Portal)"
+              >
+                <ShieldCheck className="w-4 h-4" />
+              </Link>
+            )}
             <button
               type="button"
               onClick={handleShareProfile}

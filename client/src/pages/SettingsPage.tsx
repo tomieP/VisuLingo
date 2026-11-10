@@ -8,6 +8,7 @@ import {
   LogOut,
   Check,
   Shield,
+  ShieldCheck,
   Trash2,
   Sparkles,
   Camera,
@@ -348,6 +349,16 @@ function SettingsPage() {
             <Trash2 className="w-3.5 h-3.5" />
             <span>Xóa toàn bộ từ vựng đã lưu</span>
           </button>
+
+          {currentUser?.role === 'admin' && (
+            <Link
+              to="/admin"
+              className="w-full py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-400/20"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>Vào Trang Quản Trị Hệ Thống (/admin)</span>
+            </Link>
+          )}
 
           {currentUser ? (
             <button

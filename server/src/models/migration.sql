@@ -194,4 +194,15 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 CREATE INDEX  IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
 CREATE INDEX  IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
 
+-- 13. Ensure default admin user exists
+INSERT INTO users (email, password_hash, display_name, role, status)
+VALUES (
+  'admin@visulingo.com',
+  crypt('password123', gen_salt('bf')),
+  'Quản trị viên VisuLingo',
+  'admin',
+  'active'
+)
+ON CONFLICT (email) DO NOTHING;
+
 COMMIT;

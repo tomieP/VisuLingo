@@ -234,10 +234,10 @@ export async function recordUserStreak(userId: string): Promise<StreakResult> {
   }
 }
 
-export async function searchUsers(q: string): Promise<{ id: string; email: string; displayName: string | null; role: string }[]> {
+export async function searchUsers(q: string): Promise<{ id: string; displayName: string | null; tagName: string; role: string }[]> {
   const clean = q.trim();
   if (!clean) return [];
-  const term = `%${clean}%`;
+  const term = `%${clean.replace(/^@+/, '')}%`;
   const rows = await query<{ id: string; email: string; display_name: string | null; role: Role }>(
     `SELECT id, email, display_name, role
      FROM users
@@ -247,10 +247,13 @@ export async function searchUsers(q: string): Promise<{ id: string; email: strin
      LIMIT 10`,
     [term]
   );
-  return rows.map((r) => ({
-    id: r.id,
-    email: r.email,
-    displayName: r.display_name,
-    role: r.role,
-  }));
+  return rows.map((r) => {
+    const handle = r.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, '');
+    return {
+      id: r.id,
+      displayName: r.display_name || handle,
+      tagName: `@${handle}`,
+      role: r.role,
+    };
+  });
 }

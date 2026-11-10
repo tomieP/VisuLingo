@@ -27,7 +27,7 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
   const [copied, setCopied] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [isGeneratingQr, setIsGeneratingQr] = useState<boolean>(false);
-  const [serverUsers, setServerUsers] = useState<Array<{ id: string; email: string; displayName: string | null }>>([]);
+  const [serverUsers, setServerUsers] = useState<Array<{ id: string; tagName: string; displayName: string | null }>>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchMessage, setSearchMessage] = useState<string | null>(null);
 
@@ -135,7 +135,7 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
     const timer = setTimeout(() => {
       setIsSearching(true);
       api
-        .get<{ users: Array<{ id: string; email: string; displayName: string | null }> }>('/auth/users/search', {
+        .get<{ users: Array<{ id: string; tagName: string; displayName: string | null }> }>('/auth/users/search', {
           params: { q },
         })
         .then((res) => {
@@ -163,13 +163,13 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
     setTimeout(() => setSearchMessage(null), 3000);
   };
 
-  const handleAddServerUser = (u: { id: string; email: string; displayName: string | null }) => {
-    const cleanHandle = u.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, '');
+  const handleAddServerUser = (u: { id: string; tagName: string; displayName: string | null }) => {
+    const cleanHandle = u.tagName.replace(/^@+/, '').toLowerCase();
     const newPerson: FriendProfile = {
       id: `friend-${u.id}`,
       name: u.displayName || cleanHandle,
       username: `@${cleanHandle}`,
-      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(u.email)}`,
+      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanHandle)}`,
       bio: 'Snapper chính thức trên VisuLingo 🌟',
       badge: 'Snapper 🎓',
       streak: 1,
@@ -402,13 +402,13 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
             <div className="space-y-4 py-1">
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-slate-300 block">
-                  Tìm theo tên, email, username hoặc dán link mời:
+                  Tìm theo tên hiển thị hoặc @tag_name bạn bè:
                 </label>
                 <div className="relative flex items-center">
                   <Search className="w-4 h-4 absolute left-3 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="ví dụ: thanh phú, phubap8999, @alex..."
+                    placeholder="ví dụ: thanh phú, @phubap8999, @boypheda..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => {
@@ -446,6 +446,8 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
                         f.name.toLowerCase() === (u.displayName || '').toLowerCase()
                     );
 
+                    const cleanHandle = u.tagName.replace(/^@+/, '');
+
                     return (
                       <div
                         key={u.id}
@@ -453,15 +455,15 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <img
-                            src={`https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(u.email)}`}
-                            alt={u.displayName || u.email}
+                            src={`https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanHandle)}`}
+                            alt={u.displayName || u.tagName}
                             className="w-9 h-9 rounded-full bg-slate-800 p-0.5 border border-amber-400/40 shrink-0"
                           />
                           <div className="min-w-0">
                             <p className="text-xs font-bold text-white truncate">
-                              {u.displayName || u.email.split('@')[0]}
+                              {u.displayName || cleanHandle}
                             </p>
-                            <p className="text-[10px] text-slate-400 truncate">{u.email}</p>
+                            <p className="text-[11px] text-amber-400 font-mono font-semibold truncate">{u.tagName}</p>
                           </div>
                         </div>
 

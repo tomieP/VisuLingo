@@ -27,6 +27,7 @@ import {
 import { speakWord } from '@/utils/speech';
 import { getAlbums, syncCollectionsFromApi, getPhotos, Album, SnapPhoto } from '@/utils/albums';
 import { getCurrentUser, getUserUsername, setUserUsername } from '@/services/authService';
+import { getMoments, syncCloudMoments, isAuthorCurrentUser, isFakeMoment, MomentPost } from '@/utils/moments';
 import { CreateAlbumModal } from './CreateAlbumModal';
 import { AlbumDetailModal } from './AlbumDetailModal';
 import { AddPhotoToAlbumModal } from './AddPhotoToAlbumModal';
@@ -40,6 +41,7 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
   const [savedWords, setSavedWords] = useState<SavedWord[]>([]);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [photos, setPhotos] = useState<SnapPhoto[]>([]);
+  const [moments, setMoments] = useState<MomentPost[]>(getMoments());
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMode, setFilterMode] = useState<'all' | 'needs_review' | 'mastered'>('all');
 
@@ -61,11 +63,15 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
     setSavedWords(getSavedWords());
     setAlbums(getAlbums());
     setPhotos(getPhotos());
+    setMoments(getMoments());
     void syncSavedWordsFromApi().then((words) => {
       if (words && words.length >= 0) setSavedWords(words);
     });
     void syncCollectionsFromApi().then((fetchedAlbums) => {
       if (fetchedAlbums && fetchedAlbums.length >= 0) setAlbums(fetchedAlbums);
+    });
+    void syncCloudMoments().then((cloudMoments) => {
+      if (cloudMoments && cloudMoments.length >= 0) setMoments(cloudMoments);
     });
   };
 
@@ -76,15 +82,18 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
       setAlbums(getAlbums());
       setPhotos(getPhotos());
     };
+    const handleMoments = () => setMoments(getMoments());
 
     window.addEventListener('visulingo_saved_words_changed', handleWords);
     window.addEventListener('visulingo_albums_changed', handleAlbums);
+    window.addEventListener('visulingo_moments_changed', handleMoments);
     const handleUsername = () => setUserTag(getUserUsername());
     window.addEventListener('visulingo_username_changed', handleUsername);
 
     return () => {
       window.removeEventListener('visulingo_saved_words_changed', handleWords);
       window.removeEventListener('visulingo_albums_changed', handleAlbums);
+      window.removeEventListener('visulingo_moments_changed', handleMoments);
       window.removeEventListener('visulingo_username_changed', handleUsername);
     };
   }, []);
@@ -110,6 +119,16 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
   };
 
   // Calculations
+  const currentUser = getCurrentUser();
+  const displayName = currentUser?.firstName
+    ? `${currentUser.firstName} ${currentUser.lastName || ''}`.trim()
+    : (localStorage.getItem('visulingo_display_name') || 'Bạn (Me)');
+
+  const myMoments = moments.filter(
+    (m) => !isFakeMoment(m) && isAuthorCurrentUser(m, currentUser, displayName)
+  );
+  const totalSnapsCount = Math.max(photos.length, myMoments.length);
+
   const masteredCount = savedWords.filter((w) => w.isMastered).length;
   const reviewCount = savedWords.length - masteredCount;
 
@@ -136,7 +155,6 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
     setCurrentDeckIndex((prev) => (prev + 1) % deckWords.length);
   };
 
-  const currentUser = getCurrentUser();
   const userStreak = getUserStreak();
   const rawName =
     (currentUser?.firstName && currentUser.firstName.trim()) ||
@@ -195,7 +213,7 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
               <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400 font-medium">
                 <span>{albums.length} Album</span>
                 <span>•</span>
-                <span>{photos.length} Snaps</span>
+                <span className="text-white font-semibold">{totalSnapsCount} Snaps</span>
                 <span>•</span>
                 <span className="text-amber-300 font-semibold">{savedWords.length} Từ</span>
               </div>
@@ -332,6 +350,43 @@ export function LocketPocketView({ initialSubTab = 'albums' }: LocketPocketViewP
               </button>
             </div>
           </div>
+
+          {/* Quick-access: My Snaps Feed */}
+          {myMoments.length > 0 && (
+            <div className="p-4 rounded-[24px] bg-[#161D2B]/80 border border-amber-400/30 space-y-3 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
+                  <Camera className="w-4 h-4 text-amber-400" />
+                  <span>Khoảnh khắc Snap của bạn ({myMoments.length})</span>
+                </div>
+                <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  Đã lưu Cloud ✨
+                </span>
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {myMoments.map((snap) => (
+                  <div
+                    key={snap.id}
+                    className="relative aspect-square rounded-xl overflow-hidden border border-white/10 group shadow-sm bg-black/40"
+                  >
+                    <img
+                      src={snap.imageUrl}
+                      alt={snap.caption}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-1.5">
+                      <span className="text-[10px] font-bold text-amber-300 truncate">
+                        {snap.vocabTags?.[0]?.word || snap.caption || 'Snap'}
+                      </span>
+                      <span className="text-[8px] text-slate-300">
+                        {snap.vocabTags?.length || 0} từ • {snap.timeAgo || 'Gần đây'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Albums Grid */}
           {albums.length === 0 ? (

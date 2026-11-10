@@ -106,23 +106,24 @@ function HomePage() {
     setMoments(currentMoments);
 
     // Tự động đồng bộ bạn bè từ danh sách bạn đã thêm và các thành viên đã đăng Snap trên Feed
+    const cleanName = (s?: string) => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
     const explicitFriends = getFriends();
     const friendsMap = new Map<string, FriendProfile>();
     explicitFriends.forEach((f) => friendsMap.set(f.id, f));
 
     currentMoments.forEach((m) => {
-      const aName = m.author?.name;
-      if (aName && aName !== 'Bạn (Me)') {
-        const friendId = `snapper-${aName.toLowerCase().replace(/[^a-z0-9_.]/g, '')}`;
+      const aName = (m.author?.name || '').replace(/\s+/g, ' ').trim();
+      if (aName && aName !== 'Bạn (Me)' && aName.toLowerCase() !== 'bạn') {
+        const friendId = `snapper-${cleanName(aName).replace(/[^a-z0-9_.]/g, '')}`;
         if (!friendsMap.has(friendId)) {
           const exists = Array.from(friendsMap.values()).some(
-            (ef) => ef.name.toLowerCase() === aName.toLowerCase()
+            (ef) => cleanName(ef.name) === cleanName(aName)
           );
           if (!exists) {
             friendsMap.set(friendId, {
               id: friendId,
               name: aName,
-              username: `@${aName.toLowerCase().replace(/[^a-z0-9_.]/g, '')}`,
+              username: `@${cleanName(aName).replace(/[^a-z0-9_.]/g, '')}`,
               avatar: m.author.avatar,
               bio: `Thành viên học tập tích cực trên VisuLingo ✨`,
               badge: m.author.badge || 'Snapper 🔥',
@@ -148,18 +149,18 @@ function HomePage() {
       if (fresh && fresh.length > 0) {
         setMoments(fresh);
         fresh.forEach((m) => {
-          const aName = m.author?.name;
-          if (aName && aName !== 'Bạn (Me)') {
-            const friendId = `snapper-${aName.toLowerCase().replace(/[^a-z0-9_.]/g, '')}`;
+          const aName = (m.author?.name || '').replace(/\s+/g, ' ').trim();
+          if (aName && aName !== 'Bạn (Me)' && aName.toLowerCase() !== 'bạn') {
+            const friendId = `snapper-${cleanName(aName).replace(/[^a-z0-9_.]/g, '')}`;
             if (!friendsMap.has(friendId)) {
               const exists = Array.from(friendsMap.values()).some(
-                (ef) => ef.name.toLowerCase() === aName.toLowerCase()
+                (ef) => cleanName(ef.name) === cleanName(aName)
               );
               if (!exists) {
                 friendsMap.set(friendId, {
                   id: friendId,
                   name: aName,
-                  username: `@${aName.toLowerCase().replace(/[^a-z0-9_.]/g, '')}`,
+                  username: `@${cleanName(aName).replace(/[^a-z0-9_.]/g, '')}`,
                   avatar: m.author.avatar,
                   bio: `Thành viên học tập tích cực trên VisuLingo ✨`,
                   badge: m.author.badge || 'Snapper 🔥',
@@ -228,11 +229,13 @@ function HomePage() {
   let displayPosts: MomentPost[] = [];
 
   if (selectedFriend) {
-    // 1. Lọc tất cả bài Snap của bạn bè này trên Bảng tin Cloud Feed
+    // 1. Lọc tất cả bài Snap của bạn bè này trên Bảng tin Cloud Feed (chuẩn hóa khoảng trắng & hoa thường)
+    const cleanStr = (s?: string) => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const targetName = cleanStr(selectedFriend.name);
+    const targetUsername = cleanStr(selectedFriend.username).replace(/^@+/, '');
+
     const friendMoments = moments.filter((m) => {
-      const authorName = m.author?.name?.toLowerCase().trim() || '';
-      const targetName = selectedFriend.name.toLowerCase().trim();
-      const targetUsername = (selectedFriend.username || '').toLowerCase().trim().replace(/^@+/, '');
+      const authorName = cleanStr(m.author?.name);
       return (
         authorName === targetName ||
         authorName.includes(targetName) ||

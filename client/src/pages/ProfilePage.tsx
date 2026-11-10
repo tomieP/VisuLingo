@@ -23,7 +23,7 @@ import { LocketBottomBar } from '@/components/locket/LocketBottomBar';
 import { getCurrentUser, getUserUsername, setUserUsername } from '@/services/authService';
 import { getSavedWords, getUserStreak, getLocalDateString } from '@/utils/storage';
 import { getAuthoritativeDate } from '@/utils/authoritativeTime';
-import { getMoments, MomentPost, deleteMoment, isFakeMoment } from '@/utils/moments';
+import { getMoments, MomentPost, deleteMoment, isFakeMoment, isAuthorCurrentUser, syncCloudMoments } from '@/utils/moments';
 import { speakWord } from '@/utils/speech';
 import { getBadges, evaluateBadges, EvaluatedBadge } from '@/utils/badges';
 import {
@@ -76,6 +76,13 @@ function ProfilePage() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // 1. Tự động đồng bộ khoảnh khắc từ máy chủ Cloud PostgreSQL Neon
+    syncCloudMoments().then((cloudMoments) => {
+      if (cloudMoments && cloudMoments.length > 0) {
+        setMoments(cloudMoments);
+      }
+    }).catch(() => {});
+
     const handleAvatarChange = () => {
       setUserAvatar(
         localStorage.getItem('visulingo_avatar') ||
@@ -133,11 +140,7 @@ function ProfilePage() {
   };
 
   const myMoments = moments.filter(
-    (m) =>
-      !isFakeMoment(m) &&
-      (m.author.name === displayName ||
-        m.author.name.toLowerCase().includes('bạn') ||
-        (currentUser?.firstName && m.author.name.includes(currentUser.firstName)))
+    (m) => !isFakeMoment(m) && isAuthorCurrentUser(m, currentUser, displayName)
   );
 
   const friends = getFriends();

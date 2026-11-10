@@ -37,6 +37,7 @@ export interface MomentComment {
 
 export interface MomentPost {
   id: string;
+  userId?: string | null;
   author: {
     name: string;
     avatar: string;
@@ -55,6 +56,71 @@ export interface MomentPost {
   };
   userReacted?: 'fire' | 'heart' | 'sparkles' | null;
   comments?: MomentComment[];
+}
+
+/**
+ * Kiểm tra xem bài Snap có thuộc về tài khoản người dùng hiện tại không
+ * So khớp qua:
+ * 1. Database user_id chuẩn xác từ Neon PostgreSQL
+ * 2. Tên hiển thị (được chuẩn hóa khoảng trắng và chữ hoa thường)
+ * 3. Họ tên, @username hoặc email tiền tố của người dùng
+ * 4. Nhãn mặc định Bạn (Me) khi đăng local
+ */
+export function isAuthorCurrentUser(
+  m: MomentPost,
+  currentUser?: { id?: string; firstName?: string; lastName?: string; username?: string; email?: string } | null,
+  displayName?: string
+): boolean {
+  if (!m) return false;
+
+  // 1. So khớp theo ID cơ sở dữ liệu (tuyệt đối chính xác)
+  if (currentUser?.id && m.userId && String(m.userId) === String(currentUser.id)) {
+    return true;
+  }
+
+  const clean = (s?: string) => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  const authorClean = clean(m.author?.name);
+  if (!authorClean) return false;
+
+  // 2. Tên mặc định của chính người dùng máy này
+  if (authorClean === 'bạn (me)' || authorClean === 'bạn' || authorClean === 'me') {
+    return true;
+  }
+
+  // 3. Khớp tên hiển thị hiện tại
+  if (displayName) {
+    const dClean = clean(displayName);
+    if (dClean === authorClean || authorClean.includes(dClean) || dClean.includes(authorClean)) {
+      return true;
+    }
+  }
+
+  // 4. Khớp thông tin tài khoản đang đăng nhập
+  if (currentUser) {
+    const fullName = clean(`${currentUser.firstName || ''} ${currentUser.lastName || ''}`);
+    if (fullName && (fullName === authorClean || authorClean.includes(fullName) || fullName.includes(authorClean))) {
+      return true;
+    }
+    const firstName = clean(currentUser.firstName);
+    if (firstName && firstName.length >= 2 && authorClean.includes(firstName)) {
+      return true;
+    }
+    const username = clean(currentUser.username).replace(/^@+/, '');
+    if (username && username.length >= 3 && (authorClean.includes(username) || username.includes(authorClean))) {
+      return true;
+    }
+    const emailPrefix = clean(currentUser.email?.split('@')[0]);
+    if (emailPrefix && emailPrefix.length >= 3 && (authorClean.includes(emailPrefix) || emailPrefix.includes(authorClean))) {
+      return true;
+    }
+  } else {
+    // Chế độ khách (chưa đăng nhập): giữ lại bài tạo trên trình duyệt này
+    if (m.id && m.id.startsWith('moment-')) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -420,6 +486,7 @@ export async function syncCloudMoments(): Promise<MomentPost[]> {
 
           const merged: MomentPost = {
             ...cm,
+            userId: cm.userId || (cm as any).user_id || localExisting?.userId || null,
             comments: mergedComments,
             userReacted: preservedUserReacted,
             reactions: {

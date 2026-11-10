@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -17,7 +17,7 @@ import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
 import { LocketBottomBar } from '@/components/locket/LocketBottomBar';
 import { speakWord } from '@/utils/speech';
 import { saveWord, getSavedWords } from '@/utils/storage';
-import { getMoments, reactToMoment, MomentPost } from '@/utils/moments';
+import { getMoments, reactToMoment, MomentPost, syncCloudMoments } from '@/utils/moments';
 
 type SortFilter = 'latest' | 'popular' | 'words';
 
@@ -53,6 +53,21 @@ function ExplorePage() {
     setSavedWordIds((prev) => new Set(prev).add(word.toLowerCase()));
     showToast(`Đã lưu "${word}" vào Sổ từ của bạn! ✨`);
   };
+
+  useEffect(() => {
+    // Tự động kéo bài đăng Cloud mới nhất từ Neon PostgreSQL
+    syncCloudMoments().then((fresh) => {
+      if (fresh && fresh.length > 0) {
+        setMoments(fresh);
+      }
+    }).catch(() => {});
+
+    const handleMomentsChange = () => setMoments(getMoments());
+    window.addEventListener('visulingo_moments_changed', handleMomentsChange);
+    return () => {
+      window.removeEventListener('visulingo_moments_changed', handleMomentsChange);
+    };
+  }, []);
 
   // Collect unique vocabulary tags dynamically from real moments
   const dynamicTags = useMemo(() => {

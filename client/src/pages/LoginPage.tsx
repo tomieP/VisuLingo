@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, Flame, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, Flame, CheckCircle2, Download } from 'lucide-react';
 import { VisuLingoLogo } from '@/components/common/VisuLingoLogo';
+import { InstallAppModal } from '@/components/common/InstallAppModal';
 import { loginUser } from '@/services/authService';
 
 function LoginPage() {
@@ -12,6 +13,7 @@ function LoginPage() {
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +46,26 @@ function LoginPage() {
       <div className="fixed top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-gradient-to-tr from-amber-500/15 via-orange-500/10 to-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="fixed -bottom-20 -right-20 w-80 h-80 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md relative z-10 space-y-6 my-8">
+      {/* Top action bar: Home & Install App */}
+      <div className="w-full max-w-md flex items-center justify-between px-2 pt-2 pb-1 relative z-10">
+        <Link
+          to="/"
+          className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors"
+        >
+          ← Trang chủ
+        </Link>
+        <button
+          type="button"
+          onClick={() => setIsInstallModalOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/25 text-amber-300 text-xs font-semibold shadow-xs transition-all cursor-pointer group active:scale-95"
+          title="Tải VisuLingo về điện thoại"
+        >
+          <Download className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform shrink-0" />
+          <span>Tải App</span>
+        </button>
+      </div>
+
+      <div className="w-full max-w-md relative z-10 space-y-6 my-4">
         {/* Brand header */}
         <div className="text-center space-y-2">
           <Link to="/" className="inline-flex items-center gap-2 group hover:opacity-95 transition-opacity">
@@ -176,6 +197,12 @@ function LoginPage() {
           </span>
         </div>
       </div>
+
+      {/* PWA Install App Modal for iOS & Android */}
+      <InstallAppModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+      />
     </div>
   );
 }

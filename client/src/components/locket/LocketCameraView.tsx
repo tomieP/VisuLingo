@@ -497,23 +497,10 @@ const getMeaningForWord = (word: string) => {
               className="w-full h-full object-cover transition-transform duration-100 ease-out origin-center pointer-events-none"
             />
 
-            {/* Floating Live Shutter Controls & Gradient */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
+            {/* Floating Live Shutter Controls & Soft Bottom Gradient */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
 
-            {/* Top Bar: Live indicator + Current Zoom label */}
-            <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-auto z-20">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-amber-300 flex items-center gap-1.5 shadow-md">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-                <span>Camera trực tiếp</span>
-              </span>
-
-              {/* Pinch to zoom tip badge */}
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-slate-300">
-                🔍 {zoomLevel}x (Dùng 2 ngón tay thu phóng)
-              </span>
-            </div>
-
-            {/* Quick Zoom Switcher Pills (Floating above shutter) */}
+            {/* Quick Zoom Switcher Pills (Floating above shutter, similar to iOS camera) */}
             <div className="absolute bottom-24 inset-x-0 flex items-center justify-center gap-2 pointer-events-auto z-20">
               {[1, 2, 3].map((level) => {
                 const isActive = Math.abs(zoomLevel - level) < 0.3;
@@ -528,7 +515,7 @@ const getMeaningForWord = (word: string) => {
                         : 'bg-black/60 border border-white/20 text-white hover:bg-black/85'
                     }`}
                   >
-                    {level}x
+                    {isActive && zoomLevel !== level ? `${zoomLevel}x` : `${level}x`}
                   </button>
                 );
               })}

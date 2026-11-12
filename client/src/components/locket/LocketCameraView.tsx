@@ -26,6 +26,7 @@ export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
   const [showStickers, setShowStickers] = useState<boolean>(true);
   const [caption, setCaption] = useState<string>('');
   const [isSharing, setIsSharing] = useState<boolean>(false);
+  const isShareInProgress = useRef(false);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [selectedAlbumId, setSelectedAlbumId] = useState<string>('album-workspace');
   const [showCreateAlbum, setShowCreateAlbum] = useState<boolean>(false);
@@ -353,6 +354,9 @@ const getMeaningForWord = (word: string) => {
 
   const handleShareToFeed = () => {
     if (!imageUrl || editableTags.length === 0) return;
+    // Guard chống double-tap / spam bấm nút Đăng
+    if (isShareInProgress.current) return;
+    isShareInProgress.current = true;
     setIsSharing(true);
 
     const chosenTheme = getTagThemeById(selectedSnapThemeId);
@@ -381,7 +385,8 @@ const getMeaningForWord = (word: string) => {
     savePhotoToAlbum(selectedAlbumId, imageUrl, finalVocabTags, caption.trim());
     incrementChallengeProgress('snap_photos', 1);
 
-    setIsSharing(false);
+    // isShareInProgress.current KHÔNG reset ở đây — component sẽ unmount sau onMomentShared()
+    // nên tự nhiên guard bị xoá khi component mount lại lần sau
     onMomentShared?.();
   };
 

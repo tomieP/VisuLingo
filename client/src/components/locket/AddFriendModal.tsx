@@ -53,10 +53,12 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
 
   const [qrSvg, setQrSvg] = useState<string>('');
   const [qrDataUrl, setQrDataUrl] = useState<string>(cloudQrUrl);
+  const [qrLoading, setQrLoading] = useState<boolean>(true);
 
   // Tự động sinh mã QR nội tuyến SVG và Canvas DataURL
   useEffect(() => {
     if (!isOpen) return;
+    setQrLoading(true);
 
     // 1. Tạo SVG nội tuyến siêu nét trực tiếp trong DOM
     QRCode.toString(inviteUrl, {
@@ -67,11 +69,13 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
       .then((svgStr) => {
         if (svgStr) {
           setQrSvg(svgStr);
-          const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
-          setQrDataUrl(svgDataUrl);
+          setQrLoading(false);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        // Fallback: dùng cloud QR nếu thư viện lỗi
+        setQrLoading(false);
+      });
 
     // 2. Tạo Canvas PNG để nút Tải ảnh QR lưu được file ảnh .png
     QRCode.toDataURL(inviteUrl, {
@@ -166,7 +170,6 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
     const rawHandle =
       u.tagName ||
       u.username ||
-      (u.email ? u.email.split('@')[0] : '') ||
       'snapper';
     const cleanHandle = rawHandle.replace(/^@+/, '').toLowerCase().trim();
     const newPerson: FriendProfile = {
@@ -328,18 +331,25 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
           {activeTab === 'qr' && (
             <div className="text-center space-y-4 py-1">
               <div className="w-52 h-52 mx-auto rounded-3xl bg-white p-3.5 shadow-2xl shadow-amber-400/15 flex flex-col items-center justify-center border-4 border-amber-400/40 relative overflow-hidden">
-                {qrSvg ? (
+                {qrLoading ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-white rounded-xl">
+                    <div className="w-8 h-8 border-4 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-[10px] text-slate-500 font-medium">Đang tạo mã QR...</span>
+                  </div>
+                ) : qrSvg ? (
                   <div
                     className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:object-contain select-none"
                     dangerouslySetInnerHTML={{ __html: qrSvg }}
                   />
                 ) : (
                   <img
-                    src={qrDataUrl || cloudQrUrl}
+                    src={cloudQrUrl}
                     alt={`Mã QR của ${myDisplayName}`}
                     className="w-full h-full object-contain rounded-xl select-none"
                     onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = cloudQrUrl;
+                      // Nếu cloud QR cũng lỗi, thử reload
+                      const img = e.currentTarget as HTMLImageElement;
+                      img.src = cloudQrUrl + '&r=' + Date.now();
                     }}
                   />
                 )}
@@ -454,7 +464,6 @@ export function AddFriendModal({ isOpen, onClose, onFriendAdded }: AddFriendModa
                     const rawHandle =
                       u.tagName ||
                       u.username ||
-                      (u.email ? u.email.split('@')[0] : '') ||
                       'snapper';
                     const cleanHandle = rawHandle.replace(/^@+/, '').toLowerCase().trim();
                     const displayTag = `@${cleanHandle}`;

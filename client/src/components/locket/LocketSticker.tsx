@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getActiveTagTheme, getTagThemeById, TagTheme, TagThemeId } from '@/utils/tagThemes';
-import { Volume2, Sparkles, Plus, Check } from 'lucide-react';
+import { Volume2, Sparkles, Plus, Check, Trash2, X } from 'lucide-react';
 import { speakWord } from '@/utils/speech';
 import { saveWord, isWordSaved } from '@/utils/storage';
 import { IllustratedTagFrame } from './IllustratedTagFrame';
@@ -19,6 +19,7 @@ interface LocketStickerProps {
   isFrozen?: boolean; // When true (already posted), skin is locked and cannot be changed
   isDraggable?: boolean; // When true (in camera preview), user can drag to fine-tune placement
   onPositionChange?: (newX: number, newY: number) => void;
+  onDelete?: () => void; // When present (in camera preview), user can delete misplaced/wrong tags
 }
 
 export function LocketSticker({
@@ -35,6 +36,7 @@ export function LocketSticker({
   isFrozen = false,
   isDraggable = false,
   onPositionChange,
+  onDelete,
 }: LocketStickerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
@@ -188,6 +190,22 @@ export function LocketSticker({
         >
           <Volume2 className={`w-3.5 h-3.5 ${isPlaying ? 'animate-bounce' : ''}`} />
         </button>
+
+        {/* Quick Delete button (shown in camera preview before posting) */}
+        {onDelete && !isFrozen && (
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            className="p-0.5 rounded-full hover:bg-rose-500/80 hover:text-white text-slate-300/80 transition-colors ml-0.5"
+            title="Xóa nhãn sai này"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        )}
       </div>
 
       {/* Floating Card Popover on Tap */}
@@ -254,6 +272,23 @@ export function LocketSticker({
               </span>
               <span className="font-mono text-slate-300">{Math.round(confidence * 100)}%</span>
             </div>
+          )}
+
+          {/* Delete tag button (misidentified object) */}
+          {onDelete && !isFrozen && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowPopup(false);
+                onDelete();
+              }}
+              className="mt-3 w-full py-1.5 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 hover:text-rose-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+              title="Xóa nhãn này khỏi ảnh nếu AI nhận diện sai"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Xóa nhãn hiện sai này</span>
+            </button>
           )}
         </div>
       )}

@@ -1,7 +1,7 @@
 import { incrementChallengeProgress, getUserXp } from '@/utils/challenges';
 import { enrichVocabTag } from '@/utils/dictionary';
 import { useState, useRef, useEffect, DragEvent, ChangeEvent } from 'react';
-import { Camera, Eye, EyeOff, Upload, Sparkles, Send, RefreshCw, FolderPlus, Bookmark, Palette, SwitchCamera, Lock } from 'lucide-react';
+import { Camera, Eye, EyeOff, Upload, Sparkles, Send, RefreshCw, FolderPlus, Bookmark, Palette, SwitchCamera, Lock, Plus, RotateCcw, Tag } from 'lucide-react';
 import { useDetection } from '@/hooks/useDetection';
 import { DetectionResponse } from '@/types/detection';
 import { LocketSticker } from './LocketSticker';
@@ -22,6 +22,8 @@ export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [detectionResult, setDetectionResult] = useState<DetectionResponse | null>(null);
   const [editableTags, setEditableTags] = useState<VocabTag[]>([]);
+  const [originalTags, setOriginalTags] = useState<VocabTag[]>([]);
+  const [newTagInput, setNewTagInput] = useState<string>('');
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [showStickers, setShowStickers] = useState<boolean>(true);
   const [caption, setCaption] = useState<string>('');
@@ -147,6 +149,7 @@ export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
 
     setDetectionResult(null);
     setEditableTags([]);
+    setOriginalTags([]);
     setSelectedObjectId(null);
 
     analyzeImage(file, {
@@ -178,6 +181,7 @@ export function LocketCameraView({ onMomentShared }: LocketCameraViewProps) {
         // Smart anti-collision: push overlapping stickers apart so they never overlap
         const antiCollisionTags = resolveStickerOverlaps(rawTags);
         setEditableTags(antiCollisionTags);
+        setOriginalTags(antiCollisionTags);
       },
       onError: (err) => {
         console.error(err);
@@ -352,8 +356,44 @@ const getMeaningForWord = (word: string) => {
     return ipaMap[word.toLowerCase()] || '';
   };
 
+  const handleDeleteTag = (tagId: string) => {
+    setEditableTags((prev) => prev.filter((t) => t.id !== tagId));
+    if (selectedObjectId === tagId) {
+      setSelectedObjectId(null);
+    }
+  };
+
+  const handleRestoreOriginalTags = () => {
+    setEditableTags(originalTags);
+  };
+
+  const handleAddCustomTag = () => {
+    const clean = newTagInput.trim().toLowerCase();
+    if (!clean) return;
+    const chosenTheme = getTagThemeById(selectedSnapThemeId);
+    const finalThemeId: TagThemeId = isTagThemeUnlocked(chosenTheme, userStats) ? selectedSnapThemeId : 'classic';
+    const enriched = enrichVocabTag({
+      word: clean,
+      meaningVi: getMeaningForWord(clean),
+      ipa: getIpaForWord(clean),
+    });
+    const newTag: VocabTag = {
+      id: `custom-tag-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      word: clean,
+      meaningVi: enriched.meaningVi,
+      ipa: enriched.ipa,
+      example: enriched.example,
+      confidence: 1,
+      themeId: finalThemeId,
+      x: 50,
+      y: Math.max(20, Math.min(80, 30 + (editableTags.length * 12) % 50)),
+    };
+    setEditableTags((prev) => [...prev, newTag]);
+    setNewTagInput('');
+  };
+
   const handleShareToFeed = () => {
-    if (!imageUrl || editableTags.length === 0) return;
+    if (!imageUrl) return;
     // Guard chống double-tap / spam bấm nút Đăng
     if (isShareInProgress.current) return;
     isShareInProgress.current = true;
@@ -456,6 +496,7 @@ const getMeaningForWord = (word: string) => {
                   }}
                   isSelected={selectedObjectId === tag.id}
                   onSelect={() => setSelectedObjectId(tag.id)}
+                  onDelete={() => handleDeleteTag(tag.id)}
                 />
               ))}
 
@@ -507,6 +548,7 @@ const getMeaningForWord = (word: string) => {
                 setImageUrl(null);
                 setDetectionResult(null);
                 setEditableTags([]);
+                setOriginalTags([]);
                 setSelectedObjectId(null);
                 startLiveCamera(facingMode);
               }}
@@ -638,6 +680,97 @@ const getMeaningForWord = (word: string) => {
 {/* Sharing and Album Options when Photo is Ready */}
       {imageUrl && detectionResult && (
         <div className="bg-[#161D2B]/90 border border-white/10 rounded-[28px] p-4 shadow-xl space-y-3.5 animate-in fade-in duration-200">
+          {/* Vocab Tags Management (Delete misplaced tags / Add custom tags) */}
+          <div className="space-y-2 p-3 rounded-2xl bg-white/5 border border-white/10">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-200">
+              <span className="flex items-center gap-1.5 text-amber-400">
+                <Tag className="w-3.5 h-3.5" />
+                <span>Nhãn từ vựng ({editableTags.length}):</span>
+              </span>
+
+              {originalTags.length > 0 && editableTags.length !== originalTags.length && (
+                <button
+                  type="button"
+                  onClick={handleRestoreOriginalTags}
+                  className="text-amber-300 hover:text-amber-200 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                  title="Khôi phục lại tất cả nhãn AI phát hiện ban đầu"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Khôi phục ban đầu</span>
+                </button>
+              )}
+            </div>
+
+            {/* Chips of tags */}
+            {editableTags.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {editableTags.map((tag) => {
+                  const isSelected = selectedObjectId === tag.id;
+                  return (
+                    <div
+                      key={tag.id}
+                      onClick={() => setSelectedObjectId(isSelected ? null : tag.id)}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/25 ring-2 ring-white scale-102'
+                          : 'bg-white/10 hover:bg-white/15 border border-white/10 text-white'
+                      }`}
+                    >
+                      <span className="capitalize">{tag.word}</span>
+                      <span
+                        className={`text-[10px] ${
+                          isSelected ? 'text-slate-800 font-medium' : 'text-slate-400'
+                        }`}
+                      >
+                        {tag.meaningVi}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTag(tag.id);
+                        }}
+                        className="w-4 h-4 rounded-full bg-black/40 hover:bg-rose-500 text-slate-300 hover:text-white flex items-center justify-center text-[11px] transition-colors ml-0.5 cursor-pointer active:scale-90"
+                        title="Xóa nhãn hiện sai này"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-[11px] text-slate-400 italic">
+                Chưa có nhãn từ vựng nào trên ảnh. Bạn có thể nhập từ mới bên dưới để tự gắn nhãn.
+              </p>
+            )}
+
+            {/* Quick Add Custom Tag */}
+            <div className="flex items-center gap-1.5 pt-1">
+              <input
+                type="text"
+                placeholder="Thêm nhãn từ mới (vd: coffee, desk, cat...)"
+                value={newTagInput}
+                onChange={(e) => setNewTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddCustomTag();
+                  }
+                }}
+                className="flex-1 bg-black/40 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-hidden transition-colors"
+              />
+              <button
+                type="button"
+                onClick={handleAddCustomTag}
+                disabled={!newTagInput.trim()}
+                className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-40 text-slate-950 font-bold text-xs flex items-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Thêm nhãn</span>
+              </button>
+            </div>
+          </div>
           {/* Target Album Selection */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs font-bold text-slate-300 px-1">
@@ -753,7 +886,7 @@ const getMeaningForWord = (word: string) => {
             className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 hover:opacity-95 text-slate-950 font-black text-sm shadow-xl shadow-amber-400/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
           >
             <Send className="w-4 h-4 fill-slate-950" />
-            <span>Lưu vào Album & Đăng lên Feed</span>
+            <span>{editableTags.length > 0 ? 'Lưu vào Album & Đăng lên Feed' : 'Đăng ảnh lên Feed'}</span>
           </button>
         </div>
       )}
